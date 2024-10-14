@@ -18,7 +18,7 @@ def readJson(path):
     segments=[]
     try:  
         with open(path, 'r', encoding='utf-8') as file:  
-            data_list = json.load(file)  
+            data_list = json.load(file)[1]["*U731"]  
         
         for ele in data_list:
             e=None
@@ -26,7 +26,7 @@ def readJson(path):
                 e=DLine(DPoint(ele["start"][0],ele["start"][1]),DPoint(ele["end"][0],ele["end"][1]),ele["color"])
                 segments.append(DSegment(e.start_point,e.end_point,e))
             elif ele["type"]=="arc":
-                e=DArc(DPoint(ele["center"][0],ele["center"][1],ele["radius"],ele["startAngle"],ele["endAngle"]))
+                e=DArc(DPoint(ele["center"][0],ele["center"][1]),ele["radius"],ele["startAngle"],ele["endAngle"])
                 A=e.start_point.as_tuple()
                 B=e.end_point.as_tuple()
                 O=e.center.as_tuple()
@@ -40,7 +40,19 @@ def readJson(path):
                 elif angle<=90:
                     OC=(OA[0]+OB[0],OA[1]+OB[1])
                     l=math.sqrt(OC[0]**2 + OC[1]**2)
-                    OC=(OC[0]/l*e.radius,OC[1]/l*e.radius)
+                    if l==0:
+                        if e.start_angle<e<e.end_angle:
+                            mid=(e.start_angle+e.end_angle)/2
+                            
+                        else:
+                            mid=e.start_angle+e.end_angle+180
+                            if mid>=360:
+                                mid=mid-360
+                        c=math.cos(mid)
+                        s=math.sin(mid)
+                        OC=(O[0]+c*e.radius,O[1]+s*e.radius)
+                    else:
+                        OC=(OC[0]/l*e.radius,OC[1]/l*e.radius)
                     C=DPoint(OC[0]+O[0],OC[1]+O[1]) 
                     #AC CB
                     segments.append(DSegment(e.start_point,DPoint(C[0],C[1]),e))
@@ -48,7 +60,19 @@ def readJson(path):
                 else:
                     OC=(OA[0]+OB[0],OA[1]+OB[1])
                     l=math.sqrt(OC[0]**2 + OC[1]**2)
-                    OC=(OC[0]/l*e.radius,OC[1]/l*e.radius)
+                    if l==0:
+                        if e.start_angle<e<e.end_angle:
+                            mid=(e.start_angle+e.end_angle)/2
+                            
+                        else:
+                            mid=e.start_angle+e.end_angle+180
+                            if mid>=360:
+                                mid=mid-360
+                        c=math.cos(mid)
+                        s=math.sin(mid)
+                        OC=(O[0]+c*e.radius,O[1]+s*e.radius)
+                    else:
+                        OC=(OC[0]/l*e.radius,OC[1]/l*e.radius)
                     C=DPoint(OC[0]+O[0],OC[1]+O[1]) 
 
                     OD=(OA[0]+OC[0],OA[1]+OC[1])
@@ -68,7 +92,7 @@ def readJson(path):
                     segments.append(DSegment(DPoint(E[0],E[1]),e.end_point,e))
                 
 
-            elif ele["type"]=="lwpolyline":
+            elif ele["type"]=="lwpolyline" or ele["type"]=="polyline":
                 vs=ele["vertices"]
                 ps=[]
                 for v in vs:
@@ -172,7 +196,7 @@ def findClosedPolys(segments,drawIntersections=False,linePNGPath="./line.png",dr
                 plt.plot(p[0],p[1],'r.')
                 
         plt.gca().axis('equal')
-        plt.savefig("./lines2.png")
+        plt.savefig(linePNGPath)
     if drawPolys:
         pass
 
