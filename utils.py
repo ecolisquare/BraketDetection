@@ -16,12 +16,15 @@ def angleOfTwoVectors(A,B):
 def readJson(path):
     elements=[]
     segments=[]
+    color = [3, 7, 4]
     try:  
         with open(path, 'r', encoding='utf-8') as file:  
-            data_list = json.load(file)[1]["*U731"]  
+            data_list = json.load(file)[0]  
         
         for ele in data_list:
             e=None
+            if ele["color"] not in color:
+                continue
             if ele["type"]=="line":
                 e=DLine(DPoint(ele["start"][0],ele["start"][1]),DPoint(ele["end"][0],ele["end"][1]),ele["color"])
                 segments.append(DSegment(e.start_point,e.end_point,e))
@@ -40,8 +43,8 @@ def readJson(path):
                 elif angle<=90:
                     OC=(OA[0]+OB[0],OA[1]+OB[1])
                     l=math.sqrt(OC[0]**2 + OC[1]**2)
-                    if l==0:
-                        if e.start_angle<e<e.end_angle:
+                    if l<0.1:
+                        if e.start_angle<e.end_angle:
                             mid=(e.start_angle+e.end_angle)/2
                             
                         else:
@@ -60,8 +63,8 @@ def readJson(path):
                 else:
                     OC=(OA[0]+OB[0],OA[1]+OB[1])
                     l=math.sqrt(OC[0]**2 + OC[1]**2)
-                    if l==0:
-                        if e.start_angle<e<e.end_angle:
+                    if l<0.1:
+                        if e.start_angle<e.end_angle:
                             mid=(e.start_angle+e.end_angle)/2
                             
                         else:
@@ -183,7 +186,7 @@ def findClosedPolys(segments,drawIntersections=False,linePNGPath="./line.png",dr
             poly.append(edge_map[DSegment(cycle[i],cycle[i+1])])
         poly.append(edge_map[DSegment(cycle[-1],cycle[0])])
         polys.append(poly)
-        print(f"poly:{poly}")
+        # print(f"poly:{poly}")
     if drawIntersections:
         # plot original segments
         for seg in segments:
@@ -199,5 +202,6 @@ def findClosedPolys(segments,drawIntersections=False,linePNGPath="./line.png",dr
         plt.savefig(linePNGPath)
     if drawPolys:
         pass
+    print(len(polys))
 
     return polys

@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 from utils import *
 
 #read file
-elements,ori_segments=readJson("../data/split/A-1.json")
+elements,ori_segments=readJson("../data/split/FR22.json")
 #expand segments
 segments=expandFixedLength(ori_segments,15)
 #find all the closed polys
