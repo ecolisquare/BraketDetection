@@ -16,17 +16,20 @@ def angleOfTwoVectors(A,B):
 def readJson(path):
     elements=[]
     segments=[]
+    color = [3, 7, 4]
     try:  
         with open(path, 'r', encoding='utf-8') as file:  
-            data_list = json.load(file)  
+            data_list = json.load(file)[0]  
         
         for ele in data_list:
             e=None
+            if ele["color"] not in color:
+                continue
             if ele["type"]=="line":
                 e=DLine(DPoint(ele["start"][0],ele["start"][1]),DPoint(ele["end"][0],ele["end"][1]),ele["color"])
                 segments.append(DSegment(e.start_point,e.end_point,e))
             elif ele["type"]=="arc":
-                e=DArc(DPoint(ele["center"][0],ele["center"][1],ele["radius"],ele["startAngle"],ele["endAngle"]))
+                e=DArc(DPoint(ele["center"][0],ele["center"][1]),ele["radius"],ele["startAngle"],ele["endAngle"])
                 A=e.start_point.as_tuple()
                 B=e.end_point.as_tuple()
                 O=e.center.as_tuple()
@@ -68,7 +71,7 @@ def readJson(path):
                     segments.append(DSegment(DPoint(E[0],E[1]),e.end_point,e))
                 
 
-            elif ele["type"]=="lwpolyline":
+            elif ele["type"]=="lwpolyline" or ele["type"]=="polyline":
                 vs=ele["vertices"]
                 ps=[]
                 for v in vs:
@@ -159,7 +162,7 @@ def findClosedPolys(segments,drawIntersections=False,linePNGPath="./line.png",dr
             poly.append(edge_map[DSegment(cycle[i],cycle[i+1])])
         poly.append(edge_map[DSegment(cycle[-1],cycle[0])])
         polys.append(poly)
-        print(f"poly:{poly}")
+        # print(f"poly:{poly}")
     if drawIntersections:
         # plot original segments
         for seg in segments:
@@ -172,8 +175,9 @@ def findClosedPolys(segments,drawIntersections=False,linePNGPath="./line.png",dr
                 plt.plot(p[0],p[1],'r.')
                 
         plt.gca().axis('equal')
-        plt.savefig("./lines2.png")
+        plt.savefig(linePNGPath)
     if drawPolys:
         pass
+    print(len(polys))
 
     return polys
