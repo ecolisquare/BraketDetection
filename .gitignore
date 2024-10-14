@@ -2,6 +2,9 @@
 __pycache__/
 *.py[cod]
 
+# Ignore output files
+output/
+
 # Ignore virtual environments (optional, if you use venv)
 venv/
 env/
