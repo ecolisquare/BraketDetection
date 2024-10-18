@@ -4,6 +4,7 @@ import math
 from SweepIntersectorLib.SweepIntersector import SweepIntersector
 import matplotlib.pyplot as plt
 import networkx as nx
+import numpy as np
 
 def angleOfTwoVectors(A,B):
     lengthA = math.sqrt(A[0]**2 + A[1]**2)  
@@ -11,7 +12,40 @@ def angleOfTwoVectors(A,B):
     dotProduct = A[0] * B[0] + A[1] * B[1]   
     angle = math.acos(dotProduct / (lengthA * lengthB))
     angle_degrees = angle * (180 / math.pi)  
-    return angle_degrees  
+    return angle_degrees
+
+# Ramer-Douglas-Peucker algorithm for line simplification
+def rdp(points, epsilon):
+    if len(points) < 3:
+        return points
+    # Find the point with the maximum distance from the line segment (first to last point)
+    start = points[0]
+    end = points[-1]
+    line_vec = np.array([end.x - start.x, end.y - start.y])
+    line_len = np.linalg.norm(line_vec)
+
+    max_dist = 0
+    index = 0
+
+    for i in range(1, len(points) - 1):
+        p = points[i]
+        vec = np.array([p.x - start.x, p.y - start.y])
+        proj_len = np.dot(vec, line_vec) / line_len
+        proj_point = np.array([start.x, start.y]) + proj_len * (line_vec / line_len)
+        dist = np.linalg.norm([p.x, p.y] - proj_point)
+
+        if dist > max_dist:
+            max_dist = dist
+            index = i
+
+    # If the max distance is greater than epsilon, recursively simplify
+    if max_dist > epsilon:
+        left = rdp(points[:index + 1], epsilon)
+        right = rdp(points[index:], epsilon)
+        return left[:-1] + right
+    else:
+        return [start, end]  
+
 #json --> elements
 def readJson(path):
     elements=[]
@@ -28,47 +62,6 @@ def readJson(path):
             if ele["type"]=="line":
                 e=DLine(DPoint(ele["start"][0],ele["start"][1]),DPoint(ele["end"][0],ele["end"][1]),ele["color"])
                 segments.append(DSegment(e.start_point,e.end_point,e))
-            # elif ele["type"]=="arc":
-            #     e=DArc(DPoint(ele["center"][0],ele["center"][1]),ele["radius"],ele["startAngle"],ele["endAngle"])
-            #     A=e.start_point.as_tuple()
-            #     B=e.end_point.as_tuple()
-            #     O=e.center.as_tuple()
-            #     OA=(A[0]-O[0],A[1]-O[1])
-            #     OB=(B[0]-O[0],B[1]-O[1])
-            #     angle=angleOfTwoVectors(OA,OB)
-            #     edges=[]
-            #     if angle<=45:
-            #         #AB
-            #         segments.append(DSegment(e.start_point,e.end_point,e))
-            #     elif angle<=90:
-            #         OC=(OA[0]+OB[0],OA[1]+OB[1])
-            #         l=math.sqrt(OC[0]**2 + OC[1]**2)
-            #         OC=(OC[0]/l*e.radius,OC[1]/l*e.radius)
-            #         C=DPoint(OC[0]+O[0],OC[1]+O[1]) 
-            #         #AC CB
-            #         segments.append(DSegment(e.start_point,DPoint(C[0],C[1]),e))
-            #         segments.append(DSegment(DPoint(C[0],C[1]),e.end_point,e))
-            #     else:
-            #         OC=(OA[0]+OB[0],OA[1]+OB[1])
-            #         l=math.sqrt(OC[0]**2 + OC[1]**2)
-            #         OC=(OC[0]/l*e.radius,OC[1]/l*e.radius)
-            #         C=DPoint(OC[0]+O[0],OC[1]+O[1]) 
-
-            #         OD=(OA[0]+OC[0],OA[1]+OC[1])
-            #         l=math.sqrt(OD[0]**2 + OD[1]**2)
-            #         OD=(OD[0]/l*e.radius,OD[1]/l*e.radius)
-            #         D=DPoint(OD[0]+O[0],OD[1]+O[1]) 
-
-            #         OE=(OC[0]+OB[0],OC[1]+OB[1])
-            #         l=math.sqrt(OE[0]**2 + OE[1]**2)
-            #         OE=(OE[0]/l*e.radius,OE[1]/l*e.radius)
-            #         E=DPoint(OE[0]+O[0],OE[1]+O[1]) 
-            #         #AD DC CE EB
-
-            #         segments.append(DSegment(e.start_point,DPoint(D[0],D[1]),e))
-            #         segments.append(DSegment(DPoint(D[0],D[1]),DPoint(C[0],C[1]),e))
-            #         segments.append(DSegment(DPoint(C[0],C[1]),DPoint(E[0],E[1]),e))
-            #         segments.append(DSegment(DPoint(E[0],E[1]),e.end_point,e))
             elif ele["type"] == "arc":
                 # 创建DArc对象
                 e = DArc(DPoint(ele["center"][0], ele["center"][1]), ele["radius"], ele["startAngle"], ele["endAngle"])
@@ -82,7 +75,7 @@ def readJson(path):
                 total_angle = end_angle - start_angle
                 
                 # 定义分段数量，可以根据角度总长动态决定（这里的分段数可以自行调整）
-                num_segments = max(2, int(total_angle / 45))  # 每10度一个分段
+                num_segments = max(2, int(total_angle / 45))  # 每45度一个分段
                 step_angle = total_angle / num_segments  # 每个分段的角度
 
                 # 生成多段线段
@@ -105,16 +98,18 @@ def readJson(path):
                 
 
             elif ele["type"]=="lwpolyline" or ele["type"]=="polyline":
-                vs=ele["vertices"]
-                ps=[]
-                for v in vs:
-                    ps.append(DPoint(v[0],v[1]))
-                e=DLwpolyline(ps,ele["color"],ele["isClosed"])
-                l =len(ps)
-                for i in range(l-1):
-                    segments.append(DSegment(ps[i],ps[i+1],e))
+                vs = ele["vertices"]
+                ps = [DPoint(v[0], v[1]) for v in vs]
+
+                # Apply line simplification
+                simplified_ps = rdp(ps, epsilon=5.0)  # Adjust epsilon for simplification level
+
+                e = DLwpolyline(simplified_ps, ele["color"], ele["isClosed"])
+                l = len(simplified_ps)
+                for i in range(l - 1):
+                    segments.append(DSegment(simplified_ps[i], simplified_ps[i + 1], e))
                 if ele["isClosed"]:
-                    segments.append(DSegment(ps[-1],ps[0],e))
+                    segments.append(DSegment(simplified_ps[-1], simplified_ps[0], e))
             else:
                 pass
             if e is not None:
@@ -124,7 +119,6 @@ def readJson(path):
         print("The file does not exist.")
     except json.JSONDecodeError:  
         print("Error decoding JSON.")
-
 
 def expandFixedLength(segList,dist):
 
@@ -146,71 +140,116 @@ def remove_duplicates(input_list):
         if item not in seen:  
             seen.add(item)  
             result.append(item)  
-    return result  
-  
-def findClosedPolys(segments,drawIntersections=False,linePNGPath="./line.png",drawPolys=False,polyPNGPath="./poly.png"):
-    lines_dict={}
-    points_dict={}
-    # compute intersections
-    isector = SweepIntersector()
-    isecDic = isector.findIntersections(segments,lines_dict,points_dict)
-    #isecDic filter
-    for seg,isects in isecDic.items():
-        isecDic[seg]=remove_duplicates(isects)
+    return result
 
-    #find all the edges
-    edge_set=set()
-    for seg,isects in isecDic.items():
-        l=len(isects)
-        for i in range(l-1):
-            # print(isects[i],"  to  ",isects[i+1])
-            edge_set.add(DSegment(isects[i],isects[i+1],seg.ref))
+# Helper function to compute intersection between two segments
+def segment_intersection(p1, p2, q1, q2, epsilon=1e-9):
+    """ Returns the intersection point between two line segments, or None if they don't intersect. """
+    def cross_product(v1, v2):
+        return v1[0] * v2[1] - v1[1] * v2[0]
 
+    r = (p2.x - p1.x, p2.y - p1.y)
+    s = (q2.x - q1.x, q2.y - q1.y)
 
-    edge_list=list(edge_set)
+    denominator = cross_product(r, s)
 
+    if abs(denominator) < epsilon:  # Parallel or collinear
+        return None
 
-    edge_map={}
+    t = cross_product((q1.x - p1.x, q1.y - p1.y), s) / denominator
+    u = cross_product((q1.x - p1.x, q1.y - p1.y), r) / denominator
+
+    if 0 <= t <= 1 and 0 <= u <= 1:  # Intersection occurs within both segments
+        intersect_x = p1.x + t * r[0]
+        intersect_y = p1.y + t * r[1]
+        return DPoint(intersect_x, intersect_y)
+    
+    return None
+
+# Function to find all intersections
+def find_all_intersections(segments, epsilon=1e-9):
+    intersection_dict = {}
+    for i, seg1 in enumerate(segments):
+        for j, seg2 in enumerate(segments):
+            if i >= j:
+                continue  # Avoid duplicate checks and self-intersections
+            p1, p2 = seg1.start_point, seg1.end_point
+            q1, q2 = seg2.start_point, seg2.end_point
+            intersection = segment_intersection(p1, p2, q1, q2, epsilon)
+            if intersection:
+                if seg1 not in intersection_dict:
+                    intersection_dict[seg1] = []
+                if seg2 not in intersection_dict:
+                    intersection_dict[seg2] = []
+                
+                # Append the intersection for both segments
+                intersection_dict[seg1].append(intersection)
+                intersection_dict[seg2].append(intersection)
+
+    # Sort intersections along each segment by their distance from the start point
+    for seg, isects in intersection_dict.items():
+        isects.sort(key=lambda p: (p.x - seg.start_point.x)**2 + (p.y - seg.start_point.y)**2)
+
+    return intersection_dict
+
+# Updated function to find closed polygons
+def findClosedPolys(segments, drawIntersections=False, linePNGPath="./line.png", drawPolys=False, polyPNGPath="./poly.png"):
+    # compute intersections using the improved method
+    isecDic = find_all_intersections(segments)
+
+    # filter and remove duplicates
+    for seg, isects in isecDic.items():
+        isecDic[seg] = remove_duplicates(isects)
+
+    # find all the edges
+    edge_set = set()
+    for seg, isects in isecDic.items():
+        l = len(isects)
+        for i in range(l - 1):
+            edge_set.add(DSegment(isects[i], isects[i + 1], seg.ref))
+
+    edge_list = list(edge_set)
+
+    # map edges to their segment pairs
+    edge_map = {}
     for e in edge_list:
-        edge_map[DSegment(e.start_point,e.end_point)]=e
-        edge_map[DSegment(e.end_point,e.start_point)]=e
+        edge_map[DSegment(e.start_point, e.end_point)] = e
+        edge_map[DSegment(e.end_point, e.start_point)] = e
 
-    # print("========================")
-    # print(edges)
-    # 创建无向图并添加节点和边
+    # Creating a graph to find cycles (closed paths)
     G = nx.Graph()
-    # 添加一些边，形成多个闭合路径
     G.add_edges_from(edge_list)
-    # 查找所有的基本环
-    cycles = nx.cycle_basis(G)
 
-    polys=[]
-    # 打印出所有的闭合路径
+    # Find all basic cycles (closed polygons)
+    cycles = nx.cycle_basis(G)
+    
+    polys = []
     print("Found cycles (closed paths):")
     for cycle in cycles:
-        poly=[]
-        l=len(cycle)
-        print(f"vertex count:{l}")
-        for i in range(l-1):
-            poly.append(edge_map[DSegment(cycle[i],cycle[i+1])])
-        poly.append(edge_map[DSegment(cycle[-1],cycle[0])])
+        poly = []
+        l = len(cycle)
+        print(f"vertex count: {l}")
+        for i in range(l - 1):
+            poly.append(edge_map[DSegment(cycle[i], cycle[i + 1])])
+        poly.append(edge_map[DSegment(cycle[-1], cycle[0])])
         polys.append(poly)
-        # print(f"poly:{poly}")
+
     if drawIntersections:
         # plot original segments
         for seg in segments:
-            vs,ve = seg
-            plt.plot([vs[0],ve[0]],[vs[1],ve[1]],'k:')
+            vs, ve = seg.start_point, seg.end_point
+            plt.plot([vs.x, ve.x], [vs.y, ve.y], 'k:')
 
         # plot intersection points
-        for seg,isects in isecDic.items():
-            for p in isects[1:-1]:      
-                plt.plot(p[0],p[1],'r.')
-                
+        for seg, isects in isecDic.items():
+            for p in isects:
+                plt.plot(p.x, p.y, 'r.')
+
         plt.gca().axis('equal')
         plt.savefig(linePNGPath)
+
     if drawPolys:
         pass
-    print(len(polys))
 
     return polys
+
