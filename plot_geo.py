@@ -2,7 +2,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 from element import *
 
-# 可视化函数
+# 输出多边形所在原始图形
 def plot_geometry(segments, path):
     fig, ax = plt.subplots()
     for segment in segments:
@@ -34,6 +34,7 @@ def plot_geometry(segments, path):
     plt.close()
 
 
+#输出封闭多边形
 def plot_polys(segments,path):
     fig, ax = plt.subplots()
     
