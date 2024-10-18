@@ -298,6 +298,7 @@ class SweepIntersector():
 
                     # insert intersection point into result dictionary
                     dp=DPoint(q.x,q.y)
+                    
                     self.isectDict[self.original[s0]].append(dp)
                     self.isectDict[self.original[s1]].append(dp)
                     # lines dictionary
@@ -310,9 +311,9 @@ class SweepIntersector():
                     #points dictionary
                     # insert intersection point into result dictionary
                     # if s0.p1 != q and s0.p2 != q:
-                    #     self.isectDict[self.original[s0]].append((q.x,q.y))
+                    #     self.isectDict[self.original[s0]].append(dp)
                     # if s1.p1 != q and s1.p2 != q:
-                    #     self.isectDict[self.original[s1]].append((q.x,q.y))
+                    #     self.isectDict[self.original[s1]].append(dp)
 
 
     @staticmethod
