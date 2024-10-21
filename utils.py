@@ -51,13 +51,22 @@ def readJson(path):
     elements=[]
     segments=[]
     color = [3, 7, 4]
+    linetype = ["BYLAYER", "Continuous"]
+
+    # 存储圆弧代表线段
+    arc_repline = []
+
     try:  
         with open(path, 'r', encoding='utf-8') as file:  
             data_list = json.load(file)[0]  
         
         for ele in data_list:
             e=None
+            # 颜色过滤
             if ele["color"] not in color:
+                continue
+            # 虚线过滤
+            if ele.get("linetype") is None or ele["linetype"] not in linetype:
                 continue
             if ele["type"]=="line":
                 e=DLine(DPoint(ele["start"][0],ele["start"][1]),DPoint(ele["end"][0],ele["end"][1]),ele["color"])
@@ -94,6 +103,7 @@ def readJson(path):
                     start_point = DPoint(x1, y1)
                     end_point = DPoint(x2, y2)
                     segments.append(DSegment(start_point, end_point, e))
+                arc_repline.append(segments[0])
 
                 
 
@@ -114,7 +124,7 @@ def readJson(path):
                 pass
             if e is not None:
                 elements.append(e)
-        return elements,segments
+        return elements,segments,arc_repline
     except FileNotFoundError:  
         print("The file does not exist.")
     except json.JSONDecodeError:  
@@ -192,8 +202,50 @@ def find_all_intersections(segments, epsilon=1e-9):
 
     return intersection_dict
 
+import networkx as nx
+
+def find_all_cycles(edge_list, edge_map):
+    """Find all simple cycles using Horton's Algorithm."""
+    # Step 1: Create a graph from edge_list
+    graph = nx.Graph()
+    for edge in edge_list:
+        graph.add_edge(edge.start_point, edge.end_point)
+
+    # Step 2: Find shortest cycles for each edge using breadth-first search (BFS)
+    all_cycles = list()  # Use a set to avoid duplicate cycles
+
+    # Step 3: Iterate over all pairs of edges
+    for edge in edge_list:
+        # Remove the current edge from the graph temporarily
+        graph.remove_edge(edge.start_point, edge.end_point)
+
+        try:
+            # Perform BFS to find the shortest path between the two endpoints of the edge
+            shortest_path = nx.shortest_path(graph, source=edge.start_point, target=edge.end_point)
+            # Add the edge back to the graph
+            graph.add_edge(edge.start_point, edge.end_point)
+
+            # The cycle is the shortest path plus the edge itself
+            cycle = shortest_path
+            # print(cycle)
+            # cycle_tuple = tuple(sorted(cycle))  # Sort the cycle to avoid duplicates
+            path = []
+            for i in range(len(cycle) - 1):
+                path.append(edge_map[DSegment(cycle[i], cycle[i + 1])])
+            path.append(edge_map[DSegment(cycle[-1], cycle[0])])
+            all_cycles.append(path)
+
+        except nx.NetworkXNoPath:
+            # If there's no path, just add the edge back and continue
+            graph.add_edge(edge.start_point, edge.end_point)
+
+    # Convert the set of cycles back to a list of lists for further processing
+    return [list(cycle) for cycle in all_cycles]
+
+
+
 # Updated function to find closed polygons
-def findClosedPolys(segments, drawIntersections=False, linePNGPath="./line.png", drawPolys=False, polyPNGPath="./poly.png"):
+def findClosedPolys(segments, arc_repline, drawIntersections=False, linePNGPath="./line.png", drawPolys=False, polyPNGPath="./poly.png"):
     # compute intersections using the improved method
     isecDic = find_all_intersections(segments)
 
@@ -216,23 +268,9 @@ def findClosedPolys(segments, drawIntersections=False, linePNGPath="./line.png",
         edge_map[DSegment(e.start_point, e.end_point)] = e
         edge_map[DSegment(e.end_point, e.start_point)] = e
 
-    # Creating a graph to find cycles (closed paths)
-    G = nx.Graph()
-    G.add_edges_from(edge_list)
-
-    # Find all basic cycles (closed polygons)
-    cycles = nx.cycle_basis(G)
+    # TODO:Find all basic cycles using DFS-based method based on arc reprenstive line
     
-    polys = []
-    print("Found cycles (closed paths):")
-    for cycle in cycles:
-        poly = []
-        l = len(cycle)
-        print(f"vertex count: {l}")
-        for i in range(l - 1):
-            poly.append(edge_map[DSegment(cycle[i], cycle[i + 1])])
-        poly.append(edge_map[DSegment(cycle[-1], cycle[0])])
-        polys.append(poly)
+    
 
     if drawIntersections:
         # plot original segments
