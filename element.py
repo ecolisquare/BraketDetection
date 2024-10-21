@@ -82,6 +82,7 @@ class DSegment:
         self.start_point = start_point  
         self.end_point = end_point  
         self.ref=ref
+        self.isConstraint=0
     def __len__(self):
         return 2
 
@@ -115,4 +116,6 @@ class DSegment:
   
     def __repr__(self):  
         return f"Segment({self.start_point}, {self.end_point}, length={self.length()}, ref={self.ref})"  
-  
+    # def setConstraint(self,isConstraint=0):
+    #     if isConstraint:
+    #         self.isConstraint=2

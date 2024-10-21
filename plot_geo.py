@@ -2,14 +2,13 @@ import matplotlib.pyplot as plt
 import numpy as np
 from element import *
 
-# 可视化函数
+# 输出多边形所在原始图形
 def plot_geometry(segments, path):
     fig, ax = plt.subplots()
-    
     for segment in segments:
         if isinstance(segment.ref, DLine):
-            x_values = [segment.start_point.x, segment.end_point.x]
-            y_values = [segment.start_point.y, segment.end_point.y]
+            x_values = [segment.ref.start_point.x, segment.ref.end_point.x]
+            y_values = [segment.ref.start_point.y, segment.ref.end_point.y]
             ax.plot(x_values, y_values, 'b-', lw=2)
         
         elif isinstance(segment.ref, DLwpolyline):
@@ -30,6 +29,19 @@ def plot_geometry(segments, path):
             y_arc = segment.ref.center.y + segment.ref.radius * np.sin(theta)
             ax.plot(x_arc, y_arc, 'r-', lw=2)
 
+    ax.set_aspect('equal', 'box')
+    plt.savefig(path)
+    plt.close()
+
+
+#输出封闭多边形
+def plot_polys(segments,path):
+    fig, ax = plt.subplots()
+    
+    for segment in segments:
+        x_values = [segment.start_point.x, segment.end_point.x]
+        y_values = [segment.start_point.y, segment.end_point.y]
+        ax.plot(x_values, y_values, 'b-', lw=2)
     ax.set_aspect('equal', 'box')
     plt.savefig(path)
     plt.close()

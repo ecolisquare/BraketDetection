@@ -1,8 +1,8 @@
+import math
 class DPoint:  
     def __init__(self, x=0, y=0):  
         self.x = x  
         self.y = y  
-
     def __eq__(self, other):  
         # 如果 other 也是 Point 实例，并且 x 和 y 坐标相等，则返回 True  
         if isinstance(other, DPoint):  
@@ -31,6 +31,8 @@ class DPoint:
             raise IndexError("Point index out of range (0 or 1 expected)") 
     def __repr__(self):  
         return f"Point({self.x}, {self.y})"  
+    def as_tuple(self):
+        return (self.x,self.y)
 
 
 #color=7 white color=3 green
@@ -45,9 +47,10 @@ class DLine:
   
 
 class DLwpolyline:  
-    def __init__(self, points: list[DPoint],color=7):  
+    def __init__(self, points: list[DPoint],color=7,isClosed=False):  
         self.points = points
         self.color=color  
+        self.isClosed=isClosed
   
     def __repr__(self):  
         return f"Lwpolyline({self.points})"  
@@ -59,6 +62,14 @@ class DArc:
         self.start_angle = start_angle  # in degrees  
         self.end_angle = end_angle      # in degrees  
         self.color=color
+        sa=start_angle/180*math.pi
+        ea=end_angle/180*math.pi
+        c1=math.cos(sa)
+        s1=math.sin(sa)
+        c2=math.cos(ea)
+        s2=math.sin(ea)
+        self.start_point=DPoint(center[0]+radius*c1,center[1]+radius*s1)
+        self.end_point=DPoint(center[0]+radius*c2,center[1]+radius*s2)
   
     def __repr__(self):  
         return (f"Arc(center={self.center}, radius={self.radius}, "  
@@ -71,9 +82,10 @@ class DSegment:
         self.start_point = start_point  
         self.end_point = end_point  
         self.ref=ref
+        self.isConstraint=0
     def __len__(self):
         return 2
-        
+
     def __eq__(self, other):  
         if isinstance(other, DSegment):  
             return (self.start_point, self.end_point,self.ref) == (other.start_point, other.end_point,self.ref)  
@@ -88,8 +100,7 @@ class DSegment:
         elif index == 1:  
             return self.end_point  
         else:  
-            raise IndexError("Point index out of range (0 or 1 expected)") 
-    
+            raise IndexError("Point index out of range (0 or 1 expected)")  
 
     def __setitem__(self, index, value):  
         # 支持通过索引修改坐标  
@@ -105,4 +116,6 @@ class DSegment:
   
     def __repr__(self):  
         return f"Segment({self.start_point}, {self.end_point}, length={self.length()}, ref={self.ref})"  
-  
+    # def setConstraint(self,isConstraint=0):
+    #     if isConstraint:
+    #         self.isConstraint=2

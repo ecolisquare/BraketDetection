@@ -81,6 +81,8 @@ def readJson(path):
                 # 计算角度差
                 start_angle = ele["startAngle"]
                 end_angle = ele["endAngle"]
+                if end_angle<start_angle:
+                    end_angle=end_angle+360
                 total_angle = end_angle - start_angle
                 
                 # 定义分段数量，可以根据角度总长动态决定（这里的分段数可以自行调整）
@@ -130,6 +132,7 @@ def readJson(path):
     except json.JSONDecodeError:  
         print("Error decoding JSON.")
 
+#expand lines by fixed length
 def expandFixedLength(segList,dist):
 
 
@@ -139,10 +142,13 @@ def expandFixedLength(segList,dist):
         p2=seg[1]
         v=(p2[0]-p1[0],p2[1]-p1[1])
         l=math.sqrt(v[0]*v[0]+v[1]*v[1])
+        if l<=dist:
+            continue
         v=(v[0]/l*dist,v[1]/l*dist)
         new_seglist.append(DSegment(DPoint(p1[0]-v[0],p1[1]-v[1]),DPoint(p2[0]+v[0],p2[1]+v[1]),seg.ref))
     return new_seglist
 
+#remove duplicate points on the same edge
 def remove_duplicates(input_list):  
     seen = set()  
     result = []  
@@ -201,6 +207,47 @@ def find_all_intersections(segments, epsilon=1e-9):
         isects.sort(key=lambda p: (p.x - seg.start_point.x)**2 + (p.y - seg.start_point.y)**2)
 
     return intersection_dict
+
+# filter polys by area of polys's bounding boxes 
+def filterPolys(polys,t=100):
+    filtered_polys=[]
+    for poly in polys:
+        x_min,x_max=poly[0].start_point.x,poly[0].start_point.x
+        y_min,y_max=poly[0].start_point.y,poly[0].start_point.y
+        if x_min>poly[0].end_point.x:
+            x_min=poly[0].end_point.x
+        if x_max< poly[0].end_point.x:
+            x_max=poly[0].end_point.x
+        if y_min>poly[0].end_point.y:
+            y_min=poly[0].end_point.y
+        if y_max<poly[0].end_point.y:
+            y_max=poly[0].end_point.y
+        for i in range(len(poly)):
+            if i==0:
+                continue
+            edge=poly[i]
+            if x_min>edge.start_point.x:
+                x_min=edge.start_point.x
+            if x_max< edge.start_point.x:
+                x_max=edge.start_point.x
+            if y_min>edge.start_point.y:
+                y_min=edge.start_point.y
+            if y_max<edge.start_point.y:
+                y_max=edge.start_point.y
+
+            if x_min>edge.end_point.x:
+                x_min=edge.end_point.x
+            if x_max< edge.end_point.x:
+                x_max=edge.end_point.x
+            if y_min>edge.end_point.y:
+                y_min=edge.end_point.y
+            if y_max<edge.end_point.y:
+                y_max=edge.end_point.y
+
+        area=(y_max-y_min)*(x_max-x_min)
+        if area>t:
+            filtered_polys.append(poly)
+    return filtered_polys
 
 import networkx as nx
 
@@ -273,7 +320,7 @@ def findClosedPolys(segments, arc_repline, drawIntersections=False, linePNGPath=
     
 
     if drawIntersections:
-        # plot original segments
+        #plot original segments
         for seg in segments:
             vs, ve = seg.start_point, seg.end_point
             plt.plot([vs.x, ve.x], [vs.y, ve.y], 'k:')
@@ -287,7 +334,10 @@ def findClosedPolys(segments, arc_repline, drawIntersections=False, linePNGPath=
         plt.savefig(linePNGPath)
 
     if drawPolys:
+        # for poly in polys:
+        #     for e in poly:
+        #         plt.plot([e[0][0],e[1][0]],[e[0][1],e[1][1]],'k:')
         pass
 
-    return polys
+    return filtered_polys
 
