@@ -311,7 +311,7 @@ def bfs_paths(graph, start_point, end_point):
                 new_seg_path = seg_path + [new_seg]
 
                 if neighbor == end_point:
-                    if len(new_point_path) > 2:  # 避免 trivial paths
+                    if len(new_point_path) > 1:  # 避免 trivial paths
                         all_paths.append(new_seg_path)
                 else:
                     queue.append((neighbor, new_point_path, new_seg_path))
@@ -470,7 +470,7 @@ def remove_complicated_polygons(polys, tolerance=1e-5):
 
 
 def findClosedPolys_via_BFS(segments, drawIntersections=False, linePNGPath="./line.png", drawPolys=False, polyPNGPath="./poly.png"):
-    # compute intersections using the improved method
+    # Step 1: 计算交点
     isecDic = find_all_intersections(segments)
 
     # filter and remove duplicates
@@ -496,6 +496,10 @@ def findClosedPolys_via_BFS(segments, drawIntersections=False, linePNGPath="./li
 
         # 使用 BFS 查找从 start_point 到 end_point 的所有路径
         paths = bfs_paths(graph, start_point, end_point)
+
+        # 构成闭合路径
+        for path in paths:
+            path.append(arc_repline)
 
         # 将找到的路径添加到 closed_polys
         closed_polys.extend(paths)
