@@ -5,6 +5,7 @@ from SweepIntersectorLib.SweepIntersector import SweepIntersector
 import matplotlib.pyplot as plt
 import networkx as nx
 import numpy as np
+from collections import deque
 
 def angleOfTwoVectors(A,B):
     lengthA = math.sqrt(A[0]**2 + A[1]**2)  
@@ -53,8 +54,6 @@ def readJson(path):
     color = [3, 7, 4]
     linetype = ["BYLAYER", "Continuous"]
 
-    # 存储圆弧代表线段
-    arc_repline = []
 
     try:  
         with open(path, 'r', encoding='utf-8') as file:  
@@ -105,7 +104,6 @@ def readJson(path):
                     start_point = DPoint(x1, y1)
                     end_point = DPoint(x2, y2)
                     segments.append(DSegment(start_point, end_point, e))
-                arc_repline.append(segments[0])
 
                 
 
@@ -126,7 +124,7 @@ def readJson(path):
                 pass
             if e is not None:
                 elements.append(e)
-        return elements,segments,arc_repline
+        return elements,segments
     except FileNotFoundError:  
         print("The file does not exist.")
     except json.JSONDecodeError:  
@@ -249,50 +247,196 @@ def filterPolys(polys,t=100):
             filtered_polys.append(poly)
     return filtered_polys
 
-import networkx as nx
 
-def find_all_cycles(edge_list, edge_map):
-    """Find all simple cycles using Horton's Algorithm."""
-    # Step 1: Create a graph from edge_list
-    graph = nx.Graph()
-    for edge in edge_list:
-        graph.add_edge(edge.start_point, edge.end_point)
+from collections import deque
 
-    # Step 2: Find shortest cycles for each edge using breadth-first search (BFS)
-    all_cycles = list()  # Use a set to avoid duplicate cycles
+def split_segments(segments, intersections): 
+    """根据交点将线段分割并构建 edge_map"""
+    new_segments = []
+    edge_map = {}
 
-    # Step 3: Iterate over all pairs of edges
-    for edge in edge_list:
-        # Remove the current edge from the graph temporarily
-        graph.remove_edge(edge.start_point, edge.end_point)
+    for seg, inter_points in intersections.items():
+        # 按照坐标顺序排序交点
+        inter_points = sorted(inter_points, key=lambda p: (p.x, p.y))
+        points = [seg.start_point] + inter_points + [seg.end_point]
+        
+        # 将线段分割为多个部分
+        for i in range(len(points) - 1):
+            # 比较两个点的大小，确保起点较小
+            start_point, end_point = points[i], points[i+1]
+            if (end_point.x, end_point.y) < (start_point.x, start_point.y):
+                start_point, end_point = end_point, start_point
+            
+            # 创建新线段
+            new_seg = DSegment(start_point, end_point, seg.ref)
+            new_segments.append(new_seg)
+            
+            # 添加到 edge_map 中，包含正向和反向的线段
+            edge_map[DSegment(start_point, end_point)] = new_seg
+            edge_map[DSegment(end_point, start_point)] = new_seg  # 反向线段
+    
+    return new_segments, edge_map
 
-        try:
-            # Perform BFS to find the shortest path between the two endpoints of the edge
-            shortest_path = nx.shortest_path(graph, source=edge.start_point, target=edge.end_point)
-            # Add the edge back to the graph
-            graph.add_edge(edge.start_point, edge.end_point)
+def build_graph(segments):
+    """根据分割后的线段构建图，保存每条边及其引用的ref"""
+    graph = {}
 
-            # The cycle is the shortest path plus the edge itself
-            cycle = shortest_path
-            # print(cycle)
-            # cycle_tuple = tuple(sorted(cycle))  # Sort the cycle to avoid duplicates
-            path = []
-            for i in range(len(cycle) - 1):
-                path.append(edge_map[DSegment(cycle[i], cycle[i + 1])])
-            path.append(edge_map[DSegment(cycle[-1], cycle[0])])
-            all_cycles.append(path)
+    for seg in segments:
+        p1, p2 = seg.start_point, seg.end_point
+        
+        if p1 not in graph:
+            graph[p1] = []
+        if p2 not in graph:
+            graph[p2] = []
+        
+        # 保存连接的点以及线段引用信息（ref）
+        graph[p1].append((p2, seg.ref))
+        graph[p2].append((p1, seg.ref))
 
-        except nx.NetworkXNoPath:
-            # If there's no path, just add the edge back and continue
-            graph.add_edge(edge.start_point, edge.end_point)
-
-    # Convert the set of cycles back to a list of lists for further processing
-    return [list(cycle) for cycle in all_cycles]
+    return graph
 
 
+def bfs_paths(graph, start_point, end_point):
+    """基于广度优先搜索找到所有从start_point到end_point的路径，返回路径中的Dsegment"""
+    queue = deque([(start_point, [start_point], [])])  # (当前点，路径中的点，路径中的线段)
+    all_paths = []
 
-# Updated function to find closed polygons
-def findClosedPolys(segments, arc_repline, drawIntersections=False, linePNGPath="./line.png", drawPolys=False, polyPNGPath="./poly.png"):
+    while queue:
+        (current_point, point_path, seg_path) = queue.popleft()
+
+        for neighbor, ref in graph.get(current_point, []):
+            if neighbor not in point_path:
+                new_point_path = point_path + [neighbor]
+                new_seg = DSegment(current_point, neighbor, ref)  # 构建对应的Dsegment
+                new_seg_path = seg_path + [new_seg]
+
+                if neighbor == end_point:
+                    if len(new_point_path) > 2:  # 避免 trivial paths
+                        all_paths.append(new_seg_path)
+                else:
+                    queue.append((neighbor, new_point_path, new_seg_path))
+
+    return all_paths
+
+def compute_arc_replines(new_segments):
+    """
+    计算arc_replines，筛选出ref是弧线且半径在20~160之间的线段。
+    :param new_segments: 分割后的线段列表
+    :return: arc_replines 列表
+    """
+    arc_replines = []
+
+    for segment in new_segments:
+        # 检查线段的ref是否是弧线，且半径在 20 到 160 之间
+        if isinstance(segment.ref, DArc):
+            radius = segment.ref.radius
+            if 20 <= radius <= 160:
+                arc_replines.append(segment)
+
+    return arc_replines
+
+def convert_ref_to_tuple(ref):
+    """
+    Convert different ref objects (Line, Arc, etc.) to a unified tuple format for comparison.
+    """
+    if isinstance(ref, DLine):
+        # Convert Line to a tuple of its start and end points
+        return ('Line', (ref.start_point.x, ref.start_point.y), (ref.end_point.x, ref.end_point.y))
+    elif isinstance(ref, DArc):
+        # Convert Arc to a tuple of its defining properties: center, radius, start_angle, end_angle
+        return ('Arc', (ref.center.x, ref.center.y), ref.radius, ref.start_angle, ref.end_angle)
+    else:
+        # Handle other types or return a generic string for unknown types
+        return ('Unknown', str(ref))
+
+def remove_duplicate_polygons(closed_polys):
+    """
+    Remove duplicate closed_polys based on the set of unique 'ref' values for each polygon.
+    :param closed_polys: List of polygons, where each polygon is a list of Segment objects
+    :return: Deduplicated list of polygons
+    """
+    unique_polys = []
+    seen_refs = set()  # To store unique sets of refs for comparison
+
+    for poly in closed_polys:
+        # Convert all ref objects in the polygon to a unified comparable format
+        refs = {convert_ref_to_tuple(seg.ref) for seg in poly}
+
+        # If this set of refs is unique, add the polygon to the result
+        refs_tuple = tuple(sorted(refs))  # Sorting to ensure consistent order for comparison
+
+        if refs_tuple not in seen_refs:
+            unique_polys.append(poly)
+            seen_refs.add(refs_tuple)
+
+    return unique_polys
+
+# filter polys by area of polys's bounding boxes 
+def filterPolys(polys,t=100):
+    filtered_polys=[]
+    for poly in polys:
+        x_min,x_max=poly[0].start_point.x,poly[0].start_point.x
+        y_min,y_max=poly[0].start_point.y,poly[0].start_point.y
+        if x_min>poly[0].end_point.x:
+            x_min=poly[0].end_point.x
+        if x_max< poly[0].end_point.x:
+            x_max=poly[0].end_point.x
+        if y_min>poly[0].end_point.y:
+            y_min=poly[0].end_point.y
+        if y_max<poly[0].end_point.y:
+            y_max=poly[0].end_point.y
+        for i in range(len(poly)):
+            if i==0:
+                continue
+            edge=poly[i]
+            if x_min>edge.start_point.x:
+                x_min=edge.start_point.x
+            if x_max< edge.start_point.x:
+                x_max=edge.start_point.x
+            if y_min>edge.start_point.y:
+                y_min=edge.start_point.y
+            if y_max<edge.start_point.y:
+                y_max=edge.start_point.y
+
+            if x_min>edge.end_point.x:
+                x_min=edge.end_point.x
+            if x_max< edge.end_point.x:
+                x_max=edge.end_point.x
+            if y_min>edge.end_point.y:
+                y_min=edge.end_point.y
+            if y_max<edge.end_point.y:
+                y_max=edge.end_point.y
+
+        area=(y_max-y_min)*(x_max-x_min)
+        if area>t:
+            filtered_polys.append(poly)
+    return filtered_polys
+
+# 保留简单路径的多边形
+def remove_complicated_polygons(polys):
+    res = []
+    for poly in polys:
+        count = {}
+        flag = True
+        for seg in poly:
+            if seg.start_point in count:
+                count[seg.start_point] += 1
+                if count[seg.start_point] > 2:
+                    flag = False
+            else:
+                count[seg.start_point] = 0
+            if seg.end_point in count:
+                count[seg.end_point] += 1
+                if count[seg.end_point] > 2:
+                    flag = False
+            else:
+                count[seg.end_point] = 0
+        if flag:
+            res.append(poly)
+    return res
+
+
+def findClosedPolys_via_BFS(segments, drawIntersections=False, linePNGPath="./line.png", drawPolys=False, polyPNGPath="./poly.png"):
     # compute intersections using the improved method
     isecDic = find_all_intersections(segments)
 
@@ -300,24 +444,28 @@ def findClosedPolys(segments, arc_repline, drawIntersections=False, linePNGPath=
     for seg, isects in isecDic.items():
         isecDic[seg] = remove_duplicates(isects)
 
-    # find all the edges
-    edge_set = set()
-    for seg, isects in isecDic.items():
-        l = len(isects)
-        for i in range(l - 1):
-            edge_set.add(DSegment(isects[i], isects[i + 1], seg.ref))
 
-    edge_list = list(edge_set)
+    # Step 2: 根据交点分割线段
+    new_segments, edge_map = split_segments(segments, isecDic)
 
-    # map edges to their segment pairs
-    edge_map = {}
-    for e in edge_list:
-        edge_map[DSegment(e.start_point, e.end_point)] = e
-        edge_map[DSegment(e.end_point, e.start_point)] = e
+    # Step 3: 构建基于分割后线段的图结构
+    graph= build_graph(new_segments)
 
-    # TODO:Find all basic cycles using DFS-based method based on arc reprenstive line
-    
-    
+    closed_polys = []
+
+    # 基于角隅孔计算参考边
+    arc_replines = compute_arc_replines(new_segments)
+
+    # Step 4: 对每个 arc_repline，使用 BFS 查找路径
+    for arc_repline in arc_replines:
+        start_point = arc_repline.start_point
+        end_point = arc_repline.end_point
+
+        # 使用 BFS 查找从 start_point 到 end_point 的所有路径
+        paths = bfs_paths(graph, start_point, end_point)
+
+        # 将找到的路径添加到 closed_polys
+        closed_polys.extend(paths)
 
     if drawIntersections:
         #plot original segments
@@ -333,11 +481,17 @@ def findClosedPolys(segments, arc_repline, drawIntersections=False, linePNGPath=
         plt.gca().axis('equal')
         plt.savefig(linePNGPath)
 
-    if drawPolys:
-        # for poly in polys:
-        #     for e in poly:
-        #         plt.plot([e[0][0],e[1][0]],[e[0][1],e[1][1]],'k:')
-        pass
+    # from plot_geo import plot_polys
+    # plot_polys(new_segments, "./output/newpoly_lines")
 
-    return filtered_polys
+    # 剔除重复路径
+    polys = remove_duplicate_polygons(closed_polys)
 
+    # 根据边框对多边形进行过滤
+    polys = filterPolys(polys,t=3000)
+
+    # 仅保留基本路径
+    polys = remove_complicated_polygons(polys)
+    
+    print(len(polys))
+    return polys
