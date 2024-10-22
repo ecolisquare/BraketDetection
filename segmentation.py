@@ -6,7 +6,7 @@ import numpy as np
 from plot_geo import plot_geometry,plot_polys
 
 #文件中线段元素的读取和根据颜色过滤
-elements,ori_segments=readJson("/home/user4/jndata/FR19.json")
+elements,ori_segments=readJson("/home/user4/jndata/FR18-3.json")
 
 #将线进行适当扩张
 segments=expandFixedLength(ori_segments,15)

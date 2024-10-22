@@ -413,26 +413,59 @@ def filterPolys(polys,t=100):
     return filtered_polys
 
 # 保留简单路径的多边形
-def remove_complicated_polygons(polys):
+def points_are_close(p1, p2, tolerance=1e-3):
+    """
+    判断两个点是否在一定误差范围内相等。
+    :param p1: 第一个点 (DPoint)
+    :param p2: 第二个点 (DPoint)
+    :param tolerance: 容差（允许的误差范围）
+    :return: 如果两个点的距离小于容差，则返回 True
+    """
+    return ((p1.x - p2.x) ** 2 + (p1.y - p2.y) ** 2) ** 0.5 < tolerance
+
+def remove_complicated_polygons(polys, tolerance=1e-5):
+    """
+    去除复杂路径的多边形，确保每个点最多被访问两次（容差允许的范围内判断点相同）。
+    :param polys: 多边形列表
+    :param tolerance: 容差（允许的误差范围）
+    :return: 保留简单路径的多边形列表
+    """
     res = []
+
     for poly in polys:
         count = {}
         flag = True
         for seg in poly:
-            if seg.start_point in count:
-                count[seg.start_point] += 1
-                if count[seg.start_point] > 2:
-                    flag = False
-            else:
-                count[seg.start_point] = 0
-            if seg.end_point in count:
-                count[seg.end_point] += 1
-                if count[seg.end_point] > 2:
-                    flag = False
-            else:
-                count[seg.end_point] = 0
+            # 判断start_point是否已存在于count中（基于误差范围判断）
+            start_exists = False
+            end_exists = False
+
+            for point in count.keys():
+                if points_are_close(seg.start_point, point, tolerance):
+                    start_exists = True
+                    count[point] += 1
+                    if count[point] > 2:
+                        flag = False
+                    break
+
+            if not start_exists:
+                count[seg.start_point] = 1
+
+            # 判断end_point是否已存在于count中（基于误差范围判断）
+            for point in count.keys():
+                if points_are_close(seg.end_point, point, tolerance):
+                    end_exists = True
+                    count[point] += 1
+                    if count[point] > 2:
+                        flag = False
+                    break
+
+            if not end_exists:
+                count[seg.end_point] = 1
+
         if flag:
             res.append(poly)
+
     return res
 
 
