@@ -1,8 +1,8 @@
 import math
 class DPoint:  
     def __init__(self, x=0, y=0):  
-        self.x = x  
-        self.y = y  
+        self.x = int(x*10)/10  
+        self.y = int(y*10)/10  
     def __eq__(self, other):  
         # 如果 other 也是 Point 实例，并且 x 和 y 坐标相等，则返回 True  
         if isinstance(other, DPoint):  
@@ -24,9 +24,9 @@ class DPoint:
     def __setitem__(self, index, value):  
         # 支持通过索引修改坐标  
         if index == 0:  
-            self.x = value  
+            self.x = int(value*10)/10 
         elif index == 1:  
-            self.y = value  
+            self.y = int(value*10)/10 
         else:  
             raise IndexError("Point index out of range (0 or 1 expected)") 
     def __repr__(self):  
