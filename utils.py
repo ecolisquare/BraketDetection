@@ -701,6 +701,7 @@ def findClosedPolys_via_BFS(segments, drawIntersections=False, linePNGPath="./li
 
     # Step 3: 构建基于分割后线段的图结构
     print("构建基于分割后线段的图结构")
+    print(len(new_segments))
     graph= build_graph(new_segments)
 
     closed_polys = []
@@ -708,7 +709,7 @@ def findClosedPolys_via_BFS(segments, drawIntersections=False, linePNGPath="./li
     # 基于角隅孔计算参考边
     arc_replines = compute_arc_replines(new_segments)
     print(f"角隅孔个数: {len(arc_replines)}")
-
+    #arc_replines=[arc_replines[3]]
     # Step 4: 对每个 arc_repline，使用 BFS 查找路径
     print("查找闭合路径")
     for arc_repline in arc_replines:
@@ -731,7 +732,7 @@ def findClosedPolys_via_BFS(segments, drawIntersections=False, linePNGPath="./li
         # plt.plot([-286333.1724895735, -286333.1724895735], [-47760.00453472331, -47810.00453472331], 'k:')
         # point_set=set()
         for seg in new_segments:
-            print(seg)
+            #print(seg)
             vs, ve = seg.start_point, seg.end_point
             plt.plot([vs.x, ve.x], [vs.y, ve.y], 'k-')
             # if vs not in point_set:
@@ -741,7 +742,7 @@ def findClosedPolys_via_BFS(segments, drawIntersections=False, linePNGPath="./li
             #     plt.plot(ve.x, ve.y, 'r.')
             #     point_set.add(ve)
         for p,ss in point_map.items():
-            if len(ss)>=1:
+            if len(ss)>100000:
                 print(p.x,p.y)
                 plt.plot(p.x, p.y, 'r.')
 
@@ -752,11 +753,11 @@ def findClosedPolys_via_BFS(segments, drawIntersections=False, linePNGPath="./li
     # plot_polys(new_segments, "./output/newpoly_lines")
 
     # 剔除重复路径
-    polys = remove_duplicate_polygons(closed_polys)
+    #polys = remove_duplicate_polygons(closed_polys)
 
     # 根据边框对多边形进行过滤
-    polys = filterPolys(polys,t=3000,d=5)
-
+    #polys = filterPolys(polys,t=3000,d=5)
+    polys = filterPolys(closed_polys,t=3000,d=6)
     # 仅保留基本路径
     polys = remove_complicated_polygons(polys)
     

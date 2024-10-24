@@ -1,17 +1,17 @@
 import math
 class DPoint:  
     def __init__(self, x=0, y=0):  
-        self.x = int(x*10)/10  
-        self.y = int(y*10)/10  
+        self.x = x
+        self.y =y 
     def __eq__(self, other):  
         # 如果 other 也是 Point 实例，并且 x 和 y 坐标相等，则返回 True  
         if isinstance(other, DPoint):  
-            return (self.x, self.y) == (other.x, other.y)  
+            return (int(self.x)*1.0, int(self.y)*1.0) == (int(other.x)*1.0, int(other.y)*1.0)  
         return False  
   
     def __hash__(self):  
         # 返回 (x, y) 元组的哈希值  
-        return hash((self.x, self.y))  
+        return hash((int(self.x)*1.0, int(self.y)*1.0))  
     def __getitem__(self, index):  
         # 支持通过索引访问坐标  
         if index == 0:  
@@ -24,9 +24,9 @@ class DPoint:
     def __setitem__(self, index, value):  
         # 支持通过索引修改坐标  
         if index == 0:  
-            self.x = int(value*10)/10 
+            self.x = value
         elif index == 1:  
-            self.y = int(value*10)/10 
+            self.y = value
         else:  
             raise IndexError("Point index out of range (0 or 1 expected)") 
     def __repr__(self):  
