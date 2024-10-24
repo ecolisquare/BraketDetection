@@ -14,15 +14,18 @@ segments=expandFixedLength(ori_segments,15)
 #找出所有包含角隅孔圆弧的基本环
 polys=findClosedPolys_via_BFS(segments,drawIntersections=False,linePNGPath="./output/line.png")
 
+#剔除相似的多边形
+# polys=remove_unfit_polygons(polys)
+print(len(polys))
 
 n=10
 for i,poly in enumerate(polys):
-    if i>=n:
-        break
+    # if i>=n:
+    #     break
     plot_geometry(poly,f"./output/geometry{i}.png")
    
 for i,poly in enumerate(polys):
-    if i>=n:
-        break
+    # if i>=n:
+    #     break
     plot_polys(poly,f"./output/poly{i}.png")
  
