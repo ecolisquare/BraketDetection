@@ -2,11 +2,12 @@ import json
 from  element import *
 import math
 from SweepIntersectorLib.SweepIntersector import SweepIntersector
+from plot_geo import plot_geometry,plot_polys
 import matplotlib.pyplot as plt
 import networkx as nx
 import numpy as np
 from collections import deque
-
+import os
 def angleOfTwoVectors(A,B):
     lengthA = math.sqrt(A[0]**2 + A[1]**2)  
     lengthB = math.sqrt(B[0]**2 + B[1]**2)  
@@ -59,34 +60,30 @@ def readJson(path):
     color = [3, 7, 4]
     linetype = ["BYLAYER", "Continuous"]
     elementtype=["line","arc","lwpolyline","polyline"]
-
     try:  
         with open(path, 'r', encoding='utf-8') as file:  
             data_list = json.load(file)
-        
         for ele in data_list[0]:
-            e=None
-            # 颜色过滤
-            if ele["color"] not in color:
-                continue
             if ele["type"]=="line":
+                # 颜色过滤
+                if ele["color"] not in color:
+                    continue
                 # 虚线过滤
                 if ele.get("linetype") is None or ele["linetype"] not in linetype:
                     continue
                 e=DLine(DPoint(ele["start"][0],ele["start"][1]),DPoint(ele["end"][0],ele["end"][1]),ele["color"])
-                # if e.start_point.y<-48500 and e.end_point.y<-48500:
-                #     continue
-                # if e.start_point.y<-48500:
-                #     e.start_point.y=-48500
-                # if e.end_point.y<-48500:
-                #     e.end_point.y=-48500
+                elements.append(e)
                 segments.append(DSegment(e.start_point,e.end_point,e))
             elif ele["type"] == "arc":
+                # 颜色过滤
+                if ele["color"] not in color:
+                    continue
                 # 虚线过滤
                 if ele.get("linetype") is None or ele["linetype"] not in linetype:
                     continue
                 # 创建DArc对象
                 e = DArc(DPoint(ele["center"][0], ele["center"][1]), ele["radius"], ele["startAngle"], ele["endAngle"])
+                elements.append(e)
                 A = e.start_point.as_tuple()
                 B = e.end_point.as_tuple()
                 O = e.center.as_tuple()
@@ -119,10 +116,10 @@ def readJson(path):
                     end_point = DPoint(x2, y2)
                     # if start_point.y>-48500 or end_point.y>-48500:
                     segments.append(DSegment(start_point, end_point, e))
-
-                
-
             elif ele["type"]=="lwpolyline" or ele["type"]=="polyline":
+                # 颜色过滤
+                if ele["color"] not in color:
+                    continue
                 # 虚线过滤
                 if ele.get("linetype") is None or ele["linetype"] not in linetype:
                     continue
@@ -133,6 +130,7 @@ def readJson(path):
                 simplified_ps = rdp(ps, epsilon=5.0)  # Adjust epsilon for simplification level
 
                 e = DLwpolyline(simplified_ps, ele["color"], ele["isClosed"])
+                elements.append(e)
                 l = len(simplified_ps)
                 for i in range(l - 1):
                     # if simplified_ps[i].y>-48500 or simplified_ps[i+1].y>-48500:
@@ -141,6 +139,9 @@ def readJson(path):
                     # if simplified_ps[-1].y>-48500 or simplified_ps[0].y>-48500:
                     segments.append(DSegment(simplified_ps[-1], simplified_ps[0], e))
             elif ele["type"]=="insert":
+                # 颜色过滤
+                if ele["color"] not in color:
+                    continue
                 blockName=ele["blockName"]
                 # x1,x2,y1,y2=ele["bound"]["x1"],ele["bound"]["x2"],ele["bound"]["y1"],ele["bound"]["y2"]
                 scales=ele["scales"]
@@ -154,11 +155,13 @@ def readJson(path):
                         e=DLine(coordinatesmap(DPoint(sube["start"][0],sube["start"][1]),insert,scales,rotation),
                         coordinatesmap(DPoint(sube["end"][0],sube["end"][1]),insert,scales,rotation)
                         ,sube["color"])
+                        elements.append(e)
                         segments.append(DSegment(e.start_point,e.end_point,e))
                     elif sube["type"] == "arc":
                         # 创建DArc对象
                         e = DArc(coordinatesmap(DPoint(sube["center"][0], sube["center"][1]),insert,scales,rotation),
                          sube["radius"], sube["startAngle"], sube["endAngle"])
+                        elements.append(e)
                         A = e.start_point.as_tuple()
                         B = e.end_point.as_tuple()
                         O = e.center.as_tuple()
@@ -190,9 +193,6 @@ def readJson(path):
                             start_point = DPoint(x1, y1)
                             end_point = DPoint(x2, y2)
                             segments.append(DSegment(start_point, end_point, e))
-
-                        
-
                     elif sube["type"]=="lwpolyline" or sube["type"]=="polyline":
                         vs = sube["vertices"]
                         ps = [coordinatesmap(DPoint(v[0], v[1]),insert,scales,rotation) for v in vs]
@@ -200,16 +200,17 @@ def readJson(path):
                         # Apply line simplification
                         simplified_ps = rdp(ps, epsilon=5.0)  # Adjust epsilon for simplification level
                         e = DLwpolyline(simplified_ps, sube["color"], sube["isClosed"])
-                        print(e)
+                        elements.append(e)
                         l = len(simplified_ps)
                         for i in range(l - 1):
                             segments.append(DSegment(simplified_ps[i], simplified_ps[i + 1], e))
                         if sube["isClosed"]:
                             segments.append(DSegment(simplified_ps[-1], simplified_ps[0], e))
+            elif ele["type"]=="text":
+                e=DText(ele["bound"],ele["insert"], ele["color"],ele["content"],ele["height"])
+                elements.append(e)
             else:
                 pass
-            if e is not None:
-                elements.append(e)
         return elements,segments
     except FileNotFoundError:  
         print("The file does not exist.")
@@ -525,6 +526,7 @@ def compute_arc_replines(new_segments):
     :param new_segments: 分割后的线段列表
     :return: arc_replines 列表
     """
+
     arc_replines = []
 
     for segment in new_segments:
@@ -534,7 +536,36 @@ def compute_arc_replines(new_segments):
             if 20 <= radius and radius <= 160:
                 arc_replines.append(segment)
 
+
     return arc_replines
+
+def compute_star_replines(new_segments,elements):
+    vertical_lines=[]
+    star_replines=[]
+    for e in elements:
+        if isinstance(e,DText) and e.content=="*":
+            x,y=e.insert[0],e.insert[1]
+            vertical_lines.append(DSegment(DPoint(x,y),DPoint(x,y+5000)))
+    for i, seg1 in enumerate(vertical_lines):
+        y_min=None
+        s=None
+        for j, seg2 in enumerate(new_segments):
+            if i >= j:
+                continue  # Avoid duplicate checks and self-intersections
+            p1, p2 = seg1.start_point, seg1.end_point
+            q1, q2 = seg2.start_point, seg2.end_point
+            intersection = segment_intersection(p1, p2, q1, q2)
+            if intersection:
+                if y_min is None:
+                    y_min=intersection[1]
+                    s=seg2
+                else:
+                    if y_min>intersection[1]:
+                        y_min=intersection[1]
+                        s=seg2
+        if s is not None:
+            star_replines.append(s)
+    return star_replines
 
 def convert_ref_to_tuple(ref):
     """
@@ -613,6 +644,8 @@ def filterPolys(polys,t=100,d=5):
         area=(y_max-y_min)*(x_max-x_min)
         yy=y_max-y_min
         xx=x_max-x_min
+        if yy<20 or xx<20:
+            continue
         if yy>xx:
             div=yy/xx
         else:
@@ -677,89 +710,105 @@ def remove_complicated_polygons(polys, tolerance=1e-5):
 
     return res
 
+def outputLines(segments,point_map,linePNGPath,drawIntersections=False,drawLines=False):
+    if drawLines:
+        for seg in segments:
+            vs, ve = seg.start_point, seg.end_point
+            plt.plot([vs.x, ve.x], [vs.y, ve.y], 'k-')
+    if drawIntersections:
+        for p,ss in point_map.items():
+            if len(ss)>1:
+                # print(p.x,p.y)
+                plt.plot(p.x, p.y, 'r.')
 
-def findClosedPolys_via_BFS(segments, drawIntersections=False, linePNGPath="./line.png", drawPolys=False, polyPNGPath="./poly.png"):
-    # Step 1: 计算交点
-    print("计算交点")
-    isecDic = find_all_intersections(segments)
+    plt.gca().axis('equal')
+    plt.savefig(linePNGPath)
+    print(f"直线图保存于:{linePNGPath}")
+
+def outputPolysAndGeometry(polys,path,draw_polys=False,draw_geometry=False,n=10):
+    if draw_geometry:
+        for i,poly in enumerate(polys):
+            if i>=n:
+                break
+            plot_geometry(poly,os.path.join(path,f"geometry{i}.png"))
     
-    # filter and remove duplicates
-    # for seg, isects in isecDic.items():
-    #     isecDic[seg] = remove_duplicates(isects)
+    if draw_polys:
+        for i,poly in enumerate(polys):
+            if i>=n:
+                break
+            plot_polys(poly,os.path.join(path,f"poly{i}.png"))
+    print(f"封闭多边形图像保存于:{path}")
 
+
+
+
+def findClosedPolys_via_BFS(elements,segments,segmentation_config):
+    verbose=segmentation_config.verbose
+    # Step 1: 计算交点
+    if verbose:
+        print("计算交点")
+    isecDic = find_all_intersections(segments,segmentation_config.intersection_epsilon)
 
     # Step 2: 根据交点分割线段
-    print("根据交点分割线段")
-    new_segments, edge_map,point_map= split_segments(segments, isecDic)
+    if verbose:
+        print("根据交点分割线段")
+    new_segments, edge_map,point_map= split_segments(segments, isecDic,segmentation_config.segment_split_epsilon)
     #filter lines
 
-    new_segments, edge_map,point_map= filter_segments(segments,isecDic,point_map,expansion_param=12,iters=10)
+    new_segments, edge_map,point_map= filter_segments(segments,isecDic,point_map,segmentation_config.segment_filter_length,segmentation_config.segment_filter_iters)
 
-    # for seg in new_segments:
-    #     print(seg)
-    #print(new_segments)
+
+    outputLines(new_segments,point_map,segmentation_config.line_image_path,segmentation_config.draw_intersections,segmentation_config.draw_segments)
+
 
     # Step 3: 构建基于分割后线段的图结构
-    print("构建基于分割后线段的图结构")
-    print(len(new_segments))
+    if verbose:
+        print("构建基于分割后线段的图结构")
+        print(f"过滤后线段条数:{len(new_segments)}")
     graph= build_graph(new_segments)
 
     closed_polys = []
 
     # 基于角隅孔计算参考边
     arc_replines = compute_arc_replines(new_segments)
-    print(f"角隅孔个数: {len(arc_replines)}")
-    #arc_replines=[arc_replines[3]]
-    # Step 4: 对每个 arc_repline，使用 BFS 查找路径
-    print("查找闭合路径")
-    for arc_repline in arc_replines:
-        start_point = arc_repline.start_point
-        end_point = arc_repline.end_point
+    star_replines=compute_star_replines(new_segments,elements)
+    if verbose:
+        print(f"圆弧角隅孔个数: {len(arc_replines)}")
+        print(f"星形角隅孔个数: {len(star_replines)}")
+    # for star_repline in star_replines:
+    #     print(star_repline)
+    replines=arc_replines+star_replines
+    # Step 4: 对每个 repline，使用 BFS 查找路径
+    if verbose:
+        print("查找闭合路径")
+    for repline in replines:
+        start_point = repline.start_point
+        end_point = repline.end_point
 
         # 使用 BFS 查找从 start_point 到 end_point 的所有路径
         paths = bfs_paths(graph, start_point, end_point)
 
         # 构成闭合路径
         for path in paths:
-            path.append(arc_repline)
+            path.append(repline)
 
         # 将找到的路径添加到 closed_polys
         closed_polys.extend(paths)
-    print("查找完毕")
-    if drawIntersections:
-        #plot original segments
-        # plt.plot([-286333.1724895735, -286313.3274895735], [-47810.00453472331, -47810.00453472331], 'k:')
-        # plt.plot([-286333.1724895735, -286333.1724895735], [-47760.00453472331, -47810.00453472331], 'k:')
-        # point_set=set()
-        for seg in new_segments:
-            #print(seg)
-            vs, ve = seg.start_point, seg.end_point
-            plt.plot([vs.x, ve.x], [vs.y, ve.y], 'k-')
-            # if vs not in point_set:
-            #     plt.plot(vs.x, vs.y, 'r.')
-            #     point_set.add(vs)
-            # if ve not in point_set:
-            #     plt.plot(ve.x, ve.y, 'r.')
-            #     point_set.add(ve)
-        for p,ss in point_map.items():
-            if len(ss)>100000:
-                print(p.x,p.y)
-                plt.plot(p.x, p.y, 'r.')
-
-        plt.gca().axis('equal')
-        plt.savefig(linePNGPath)
-
-    # from plot_geo import plot_polys
-    # plot_polys(new_segments, "./output/newpoly_lines")
+    if verbose:
+        print("查找完毕")
+    # for closed_poly in closed_polys:
+    #     print(closed_poly)
+    
 
     # 剔除重复路径
     #polys = remove_duplicate_polygons(closed_polys)
 
     # 根据边框对多边形进行过滤
     #polys = filterPolys(polys,t=3000,d=5)
-    polys = filterPolys(closed_polys,t=3000,d=6)
+    polys = filterPolys(closed_polys,segmentation_config.bbox_area,segmentation_config.bbox_ratio)
     # 仅保留基本路径
-    polys = remove_complicated_polygons(polys)
-    
-    print(len(polys))
+    polys = remove_complicated_polygons(polys,segmentation_config.remove_tolerance)
+    if verbose:
+        print(f"封闭多边形个数:{len(polys)}")
+    outputPolysAndGeometry(polys,segmentation_config.poly_image_dir,segmentation_config.draw_polys,segmentation_config.draw_geometry,segmentation_config.draw_poly_nums)
     return polys

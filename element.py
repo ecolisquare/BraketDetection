@@ -76,6 +76,21 @@ class DArc:
                 f"start_angle={self.start_angle}, end_angle={self.end_angle})")  
   
 
+class DText:  
+    def __init__(self,bound,insert: DPoint=DPoint(0,0),color=7,content="",height=100):  
+        self.bound=bound
+        self.insert=insert
+        self.color=color
+        self.content=content
+        self.height=height
+
+  
+    def __repr__(self):  
+        return f"Text({self.insert}, color:{self.color},content:{self.content},height:{self.height})"  
+  
+
+
+
 class DSegment:  
     # Segment is essentially a Line with an implied direction and length  
     def __init__(self, start_point: DPoint=DPoint(0,0), end_point: DPoint=DPoint(1,0),ref=None):  
