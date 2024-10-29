@@ -1,4 +1,5 @@
 import math
+
 class DPoint:  
     def __init__(self, x=0, y=0):  
         self.x = x
@@ -33,62 +34,6 @@ class DPoint:
         return f"Point({self.x}, {self.y})"  
     def as_tuple(self):
         return (self.x,self.y)
-
-
-#color=7 white color=3 green
-class DLine:  
-    def __init__(self, start_point: DPoint=DPoint(0,0), end_point: DPoint=DPoint(1,0),color=7):  
-        self.start_point = start_point  
-        self.end_point = end_point  
-        self.color=color
-  
-    def __repr__(self):  
-        return f"Line({self.start_point}, {self.end_point})"  
-  
-
-class DLwpolyline:  
-    def __init__(self, points: list[DPoint],color=7,isClosed=False):  
-        self.points = points
-        self.color=color  
-        self.isClosed=isClosed
-  
-    def __repr__(self):  
-        return f"Lwpolyline({self.points})"  
-  
-class DArc:  
-    def __init__(self, center: DPoint, radius: float, start_angle: float, end_angle: float,color=7):  
-        self.center = center  
-        self.radius = radius  
-        self.start_angle = start_angle  # in degrees  
-        self.end_angle = end_angle      # in degrees  
-        self.color=color
-        sa=start_angle/180*math.pi
-        ea=end_angle/180*math.pi
-        c1=math.cos(sa)
-        s1=math.sin(sa)
-        c2=math.cos(ea)
-        s2=math.sin(ea)
-        self.start_point=DPoint(center[0]+radius*c1,center[1]+radius*s1)
-        self.end_point=DPoint(center[0]+radius*c2,center[1]+radius*s2)
-  
-    def __repr__(self):  
-        return (f"Arc(center={self.center}, radius={self.radius}, "  
-                f"start_angle={self.start_angle}, end_angle={self.end_angle})")  
-  
-
-class DText:  
-    def __init__(self,bound,insert: DPoint=DPoint(0,0),color=7,content="",height=100):  
-        self.bound=bound
-        self.insert=insert
-        self.color=color
-        self.content=content
-        self.height=height
-
-  
-    def __repr__(self):  
-        return f"Text({self.insert}, color:{self.color},content:{self.content},height:{self.height})"  
-  
-
 
 
 class DSegment:  
@@ -134,3 +79,89 @@ class DSegment:
     # def setConstraint(self,isConstraint=0):
     #     if isConstraint:
     #         self.isConstraint=2
+
+#color=7 white color=3 green
+class DLine:  
+    def __init__(self, start_point: DPoint=DPoint(0,0), end_point: DPoint=DPoint(1,0),color=7):  
+        self.start_point = start_point  
+        self.end_point = end_point  
+        self.color=color
+        # self.computeCenterCoordinateAndWeight()
+
+    def __repr__(self):  
+        return f"Line({self.start_point}, {self.end_point})"  
+    
+
+    # def computeCenterCoordinateAndWeight(self):
+    #     s=DSegment(self.start_point,self.end_point,None)
+    #     self.weight=s.length()
+    #     self.bc=DPoint((s.start_point.x+s.end_point.x)/2,(s.start_point.y+s.end_point.y)/2)
+
+class DLwpolyline:  
+    def __init__(self, points: list[DPoint],color=7,isClosed=False):  
+        self.points = points
+        self.color=color  
+        self.isClosed=isClosed
+        # self.computeCenterCoordinateAndWeight()
+  
+    def __repr__(self):  
+        return f"Lwpolyline({self.points})"  
+  
+    # def computeCenterCoordinateAndWeight(self):
+    #     w=0
+    #     x=0
+    #     y=0
+    #     n=len(self.points)
+    #     for i in range(n-1):
+
+    #         s=DSegment(self.points[i],self.points[i+1],None)
+    #         l=s.length()
+    #         w+=l
+    #         x+=l*(s.start_point.x+s.end_point.x)/2
+    #         y+=l*(s.start_point.y+s.end_point.y)/2
+    #     if self.isClosed:
+    #         s=DSegment(self.points[-1],self.points[0],None)
+    #         l=s.length()
+    #         w+=l
+    #         x+=l*(s.start_point.x+s.end_point.x)/2
+    #         y+=l*(s.start_point.y+s.end_point.y)/2
+    #     self.weight=w
+    #     self.bc=DPoint(x/w,y/w)
+
+
+class DArc:  
+    def __init__(self, center: DPoint, radius: float, start_angle: float, end_angle: float,color=7):  
+        self.center = center  
+        self.radius = radius  
+        self.start_angle = start_angle  # in degrees  
+        self.end_angle = end_angle      # in degrees  
+        self.color=color
+        sa=start_angle/180*math.pi
+        ea=end_angle/180*math.pi
+        c1=math.cos(sa)
+        s1=math.sin(sa)
+        c2=math.cos(ea)
+        s2=math.sin(ea)
+        self.start_point=DPoint(center[0]+radius*c1,center[1]+radius*s1)
+        self.end_point=DPoint(center[0]+radius*c2,center[1]+radius*s2)
+  
+    def __repr__(self):  
+        return (f"Arc(center={self.center}, radius={self.radius}, "  
+                f"start_angle={self.start_angle}, end_angle={self.end_angle})")  
+  
+
+class DText:  
+    def __init__(self,bound,insert: DPoint=DPoint(0,0),color=7,content="",height=100):  
+        self.bound=bound
+        self.insert=insert
+        self.color=color
+        self.content=content
+        self.height=height
+
+  
+    def __repr__(self):  
+        return f"Text({self.insert}, color:{self.color},content:{self.content},height:{self.height})"  
+  
+
+
+
