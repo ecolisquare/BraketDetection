@@ -7,6 +7,41 @@ import matplotlib.pyplot as plt
 import numpy as np
 from collections import deque
 import os
+from sklearn.cluster import DBSCAN
+
+
+def is_point_in_polygon(point, polygon_edges):
+    """
+    判断一个点是否在一组线段围成的多边形内
+
+    :param point: (x, y) 要判断的点
+    :param polygon_edges: [(x1, y1, x2, y2), ...] 多边形边的列表，每条边由两个点的坐标表示
+    :return: True 如果点在多边形内，否则 False
+    """
+    x, y = point.x,point.y
+    n = len(polygon_edges)
+    inside = False
+
+    # 遍历多边形的每一条边
+    for i in range(n):
+        x1, y1, x2, y2 = polygon_edges[i].start_point.x,polygon_edges[i].start_point.y,polygon_edges[i].end_point.x,polygon_edges[i].end_point.y
+        # 计算点与边两个端点的向量叉积
+        cross_product = (x - x1) * (y2 - y1) - (x2 - x1) * (y - y1)
+        # 判断点相对于边的位置
+        if cross_product > 0:  # 点在边的左侧
+            inside = not inside
+        elif cross_product == 0 and (x1 <= x <= x2 or x2 <= x <= x1) and (y1 <= y <= y2 or y2 <= y <= y1):
+            # 点在边上（这里可以根据需要决定是否将边上的点视为在内或在外）
+            # 本例中，我们假设边上的点不在多边形内
+            return True
+
+    # 如果经过所有边后，inside为True，则点在多边形内；否则在多边形外
+    # 注意：这里假设多边形是封闭的，即最后一条边与第一条边相连
+    # 如果多边形不是封闭的，需要额外处理
+    return inside
+
+
+
 def angleOfTwoVectors(A,B):
     lengthA = math.sqrt(A[0]**2 + A[1]**2)  
     lengthB = math.sqrt(B[0]**2 + B[1]**2)  
@@ -580,30 +615,111 @@ def convert_ref_to_tuple(ref):
         # Handle other types or return a generic string for unknown types
         return ('Unknown', str(ref))
 
-def remove_duplicate_polygons(closed_polys):
+
+def computeCenterCoordinates(poly):
+
+    w=0
+    x=0
+    y=0
+    for edge in poly:
+        # if not isinstance(edge.ref,DArc):
+            # l=edge.ref.weight
+            # w=w+l
+            # x=x+l*edge.ref.bc.x
+            # y=y+l*edge.ref.bc.y
+        l=edge.length()
+        w+=l
+        x+=l*(edge.start_point.x+edge.end_point.x)/2
+        y+=l*(edge.start_point.y+edge.end_point.y)/2
+    return DPoint(x/w,y/w)
+
+
+#count the number of replines in a poly
+def countReplines(poly,replines_set):
+    count=0
+    for edge in poly:
+        if edge in replines_set:
+            count+=1
+    return count
+
+
+def remove_duplicate_polygons(closed_polys,replines_set,eps=25.0,min_samples=1):
     """
     Remove duplicate closed_polys based on the set of unique 'ref' values for each polygon.
     :param closed_polys: List of polygons, where each polygon is a list of Segment objects
     :return: Deduplicated list of polygons
     """
+    if len(closed_polys)==0:
+        return []
     unique_polys = []
-    seen_refs = set()  # To store unique sets of refs for comparison
+    bcs=[]
 
+    # seen_refs = set()  # To store unique sets of refs for comparison
+
+    # for poly in closed_polys:
+    #     # Convert all ref objects in the polygon to a unified comparable format
+    #     refs = {convert_ref_to_tuple(seg.ref) for seg in poly}
+
+    #     # If this set of refs is unique, add the polygon to the result
+    #     refs_tuple = tuple(sorted(refs))  # Sorting to ensure consistent order for comparison
+
+    #     if refs_tuple not in seen_refs:
+    #         unique_polys.append(poly)
+    #         seen_refs.add(refs_tuple)
+    poly_map={}
     for poly in closed_polys:
-        # Convert all ref objects in the polygon to a unified comparable format
-        refs = {convert_ref_to_tuple(seg.ref) for seg in poly}
+        bc=computeCenterCoordinates(poly)
+        #bc=DPoint(int(bc.x/span)*span,int(bc.y/span)*span)
+        if bc not in poly_map:
+            poly_map[bc]=poly
+        else:
+            if len(poly_map[bc])<len(poly):
+                poly_map[bc]=poly
+    tps=[]
+    for bc,poly in poly_map.items():
+        # unique_polys.append(poly)
+        # bcs.append(bc)
+        tps.append((bc,poly))
+    # tps=sorted(tps,key=lambda item: item[0].as_tuple())
+    
+    #filter tps
+    
+    points =[]
+    replines_count=[]
+    for tp in tps:
+        points.append([tp[0].x,tp[0].y])
+        replines_count.append(countReplines(tp[1],replines_set))
+    #print(replines_count)
+    points=np.array(points)
 
-        # If this set of refs is unique, add the polygon to the result
-        refs_tuple = tuple(sorted(refs))  # Sorting to ensure consistent order for comparison
 
-        if refs_tuple not in seen_refs:
-            unique_polys.append(poly)
-            seen_refs.add(refs_tuple)
+    # eps: 两点之间的最大距离，可以认为是邻居的距离。这个值可以根据你的数据集进行调整。
+    # min_samples: 一个点被认为是核心点所需的最小邻居数。
+    db = DBSCAN(eps=eps, min_samples=min_samples).fit(points)
 
+    labels = db.labels_
+
+    poly_map={}
+    #print("聚类标签：", labels)
+    for idx,label in enumerate(labels):
+        if label ==-1:
+            unique_polys.append(tps[idx][1])
+        else:
+            if label not in poly_map:
+                poly_map[label]=idx
+            else:
+                if replines_count[poly_map[label]]<replines_count[idx]:
+                    #print(len(poly_map[label]),len(tps[idx][1]))
+                    poly_map[label]=idx
+    
+    for label,idx in poly_map.items():
+        unique_polys.append(tps[idx][1])
+    
     return unique_polys
 
+
 # filter polys by area of polys's bounding boxes 
-def filterPolys(polys,t=100,d=5):
+def filterPolys(polys,arc_replines_set,t=100,d=5):
     filtered_polys=[]
     for poly in polys:
         if len(poly)>15:
@@ -651,7 +767,55 @@ def filterPolys(polys,t=100,d=5):
             div=xx/yy
         if area>t and div<d:
             filtered_polys.append(poly)
-    return filtered_polys
+    for poly in filtered_polys:
+        l=len(poly)
+        for i in range(l-1):
+            if poly[i].start_point==poly[i+1].start_point:
+                p=poly[i].start_point
+                poly[i].start_point=poly[i].end_point
+                poly[i].end_point=p
+            elif poly[i].start_point==poly[i+1].end_point:
+                p=poly[i].start_point
+                poly[i].start_point=poly[i].end_point
+                poly[i].end_point=p
+                p=poly[i+1].start_point
+                poly[i+1].start_point=poly[i+1].end_point
+                poly[i+1].end_point=p
+            elif poly[i].end_point==poly[i+1].end_point:
+                p=poly[i+1].start_point
+                poly[i+1].start_point=poly[i+1].end_point
+                poly[i+1].end_point=p
+        if poly[-1].start_point==poly[0].start_point:
+            p=poly[-1].start_point
+            poly[-1].start_point=poly[-1].end_point
+            poly[-1].end_point=p
+        elif poly[-1].start_point==poly[0].end_point:
+            p=poly[-1].start_point
+            poly[-1].start_point=poly[-1].end_point
+            poly[-1].end_point=p
+            p=poly[0].start_point
+            poly[0].start_point=poly[0].end_point
+            poly[0].end_point=p
+        elif poly[-1].end_point==poly[0].end_point:
+            p=poly[0].start_point
+            poly[0].start_point=poly[0].end_point
+            poly[0].end_point=p
+    print(filtered_polys[0])
+    valid_polys=[]
+
+    for poly in filtered_polys:
+        valid=True
+        for edge in poly:
+            if edge in arc_replines_set:
+                o=DPoint((edge.ref.start_point.x+edge.ref.end_point.x)/2,
+                  (edge.ref.start_point.y+edge.ref.end_point.y)/2)
+                if  is_point_in_polygon(o,poly):
+                    valid=False
+                    break
+        if  valid:
+            valid_polys.append(poly)
+
+    return valid_polys
 
 # 保留简单路径的多边形
 def points_are_close(p1, p2, tolerance=1e-3):
@@ -739,8 +903,6 @@ def outputPolysAndGeometry(polys,path,draw_polys=False,draw_geometry=False,n=10)
     print(f"封闭多边形图像保存于:{path}")
 
 
-
-
 def findClosedPolys_via_BFS(elements,segments,segmentation_config):
     verbose=segmentation_config.verbose
     # Step 1: 计算交点
@@ -777,6 +939,16 @@ def findClosedPolys_via_BFS(elements,segments,segmentation_config):
     # for star_repline in star_replines:
     #     print(star_repline)
     replines=arc_replines+star_replines
+    replines_set=set()
+    arc_replines_set=set()
+    for arc_rep in arc_replines:
+        if arc_rep not in arc_replines_set:
+            arc_replines_set.add(arc_rep)
+            arc_replines_set.add(DSegment(arc_rep.end_point,arc_rep.start_point))
+    for rep in replines:
+        if rep not in replines_set:
+            replines_set.add(rep)
+            replines_set.add(DSegment(rep.end_point,rep.start_point))
     # Step 4: 对每个 repline，使用 BFS 查找路径
     if verbose:
         print("查找闭合路径")
@@ -798,13 +970,18 @@ def findClosedPolys_via_BFS(elements,segments,segmentation_config):
     # for closed_poly in closed_polys:
     #     print(closed_poly)
     
+    #poly simplify
 
-    # 剔除重复路径
-    #polys = remove_duplicate_polygons(closed_polys)
 
     # 根据边框对多边形进行过滤
     #polys = filterPolys(polys,t=3000,d=5)
-    polys = filterPolys(closed_polys,segmentation_config.bbox_area,segmentation_config.bbox_ratio)
+    polys = filterPolys(closed_polys,arc_replines_set,segmentation_config.bbox_area,segmentation_config.bbox_ratio)
+
+    # 剔除重复路径
+    polys = remove_duplicate_polygons(polys,replines_set,segmentation_config.eps,segmentation_config.min_samples)
+    #print(bcs)
+    # print(polys[0])
+    # print(polys[1])
     # 仅保留基本路径
     polys = remove_complicated_polygons(polys,segmentation_config.remove_tolerance)
     if verbose:
