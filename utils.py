@@ -575,7 +575,7 @@ def compute_arc_replines(new_segments):
                     arc_replines_map[arc_tuple]=[]
                 arc_replines_map[arc_tuple].append(segment)
     for arc_tuple,segments in arc_replines_map.items():
-        arc_replines_map[arc_tuple]=sorted(segments)
+        arc_replines_map[arc_tuple]=sorted(segments,key= lambda s: )
 
 
     return arc_replines
