@@ -7,10 +7,12 @@ import numpy as np
 from config import *
 
 segmentation_config=SegmentationConfig()
+
+json_path = input("请输入路径")
 if segmentation_config.verbose:
     print("读取json文件")
 #文件中线段元素的读取和根据颜色过滤
-elements,ori_segments=readJson(segmentation_config.json_path)
+elements,ori_segments=readJson(json_path)
 if segmentation_config.verbose:
     print("json文件读取完毕")
 #将线进行适当扩张

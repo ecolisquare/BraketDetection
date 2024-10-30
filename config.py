@@ -2,16 +2,16 @@ class SegmentationConfig:
     def __init__(self):
         self.verbose=True
 
-        self.json_path="/home/user10/code/BraketDetection/data/split/FR18-3.json"
+        self.json_path=""
         
         self.line_expand_length=10
 
-        self.line_image_path="/home/user10/code/BraketDetection/output/line.png"
+        self.line_image_path="./output/line.png"
         self.draw_intersections=False
         self.draw_segments=True
 
         self.draw_poly_nums=1000
-        self.poly_image_dir="/home/user10/code/BraketDetection/output"
+        self.poly_image_dir="./output"
         self.draw_polys=True
         self.draw_geometry=True
 
@@ -31,3 +31,5 @@ class SegmentationConfig:
 
         self.eps=25.0
         self.min_samples=1
+
+        self.path_max_length = 20

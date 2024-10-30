@@ -532,13 +532,16 @@ def build_graph(segments):
     return graph
 
 
-def bfs_paths(graph, start_point, end_point):
+def bfs_paths(graph, start_point, end_point, max_length):
     """基于广度优先搜索找到所有从start_point到end_point的路径，返回路径中的Dsegment"""
     queue = deque([(start_point, [start_point], [])])  # (当前点，路径中的点，路径中的线段)
     all_paths = []
 
     while queue:
         (current_point, point_path, seg_path) = queue.popleft()
+
+        if len(seg_path) >= max_length:
+            continue
 
         for neighbor, ref in graph.get(current_point, []):
             if neighbor not in point_path:
@@ -957,7 +960,7 @@ def findClosedPolys_via_BFS(elements,segments,segmentation_config):
         end_point = repline.end_point
 
         # 使用 BFS 查找从 start_point 到 end_point 的所有路径
-        paths = bfs_paths(graph, start_point, end_point)
+        paths = bfs_paths(graph, start_point, end_point, segmentation_config.path_max_length)
 
         # 构成闭合路径
         for path in paths:
