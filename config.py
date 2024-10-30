@@ -9,6 +9,7 @@ class SegmentationConfig:
         self.line_image_path="/home/user10/code/BraketDetection/output/line.png"
         self.draw_intersections=False
         self.draw_segments=True
+        self.line_image_drawPolys=True
 
         self.draw_poly_nums=1000
         self.poly_image_dir="/home/user10/code/BraketDetection/output"
@@ -16,7 +17,7 @@ class SegmentationConfig:
         self.draw_geometry=True
 
         self.segment_filter_length=12
-        self.segment_filter_iters=10
+        self.segment_filter_iters=25
 
         self.segment_split_epsilon=0.25
 

@@ -92,12 +92,13 @@ def coordinatesmap(p:DPoint,insert,scales,rotation):
 def readJson(path):
     elements=[]
     segments=[]
-    color = [3, 7, 4]
-    linetype = ["BYLAYER", "Continuous"]
+    color = [3, 7, 8,4]
+    linetype = ["BYLAYER", "Continuous","Bylayer","CONTINUOUS"]
     elementtype=["line","arc","lwpolyline","polyline"]
     try:  
         with open(path, 'r', encoding='utf-8') as file:  
             data_list = json.load(file)
+        
         for ele in data_list[0]:
             if ele["type"]=="line":
                 # 颜色过滤
@@ -184,7 +185,7 @@ def readJson(path):
                 insert=ele["insert"]
                 block_data=data_list[1][blockName]
                 for sube in block_data:
-                    if sube["type"] not in elementtype or sube["color"] !=3  or sube.get("linetype") is None or sube["linetype"] not in linetype:
+                    if sube["type"] not in elementtype or sube["color"] not in color  or sube.get("linetype") is None or sube["linetype"] not in linetype:
                         continue
                     if sube["type"]=="line":
                         e=DLine(coordinatesmap(DPoint(sube["start"][0],sube["start"][1]),insert,scales,rotation),
@@ -380,7 +381,7 @@ def split_segments(segments, intersections,epsilon=0.25):
 
     for seg, inter_points in intersections.items():
         # 按照坐标顺序排序交点
-        inter_points = sorted([seg.start_point] + inter_points + [seg.end_point], key=lambda p: (p.x, p.y))
+        inter_points = sorted([seg.start_point] + inter_points + [seg.end_point], key=lambda p: (seg.start_point.x-p.x)*(seg.start_point.x-p.x)+(seg.start_point.y-p.y)*(seg.start_point.y-p.y))
         points=inter_points
         segList=[]
         
@@ -423,7 +424,7 @@ def filter_segments(segments,intersections,point_map,expansion_param=12,iters=3)
     new_point_map={}
     for seg, inter_points in intersections.items():
         # 按照坐标顺序排序交点
-        inter_points = sorted([seg.start_point] + inter_points + [seg.end_point], key=lambda p: (p.x, p.y))
+        inter_points = sorted([seg.start_point] + inter_points + [seg.end_point], key=lambda p: (seg.start_point.x-p.x)*(seg.start_point.x-p.x)+(seg.start_point.y-p.y)*(seg.start_point.y-p.y))
         points=inter_points
         segList=[]
         
@@ -440,36 +441,36 @@ def filter_segments(segments,intersections,point_map,expansion_param=12,iters=3)
             segList.append(new_seg)
 
 
-        #filter lines
-        if len(segList)>1:
-            for s in segList:
-                new_segments.append(s)
-                # 添加到 edge_map 中，包含正向和反向的线段
-                if DSegment(s.start_point, s.end_point) not in edge_map:
-                    edge_map[DSegment(s.start_point, s.end_point)] = s
-                if DSegment(s.end_point, s.start_point) not in edge_map:
-                    edge_map[DSegment(s.end_point, s.start_point)] = s  # 反向线段
-        elif len(segList)==1:
-            if isinstance(segList[0].ref, DArc):
-                #arc
-                new_segments.append(segList[0])
-                s=segList[0]
-                if DSegment(s.start_point, s.end_point) not in edge_map:
-                    edge_map[DSegment(s.start_point, s.end_point)] = s
-                if DSegment(s.end_point, s.start_point) not in edge_map:
-                    edge_map[DSegment(s.end_point, s.start_point)] = s  # 反向线段
-            else:
-                vs,ve=segList[0].start_point,segList[0].end_point
-                s_deg,e_deg=len(point_map[vs]),len(point_map[ve])
-                if s_deg==1 or e_deg==1:
-                    continue
-                else:
-                    new_segments.append(segList[0])
-                    s=segList[0]
-                    if DSegment(s.start_point, s.end_point) not in edge_map:
-                        edge_map[DSegment(s.start_point, s.end_point)] = s
-                    if DSegment(s.end_point, s.start_point) not in edge_map:
-                        edge_map[DSegment(s.end_point, s.start_point)] = s  # 反向线段
+        # #filter lines
+        # if len(segList)>1:
+        for s in segList:
+            new_segments.append(s)
+            # 添加到 edge_map 中，包含正向和反向的线段
+            if DSegment(s.start_point, s.end_point) not in edge_map:
+                edge_map[DSegment(s.start_point, s.end_point)] = s
+            if DSegment(s.end_point, s.start_point) not in edge_map:
+                edge_map[DSegment(s.end_point, s.start_point)] = s  # 反向线段
+        # elif len(segList)==1:
+        #     if isinstance(segList[0].ref, DArc):
+        #         #arc
+        #         new_segments.append(segList[0])
+        #         s=segList[0]
+        #         if DSegment(s.start_point, s.end_point) not in edge_map:
+        #             edge_map[DSegment(s.start_point, s.end_point)] = s
+        #         if DSegment(s.end_point, s.start_point) not in edge_map:
+        #             edge_map[DSegment(s.end_point, s.start_point)] = s  # 反向线段
+        #     else:
+        #         vs,ve=segList[0].start_point,segList[0].end_point
+        #         s_deg,e_deg=len(point_map[vs]),len(point_map[ve])
+        #         if s_deg==1 or e_deg==1:
+        #             continue
+        #         else:
+        #             new_segments.append(segList[0])
+        #             s=segList[0]
+        #             if DSegment(s.start_point, s.end_point) not in edge_map:
+        #                 edge_map[DSegment(s.start_point, s.end_point)] = s
+        #             if DSegment(s.end_point, s.start_point) not in edge_map:
+        #                 edge_map[DSegment(s.end_point, s.start_point)] = s  # 反向线段
 
 
     for s in new_segments:
@@ -561,7 +562,7 @@ def compute_arc_replines(new_segments):
     :param new_segments: 分割后的线段列表
     :return: arc_replines 列表
     """
-
+    arc_replines_map={}
     arc_replines = []
 
     for segment in new_segments:
@@ -569,7 +570,12 @@ def compute_arc_replines(new_segments):
         if isinstance(segment.ref, DArc):
             radius = segment.ref.radius
             if 20 <= radius and radius <= 160:
-                arc_replines.append(segment)
+                arc_tuple=(segment.ref.center.x,segment.ref.center.y,segment.ref.radius,segment.ref.start_angle,segment.ref.end_angle)
+                if  arc_tuple not in arc_replines_map:
+                    arc_replines_map[arc_tuple]=[]
+                arc_replines_map[arc_tuple].append(segment)
+    for arc_tuple,segments in arc_replines_map.items():
+        arc_replines_map[arc_tuple]=sorted(segments)
 
 
     return arc_replines
@@ -602,6 +608,32 @@ def compute_star_replines(new_segments,elements):
             star_replines.append(s)
     return star_replines
 
+
+def compute_line_replines(new_segments,point_map):
+    line_replines=[]
+    for s in new_segments:
+        if s.length()<13 or s.length()>30:
+            continue
+        vs,ve=s.start_point,s.end_point
+        div_s,div_e=len(point_map[vs]),len(point_map[ve])
+        if div_s==3 and div_e==3:
+            sn=[neighbor for neighbor in point_map[vs] if neighbor!=s]
+            if sn[0].length()<sn[1].length():
+                a=sn[0]
+            else:
+                a=sn[1]
+            en=[neighbor for neighbor in point_map[ve] if neighbor!=s]
+            if en[0].length()<en[1].length():
+                b=en[0]
+            else:
+                b=en[1]
+            if a.start_point==vs:
+                p=a.end_point
+            else:
+                p=a.start_point
+            if p in [b.start_point,b.end_point]:
+                line_replines.append(s)
+    return line_replines
 def convert_ref_to_tuple(ref):
     """
     Convert different ref objects (Line, Arc, etc.) to a unified tuple format for comparison.
@@ -723,7 +755,7 @@ def remove_duplicate_polygons(closed_polys,replines_set,eps=25.0,min_samples=1):
 def filterPolys(polys,arc_replines_set,t=100,d=5):
     filtered_polys=[]
     for poly in polys:
-        if len(poly)>15:
+        if len(poly)>15 or len(poly)<=3:
             continue
         x_min,x_max=poly[0].start_point.x,poly[0].start_point.x
         y_min,y_max=poly[0].start_point.y,poly[0].start_point.y
@@ -801,7 +833,7 @@ def filterPolys(polys,arc_replines_set,t=100,d=5):
             p=poly[0].start_point
             poly[0].start_point=poly[0].end_point
             poly[0].end_point=p
-    print(filtered_polys[0])
+    #print(filtered_polys[0])
     valid_polys=[]
 
     for poly in filtered_polys:
@@ -813,7 +845,7 @@ def filterPolys(polys,arc_replines_set,t=100,d=5):
                 if  is_point_in_polygon(o,poly):
                     valid=False
                     break
-        if  valid:
+        if  True:
             valid_polys.append(poly)
 
     return valid_polys
@@ -874,7 +906,7 @@ def remove_complicated_polygons(polys, tolerance=1e-5):
 
     return res
 
-def outputLines(segments,point_map,linePNGPath,drawIntersections=False,drawLines=False):
+def outputLines(segments,point_map,polys,linePNGPath,drawIntersections=False,drawLines=False,drawPolys=False):
     if drawLines:
         for seg in segments:
             vs, ve = seg.start_point, seg.end_point
@@ -884,6 +916,12 @@ def outputLines(segments,point_map,linePNGPath,drawIntersections=False,drawLines
             if len(ss)>1:
                 # print(p.x,p.y)
                 plt.plot(p.x, p.y, 'r.')
+    if drawPolys:
+        for poly in polys:
+            for edge in poly:
+                x_values = [edge.start_point.x, edge.end_point.x]
+                y_values = [edge.start_point.y, edge.end_point.y]
+                plt.plot(x_values, y_values, 'b-', lw=2)
 
     plt.gca().axis('equal')
     plt.savefig(linePNGPath)
@@ -920,7 +958,6 @@ def findClosedPolys_via_BFS(elements,segments,segmentation_config):
     new_segments, edge_map,point_map= filter_segments(segments,isecDic,point_map,segmentation_config.segment_filter_length,segmentation_config.segment_filter_iters)
 
 
-    outputLines(new_segments,point_map,segmentation_config.line_image_path,segmentation_config.draw_intersections,segmentation_config.draw_segments)
 
 
     # Step 3: 构建基于分割后线段的图结构
@@ -934,12 +971,14 @@ def findClosedPolys_via_BFS(elements,segments,segmentation_config):
     # 基于角隅孔计算参考边
     arc_replines = compute_arc_replines(new_segments)
     star_replines=compute_star_replines(new_segments,elements)
+    line_replines=compute_line_replines(new_segments,point_map)
     if verbose:
         print(f"圆弧角隅孔个数: {len(arc_replines)}")
         print(f"星形角隅孔个数: {len(star_replines)}")
+        print(f"直线形角隅孔个数: {len(line_replines)}")
     # for star_repline in star_replines:
     #     print(star_repline)
-    replines=arc_replines+star_replines
+    replines=arc_replines+star_replines+line_replines
     replines_set=set()
     arc_replines_set=set()
     for arc_rep in arc_replines:
@@ -988,4 +1027,5 @@ def findClosedPolys_via_BFS(elements,segments,segmentation_config):
     if verbose:
         print(f"封闭多边形个数:{len(polys)}")
     outputPolysAndGeometry(polys,segmentation_config.poly_image_dir,segmentation_config.draw_polys,segmentation_config.draw_geometry,segmentation_config.draw_poly_nums)
+    outputLines(new_segments,point_map,polys,segmentation_config.line_image_path,segmentation_config.draw_intersections,segmentation_config.draw_segments,segmentation_config.line_image_drawPolys)
     return polys
