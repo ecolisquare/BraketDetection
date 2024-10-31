@@ -73,6 +73,8 @@ class DSegment:
     def length(self):  
         return ((self.end_point.x - self.start_point.x) ** 2 +   
                 (self.end_point.y - self.start_point.y) ** 2) ** 0.5  
+    def mid_point(self):
+        return DPoint((self.start_point.x+self.end_point.x)/2,(self.start_point.y+self.end_point.y)/2)
   
     def __repr__(self):  
         return f"Segment({self.start_point}, {self.end_point}, length={self.length()}, ref={self.ref})"  

@@ -184,8 +184,15 @@ def readJson(path):
                 rotation=ele["rotation"]
                 insert=ele["insert"]
                 block_data=data_list[1][blockName]
+                #pre-check
+                T_is_contained=False
                 for sube in block_data:
-                    if sube["type"] not in elementtype or sube["color"] not in color  or sube.get("linetype") is None or sube["linetype"] not in linetype:
+                    if sube.get("layerName") is not None and sube["layerName"]=="T":
+                        T_is_contained=True
+                        break
+
+                for sube in block_data:
+                    if  (T_is_contained and sube.get("layerName") is not None and sube["layerName"]!="T") or (T_is_contained and sube.get("layerName") is None) or sube["type"] not in elementtype or sube["color"] not in color  or sube.get("linetype") is None or sube["linetype"] not in linetype:
                         continue
                     if sube["type"]=="line":
                         e=DLine(coordinatesmap(DPoint(sube["start"][0],sube["start"][1]),insert,scales,rotation),
@@ -534,14 +541,15 @@ def build_graph(segments):
     return graph
 
 
-def bfs_paths(graph, start_point, end_point):
+def bfs_paths(graph, start_point, end_point,max_length):
     """基于广度优先搜索找到所有从start_point到end_point的路径，返回路径中的Dsegment"""
     queue = deque([(start_point, [start_point], [])])  # (当前点，路径中的点，路径中的线段)
     all_paths = []
 
     while queue:
         (current_point, point_path, seg_path) = queue.popleft()
-
+        if len(seg_path)>=max_length:
+            continue
         for neighbor, ref in graph.get(current_point, []):
             if neighbor not in point_path:
                 new_point_path = point_path + [neighbor]
@@ -556,7 +564,7 @@ def bfs_paths(graph, start_point, end_point):
 
     return all_paths
 
-def compute_arc_replines(new_segments):
+def compute_arc_replines(new_segments,point_map):
     """
     计算arc_replines，筛选出ref是弧线且半径在20~160之间的线段。
     :param new_segments: 分割后的线段列表
@@ -575,9 +583,11 @@ def compute_arc_replines(new_segments):
                     arc_replines_map[arc_tuple]=[]
                 arc_replines_map[arc_tuple].append(segment)
     for arc_tuple,segments in arc_replines_map.items():
-        arc_replines_map[arc_tuple]=sorted(segments,key= lambda s: )
-
-
+        # arc_replines_map[arc_tuple]=sorted(segments,key= lambda s: DSegment(s.ref.center,s.mid_point()).slope())
+        for s in segments:
+            if len(point_map[s.start_point])>2 or len(point_map[s.end_point])>2:
+                arc_replines.append(s)
+        
     return arc_replines
 
 def compute_star_replines(new_segments,elements):
@@ -752,10 +762,10 @@ def remove_duplicate_polygons(closed_polys,replines_set,eps=25.0,min_samples=1):
 
 
 # filter polys by area of polys's bounding boxes 
-def filterPolys(polys,arc_replines_set,t=100,d=5):
+def filterPolys(polys,arc_replines_set,max_length=15,min_length=3,t=100,d=5):
     filtered_polys=[]
     for poly in polys:
-        if len(poly)>15 or len(poly)<=3:
+        if len(poly)>max_length or len(poly)<=min_length:
             continue
         x_min,x_max=poly[0].start_point.x,poly[0].start_point.x
         y_min,y_max=poly[0].start_point.y,poly[0].start_point.y
@@ -956,7 +966,8 @@ def findClosedPolys_via_BFS(elements,segments,segmentation_config):
     #filter lines
 
     new_segments, edge_map,point_map= filter_segments(segments,isecDic,point_map,segmentation_config.segment_filter_length,segmentation_config.segment_filter_iters)
-
+    # polys=[]
+    # outputLines(new_segments,point_map,polys,segmentation_config.line_image_path,segmentation_config.draw_intersections,segmentation_config.draw_segments,segmentation_config.line_image_drawPolys)
 
 
 
@@ -969,7 +980,7 @@ def findClosedPolys_via_BFS(elements,segments,segmentation_config):
     closed_polys = []
 
     # 基于角隅孔计算参考边
-    arc_replines = compute_arc_replines(new_segments)
+    arc_replines = compute_arc_replines(new_segments,point_map)
     star_replines=compute_star_replines(new_segments,elements)
     line_replines=compute_line_replines(new_segments,point_map)
     if verbose:
@@ -997,7 +1008,7 @@ def findClosedPolys_via_BFS(elements,segments,segmentation_config):
         end_point = repline.end_point
 
         # 使用 BFS 查找从 start_point 到 end_point 的所有路径
-        paths = bfs_paths(graph, start_point, end_point)
+        paths = bfs_paths(graph, start_point, end_point,segmentation_config.path_max_length)
 
         # 构成闭合路径
         for path in paths:
@@ -1015,7 +1026,7 @@ def findClosedPolys_via_BFS(elements,segments,segmentation_config):
 
     # 根据边框对多边形进行过滤
     #polys = filterPolys(polys,t=3000,d=5)
-    polys = filterPolys(closed_polys,arc_replines_set,segmentation_config.bbox_area,segmentation_config.bbox_ratio)
+    polys = filterPolys(closed_polys,arc_replines_set,segmentation_config.path_max_length,segmentation_config.path_min_length,segmentation_config.bbox_area,segmentation_config.bbox_ratio)
 
     # 剔除重复路径
     polys = remove_duplicate_polygons(polys,replines_set,segmentation_config.eps,segmentation_config.min_samples)
