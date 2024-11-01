@@ -59,6 +59,7 @@ def angleOfTwoVectors(A,B):
 
 # Ramer-Douglas-Peucker algorithm for line simplification
 def rdp(points, epsilon):
+    return points
     if len(points) < 3:
         return points
     # Find the point with the maximum distance from the line segment (first to last point)
@@ -91,8 +92,12 @@ def rdp(points, epsilon):
 
 
 def coordinatesmap(p:DPoint,insert,scales,rotation):
+    rr=rotation/180*math.pi
+    cosine=math.cos(rr)
+    sine=math.sin(rr)
+
     # x,y=(p[0]*scales[0]+100)/200,(p[1]*scales[1]+100)/200
-    x,y=(p[0]*scales[0])+insert[0],(p[1]*scales[1])+insert[1]
+    x,y=((cosine*p[0]-sine*p[1])*scales[0])+insert[0],((sine*p[0]+cosine*p[1])*scales[1])+insert[1]
     return DPoint(x,y)
 #json --> elements
 def readJson(path):
@@ -684,7 +689,7 @@ def findBraketByHints(elements,all_segments,filtered_segments,point_map):
                         s=seg2
         if s is not None:
             horizontal_line.append(s)
-    print(horizontal_line)
+    #print(horizontal_line)
     vertical_lines=[]
     for line in horizontal_line:
         if len(point_map[line.start_point])==1:
@@ -700,7 +705,7 @@ def findBraketByHints(elements,all_segments,filtered_segments,point_map):
             else:
                 vertical_lines.append(DSegment(s.end_point,DPoint(s.end_point.x,s.end_point.y+5000)))
     braket_start_lines=[]
-    print(vertical_lines)
+    #print(vertical_lines)
     for i, seg1 in enumerate(vertical_lines):
         y_min=None
         s=None
@@ -733,7 +738,7 @@ def removeReferenceLines(elements,initial_segments,all_segments,point_map):
             mid_point=DPoint((e.bound["x1"]+e.bound["x2"])/2,(e.bound["y1"]+e.bound["y2"])/2)
             x,y=mid_point.x,mid_point.y
             vertical_lines.append(DSegment(DPoint(x,y),DPoint(x,y-5000)))
-    print(len(vertical_lines))
+    #print(len(vertical_lines))
     horizontal_line=[]
   
             
@@ -758,7 +763,7 @@ def removeReferenceLines(elements,initial_segments,all_segments,point_map):
             text_pos=seg1.start_point
             if (text_pos.y-y_max)<=500 and s.ref.color==7 and (len(point_map[s.start_point])==1 or len(point_map[s.end_point])==1):
                 horizontal_line.append(s)
-    print(len(horizontal_line))
+    #print(len(horizontal_line))
     reference_lines=[]
     for line in horizontal_line:
         if len(point_map[line.start_point])==1:
@@ -768,7 +773,7 @@ def removeReferenceLines(elements,initial_segments,all_segments,point_map):
         ss=[s.ref for s in point_map[p] if s.length()>30  and (isinstance(s.ref, DLine) or isinstance(s.ref,DLwpolyline))]
         for s in ss:
             reference_lines.append(s)
-    print(len(reference_lines))
+    #print(len(reference_lines))
     new_segments=[]
     for s in initial_segments:
         if s.ref not in reference_lines:
@@ -1183,5 +1188,5 @@ def findClosedPolys_via_BFS(elements,segments,segmentation_config):
     if verbose:
         print(f"封闭多边形个数:{len(polys)}")
     outputPolysAndGeometry(polys,segmentation_config.poly_image_dir,segmentation_config.draw_polys,segmentation_config.draw_geometry,segmentation_config.draw_poly_nums)
-    outputLines(initial_segments,filtered_point_map,polys,segmentation_config.line_image_path,segmentation_config.draw_intersections,segmentation_config.draw_segments,segmentation_config.line_image_drawPolys)
+    outputLines(filtered_segments,filtered_point_map,polys,segmentation_config.line_image_path,segmentation_config.draw_intersections,segmentation_config.draw_segments,segmentation_config.line_image_drawPolys)
     return polys
