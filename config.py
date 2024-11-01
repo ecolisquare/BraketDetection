@@ -24,7 +24,7 @@ class SegmentationConfig:
         self.intersection_epsilon=1e-9
 
         self.bbox_area=3000
-        self.bbox_ratio=3
+        self.bbox_ratio=3.5
 
 
         self.remove_tolerance=1e-5

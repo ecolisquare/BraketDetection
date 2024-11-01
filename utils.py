@@ -10,7 +10,13 @@ from collections import deque
 import os
 from sklearn.cluster import DBSCAN
 
-
+def numberInString(content):
+    flag=False
+    for i in range(10):
+        if str(i) in content:
+            flag=True
+            break
+    return flag
 def is_point_in_polygon(point, polygon_edges):
     """
     判断一个点是否在一组线段围成的多边形内
@@ -259,6 +265,7 @@ def readJson(path):
         print("The file does not exist.")
     except json.JSONDecodeError:  
         print("Error decoding JSON.")
+
 
 #expand lines by fixed length
 def expandFixedLength(segList,dist):
@@ -644,6 +651,133 @@ def compute_line_replines(new_segments,point_map):
             if p in [b.start_point,b.end_point]:
                 line_replines.append(s)
     return line_replines
+
+
+def findBraketByHints(elements,all_segments,filtered_segments,point_map):
+    braket_texts=[]
+    vertical_lines=[]
+    for e in elements:
+        if isinstance(e,DText) and len(e.content)==6 and "B" in e.content:
+            braket_texts.append(e)
+            mid_point=DPoint((e.bound["x1"]+e.bound["x2"])/2,(e.bound["y1"]+e.bound["y2"])/2)
+            x,y=mid_point.x,mid_point.y
+            vertical_lines.append(DSegment(DPoint(x,y),DPoint(x,y-5000)))
+    horizontal_line=[]
+  
+            
+    for i, seg1 in enumerate(vertical_lines):
+        y_max=None
+        s=None
+        for j, seg2 in enumerate(all_segments):
+            if i >= j:
+                continue  # Avoid duplicate checks and self-intersections
+            p1, p2 = seg1.start_point, seg1.end_point
+            q1, q2 = seg2.start_point, seg2.end_point
+            intersection = segment_intersection(p1, p2, q1, q2)
+            if intersection:
+                if y_max is None:
+                    y_max=intersection[1]
+                    s=seg2
+                else:
+                    if y_max<intersection[1]:
+                        y_max=intersection[1]
+                        s=seg2
+        if s is not None:
+            horizontal_line.append(s)
+    print(horizontal_line)
+    vertical_lines=[]
+    for line in horizontal_line:
+        if len(point_map[line.start_point])==1:
+            p=line.end_point
+        else:
+            p=line.start_point
+        ss=[s.ref for s in point_map[p] if s.length()>30 and s.ref!=line.ref and isinstance(s.ref, DLine)]
+        for s in ss:
+            l1=DSegment(s.start_point,p)
+            l2=DSegment(s.end_point,p)
+            if l1.length()>=l2.length():
+                vertical_lines.append(DSegment(s.start_point,DPoint(s.start_point.x,s.start_point.y+5000)))
+            else:
+                vertical_lines.append(DSegment(s.end_point,DPoint(s.end_point.x,s.end_point.y+5000)))
+    braket_start_lines=[]
+    print(vertical_lines)
+    for i, seg1 in enumerate(vertical_lines):
+        y_min=None
+        s=None
+        for j, seg2 in enumerate(filtered_segments):
+            if i >= j:
+                continue  # Avoid duplicate checks and self-intersections
+            p1, p2 = seg1.start_point, seg1.end_point
+            q1, q2 = seg2.start_point, seg2.end_point
+            intersection = segment_intersection(p1, p2, q1, q2)
+            if intersection:
+                if y_min is None:
+                    y_min=intersection[1]
+                    s=seg2
+                else:
+                    if y_min>intersection[1]:
+                        y_min=intersection[1]
+                        s=seg2
+        if s is not None:
+            braket_start_lines.append(s)
+    
+
+    return braket_start_lines
+
+
+def removeReferenceLines(elements,initial_segments,all_segments,point_map):
+    vertical_lines=[]
+    text_pos=[]
+    for e in elements:
+        if isinstance(e,DText) and numberInString(e.content):
+            mid_point=DPoint((e.bound["x1"]+e.bound["x2"])/2,(e.bound["y1"]+e.bound["y2"])/2)
+            x,y=mid_point.x,mid_point.y
+            vertical_lines.append(DSegment(DPoint(x,y),DPoint(x,y-5000)))
+    print(len(vertical_lines))
+    horizontal_line=[]
+  
+            
+    for i, seg1 in enumerate(vertical_lines):
+        y_max=None
+        s=None
+        for j, seg2 in enumerate(all_segments):
+            if i >= j:
+                continue  # Avoid duplicate checks and self-intersections
+            p1, p2 = seg1.start_point, seg1.end_point
+            q1, q2 = seg2.start_point, seg2.end_point
+            intersection = segment_intersection(p1, p2, q1, q2)
+            if intersection:
+                if y_max is None:
+                    y_max=intersection[1]
+                    s=seg2
+                else:
+                    if y_max<intersection[1]:
+                        y_max=intersection[1]
+                        s=seg2
+        if s is not None:
+            text_pos=seg1.start_point
+            if (text_pos.y-y_max)<=500 and s.ref.color==7 and (len(point_map[s.start_point])==1 or len(point_map[s.end_point])==1):
+                horizontal_line.append(s)
+    print(len(horizontal_line))
+    reference_lines=[]
+    for line in horizontal_line:
+        if len(point_map[line.start_point])==1:
+            p=line.end_point
+        else:
+            p=line.start_point
+        ss=[s.ref for s in point_map[p] if s.length()>30  and (isinstance(s.ref, DLine) or isinstance(s.ref,DLwpolyline))]
+        for s in ss:
+            reference_lines.append(s)
+    print(len(reference_lines))
+    new_segments=[]
+    for s in initial_segments:
+        if s.ref not in reference_lines:
+            new_segments.append(s)
+    return new_segments,reference_lines
+
+           
+            
+    
 def convert_ref_to_tuple(ref):
     """
     Convert different ref objects (Line, Arc, etc.) to a unified tuple format for comparison.
@@ -963,9 +1097,18 @@ def findClosedPolys_via_BFS(elements,segments,segmentation_config):
     if verbose:
         print("根据交点分割线段")
     new_segments, edge_map,point_map= split_segments(segments, isecDic,segmentation_config.segment_split_epsilon)
+    filtered_segments, filtered_edge_map,filtered_point_map= filter_segments(segments,isecDic,point_map,segmentation_config.segment_filter_length,segmentation_config.segment_filter_iters)
+    braket_start_lines=findBraketByHints(elements,new_segments,filtered_segments,point_map)
+    
+    
+    #remove rfernce lines
+    initial_segments,reference_lines=removeReferenceLines(elements,segments,new_segments,point_map)
+
+    isecDic = find_all_intersections(initial_segments,segmentation_config.intersection_epsilon)
+    new_segments, edge_map,point_map= split_segments(initial_segments, isecDic,segmentation_config.segment_split_epsilon)
     #filter lines
 
-    new_segments, edge_map,point_map= filter_segments(segments,isecDic,point_map,segmentation_config.segment_filter_length,segmentation_config.segment_filter_iters)
+    filtered_segments, filtered_edge_map,filtered_point_map= filter_segments(initial_segments,isecDic,point_map,segmentation_config.segment_filter_length,segmentation_config.segment_filter_iters)
     # polys=[]
     # outputLines(new_segments,point_map,polys,segmentation_config.line_image_path,segmentation_config.draw_intersections,segmentation_config.draw_segments,segmentation_config.line_image_drawPolys)
 
@@ -974,22 +1117,24 @@ def findClosedPolys_via_BFS(elements,segments,segmentation_config):
     # Step 3: 构建基于分割后线段的图结构
     if verbose:
         print("构建基于分割后线段的图结构")
-        print(f"过滤后线段条数:{len(new_segments)}")
+        print(f"过滤后线段条数:{len(filtered_segments)}")
     graph= build_graph(new_segments)
 
     closed_polys = []
 
     # 基于角隅孔计算参考边
-    arc_replines = compute_arc_replines(new_segments,point_map)
-    star_replines=compute_star_replines(new_segments,elements)
-    line_replines=compute_line_replines(new_segments,point_map)
+    arc_replines = compute_arc_replines(filtered_segments,filtered_point_map)
+    star_replines=compute_star_replines(filtered_segments,elements)
+    line_replines=compute_line_replines(filtered_segments,filtered_point_map)
+   
     if verbose:
         print(f"圆弧角隅孔个数: {len(arc_replines)}")
         print(f"星形角隅孔个数: {len(star_replines)}")
         print(f"直线形角隅孔个数: {len(line_replines)}")
+        print(f"根据标注找到的肘板个数: {len(braket_start_lines)}")
     # for star_repline in star_replines:
     #     print(star_repline)
-    replines=arc_replines+star_replines+line_replines
+    replines=arc_replines+star_replines+line_replines+braket_start_lines
     replines_set=set()
     arc_replines_set=set()
     for arc_rep in arc_replines:
@@ -1038,5 +1183,5 @@ def findClosedPolys_via_BFS(elements,segments,segmentation_config):
     if verbose:
         print(f"封闭多边形个数:{len(polys)}")
     outputPolysAndGeometry(polys,segmentation_config.poly_image_dir,segmentation_config.draw_polys,segmentation_config.draw_geometry,segmentation_config.draw_poly_nums)
-    outputLines(new_segments,point_map,polys,segmentation_config.line_image_path,segmentation_config.draw_intersections,segmentation_config.draw_segments,segmentation_config.line_image_drawPolys)
+    outputLines(initial_segments,filtered_point_map,polys,segmentation_config.line_image_path,segmentation_config.draw_intersections,segmentation_config.draw_segments,segmentation_config.line_image_drawPolys)
     return polys
