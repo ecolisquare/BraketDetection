@@ -42,7 +42,8 @@ class DSegment:
         self.start_point = start_point  
         self.end_point = end_point  
         self.ref=ref
-        self.isConstraint=0
+        self.isConstraint=False
+        self.isCornerhole=False
     def __len__(self):
         return 2
 
@@ -150,6 +151,12 @@ class DArc:
     def __repr__(self):  
         return (f"Arc(center={self.center}, radius={self.radius}, "  
                 f"start_angle={self.start_angle}, end_angle={self.end_angle})")  
+    
+    # def __eq__(self, other):
+    #     if isinstance(other, DArc):
+    #         return (self.center, self.radius, self.start_angle, self.end_angle) == (other.center, other.radius, other.start_angle, other.end_angle)
+    #     return False
+        
   
 
 class DText:  

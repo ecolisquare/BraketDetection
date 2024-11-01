@@ -37,11 +37,37 @@ def plot_geometry(segments, path):
 #输出封闭多边形
 def plot_polys(segments,path):
     fig, ax = plt.subplots()
-    
-    for segment in segments:
+    for i, segment in enumerate(segments):
         x_values = [segment.start_point.x, segment.end_point.x]
         y_values = [segment.start_point.y, segment.end_point.y]
-        ax.plot(x_values, y_values, 'b-', lw=2)
+        color = 'red' if i % 2 == 0 else 'blue'
+        ax.plot(x_values, y_values, color=color, lw=2)  # 使用不同的颜色
+    ax.set_aspect('equal', 'box')
+    plt.savefig(path)
+    plt.close()
+
+def plot_info_poly(segments, path):
+    fig, ax = plt.subplots()
+    for i, segment in enumerate(segments):
+        if segment.isCornerhole:
+            color = "red"
+        elif segment.isConstraint:
+            color = "green"
+        else:
+            color = "blue"
+        if isinstance(segment.ref, DArc):
+            if segment.ref.end_angle < segment.ref.start_angle:
+                end_angle = segment.ref.end_angle + 360
+            else:
+                end_angle = segment.ref.end_angle
+            theta = np.linspace(np.radians(segment.ref.start_angle), np.radians(end_angle), 100)
+            x_arc = segment.ref.center.x + segment.ref.radius * np.cos(theta)
+            y_arc = segment.ref.center.y + segment.ref.radius * np.sin(theta)
+            ax.plot(x_arc, y_arc, color, lw=2)
+        else:
+            x_values = [segment.start_point.x, segment.end_point.x]
+            y_values = [segment.start_point.y, segment.end_point.y]
+            ax.plot(x_values, y_values, color, lw=2)
     ax.set_aspect('equal', 'box')
     plt.savefig(path)
     plt.close()
