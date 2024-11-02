@@ -44,6 +44,7 @@ class DSegment:
         self.ref=ref
         self.isConstraint=False
         self.isCornerhole=False
+        self.StarCornerhole = None
     def __len__(self):
         return 2
 
