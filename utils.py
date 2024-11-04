@@ -2,7 +2,7 @@ import json
 from  element import *
 import math
 from SweepIntersectorLib.SweepIntersector import SweepIntersector
-from plot_geo import plot_geometry,plot_polys
+from plot_geo import plot_geometry,plot_polys, plot_info_poly
 import matplotlib.pyplot as plt
 import networkx as nx
 import numpy as np
@@ -103,7 +103,7 @@ def coordinatesmap(p:DPoint,insert,scales,rotation):
 def readJson(path):
     elements=[]
     segments=[]
-    color = [3, 7, 8,4]
+    color = [3, 7, 8, 4]
     linetype = ["BYLAYER", "Continuous","Bylayer","CONTINUOUS"]
     elementtype=["line","arc","lwpolyline","polyline"]
     try:  
@@ -1191,5 +1191,5 @@ def findClosedPolys_via_BFS(elements,segments,segmentation_config):
     if verbose:
         print(f"封闭多边形个数:{len(polys)}")
     outputPolysAndGeometry(polys,segmentation_config.poly_image_dir,segmentation_config.draw_polys,segmentation_config.draw_geometry,segmentation_config.draw_poly_nums)
-    outputLines(filtered_segments,filtered_point_map,polys,segmentation_config.line_image_path,segmentation_config.draw_intersections,segmentation_config.draw_segments,segmentation_config.line_image_drawPolys)
-    return polys
+    outputLines(filtered_segments,point_map,polys,segmentation_config.line_image_path,segmentation_config.draw_intersections,segmentation_config.draw_segments,segmentation_config.line_image_drawPolys)
+    return polys, new_segments, point_map

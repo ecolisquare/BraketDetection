@@ -12,7 +12,7 @@ class SegmentationConfig:
         self.line_image_drawPolys=True
 
         self.draw_poly_nums=1000
-        self.poly_image_dir="/home/user10/code/BraketDetection/output"
+        self.poly_image_dir="./output"
         self.draw_polys=True
         self.draw_geometry=True
 
@@ -35,3 +35,5 @@ class SegmentationConfig:
 
         self.path_max_length = 20
         self.path_min_length = 3
+
+        self.poly_info_dir = "./output"
