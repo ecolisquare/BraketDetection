@@ -848,20 +848,23 @@ def remove_duplicate_polygons(closed_polys,replines_set,eps=25.0,min_samples=1):
     #     if refs_tuple not in seen_refs:
     #         unique_polys.append(poly)
     #         seen_refs.add(refs_tuple)
-    poly_map={}
+    # poly_map={}
+    # for poly in closed_polys:
+    #     bc=computeCenterCoordinates(poly)
+    #     #bc=DPoint(int(bc.x/span)*span,int(bc.y/span)*span)
+    #     if bc not in poly_map:
+    #         poly_map[bc]=poly
+    #     else:
+    #         if len(poly_map[bc])<len(poly):
+    #             poly_map[bc]=poly
+    tps=[]
     for poly in closed_polys:
         bc=computeCenterCoordinates(poly)
-        #bc=DPoint(int(bc.x/span)*span,int(bc.y/span)*span)
-        if bc not in poly_map:
-            poly_map[bc]=poly
-        else:
-            if len(poly_map[bc])<len(poly):
-                poly_map[bc]=poly
-    tps=[]
-    for bc,poly in poly_map.items():
+        tps.append((bc,poly))
+    # for bc,poly in poly_map.items():
         # unique_polys.append(poly)
         # bcs.append(bc)
-        tps.append((bc,poly))
+        # tps.append((bc,poly))
     # tps=sorted(tps,key=lambda item: item[0].as_tuple())
     
     #filter tps
@@ -1101,7 +1104,7 @@ def findClosedPolys_via_BFS(elements,segments,segmentation_config):
     # Step 2: 根据交点分割线段
     if verbose:
         print("根据交点分割线段")
-    new_segments, edge_map,point_map= split_segments(segments, isecDic,segmentation_config.segment_split_epsilon)
+    new_segments, edge_map,point_map= split_segments(segments, isecDic,segmentation_config.segment_filter_length)
     filtered_segments, filtered_edge_map,filtered_point_map= filter_segments(segments,isecDic,point_map,segmentation_config.segment_filter_length,segmentation_config.segment_filter_iters)
     braket_start_lines=findBraketByHints(elements,new_segments,filtered_segments,point_map)
     
@@ -1110,7 +1113,7 @@ def findClosedPolys_via_BFS(elements,segments,segmentation_config):
     initial_segments,reference_lines=removeReferenceLines(elements,segments,new_segments,point_map)
 
     isecDic = find_all_intersections(initial_segments,segmentation_config.intersection_epsilon)
-    new_segments, edge_map,point_map= split_segments(initial_segments, isecDic,segmentation_config.segment_split_epsilon)
+    new_segments, edge_map,point_map= split_segments(initial_segments, isecDic,segmentation_config.segment_filter_length)
     #filter lines
 
     filtered_segments, filtered_edge_map,filtered_point_map= filter_segments(initial_segments,isecDic,point_map,segmentation_config.segment_filter_length,segmentation_config.segment_filter_iters)
@@ -1123,14 +1126,14 @@ def findClosedPolys_via_BFS(elements,segments,segmentation_config):
     if verbose:
         print("构建基于分割后线段的图结构")
         print(f"过滤后线段条数:{len(filtered_segments)}")
-    graph= build_graph(new_segments)
+    graph= build_graph(filtered_segments)
 
     closed_polys = []
 
     # 基于角隅孔计算参考边
-    arc_replines = compute_arc_replines(filtered_segments,filtered_point_map)
+    arc_replines = compute_arc_replines(filtered_segments,point_map)
     star_replines=compute_star_replines(filtered_segments,elements)
-    line_replines=compute_line_replines(filtered_segments,filtered_point_map)
+    line_replines=compute_line_replines(filtered_segments,point_map)
    
     if verbose:
         print(f"圆弧角隅孔个数: {len(arc_replines)}")
@@ -1177,7 +1180,7 @@ def findClosedPolys_via_BFS(elements,segments,segmentation_config):
     # 根据边框对多边形进行过滤
     #polys = filterPolys(polys,t=3000,d=5)
     polys = filterPolys(closed_polys,arc_replines_set,segmentation_config.path_max_length,segmentation_config.path_min_length,segmentation_config.bbox_area,segmentation_config.bbox_ratio)
-
+    print(len(polys))
     # 剔除重复路径
     polys = remove_duplicate_polygons(polys,replines_set,segmentation_config.eps,segmentation_config.min_samples)
     #print(bcs)
