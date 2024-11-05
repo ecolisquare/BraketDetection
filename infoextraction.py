@@ -255,10 +255,10 @@ def outputPolyInfo(poly, segments, segmentation_config, point_map, index):
     # 如果有多于两条的自由边则判定为不是肘板，不进行输出
     if len(free_edges) > 1:
         print(f"回路{index}超过两条自由边！")
-        return
+        return None
     if len(free_edges) == 0:
         print(f"回路{index}没有自由边！")
-        return
+        return  None
 
     # step6: 绘制对边分类后的几何图像
     plot_info_poly(poly_refs, os.path.join(segmentation_config.poly_info_dir, f'infopoly{index}.png'))
@@ -331,3 +331,5 @@ def outputPolyInfo(poly, segments, segmentation_config, point_map, index):
             nex = len(constraint_edges) if nex == 0 else nex
             log_to_file(file_path, f"角隅孔{cornerhole_index}位于边界{pre}和边界{nex}之间")
             cornerhole_index += 1
+
+    return poly_refs

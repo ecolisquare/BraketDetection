@@ -4,6 +4,7 @@ from utils import *
 from infoextraction import *
 import numpy as np
 import os
+from plot_geo import *
 
 from config import *
 
@@ -35,6 +36,7 @@ def process_json_data(json_path, output_path):
     segmentation_config.line_image_path = os.path.join(output_path, "line.png")
     segmentation_config.poly_image_dir = os.path.join(output_path, "poly_image")
     segmentation_config.poly_info_dir = os.path.join(output_path, "poly_info")
+    segmentation_config.res_image_path = os.path.join(output_path, "res.png")
 
     try:
         os.makedirs(segmentation_config.poly_image_dir, exist_ok=True)
@@ -56,13 +58,16 @@ def process_json_data(json_path, output_path):
 
     #结构化输出每个肘板信息
     print("正在输出结构化信息...")
+    polys_info = []
+    print("正在输出结构化信息...")
     for i, poly in enumerate(polys):
-        try:
-            outputPolyInfo(poly, new_segments, segmentation_config, point_map, i)
-        except Exception as e:
-            print(e)
+        res = outputPolyInfo(poly, new_segments, segmentation_config, point_map, i)
+        if res is not None:
+            polys_info.append(res)
 
     print("结构化信息输出完毕，保存于:", segmentation_config.poly_info_dir)
+
+    outputRes(new_segments, point_map, polys_info, segmentation_config.res_image_path,segmentation_config.draw_intersections,segmentation_config.draw_segments,segmentation_config.line_image_drawPolys)
 
 
 

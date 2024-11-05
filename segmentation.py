@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 from utils import *
 from infoextraction import *
 import numpy as np
-
+from plot_geo import *
 from config import *
 
 segmentation_config=SegmentationConfig()
@@ -32,8 +32,13 @@ segments=expandFixedLength(ori_segments,segmentation_config.line_expand_length)
 polys, new_segments, point_map=findClosedPolys_via_BFS(elements,segments,segmentation_config)
 
 #结构化输出每个肘板信息
+polys_info = []
 print("正在输出结构化信息...")
 for i, poly in enumerate(polys):
-    outputPolyInfo(poly, new_segments, segmentation_config, point_map, i)
+    res = outputPolyInfo(poly, new_segments, segmentation_config, point_map, i)
+    if res is not None:
+        polys_info.append(res)
 
 print("结构化信息输出完毕，保存于:", segmentation_config.poly_info_dir)
+
+outputRes(new_segments, point_map, polys_info, segmentation_config.res_image_path,segmentation_config.draw_intersections,segmentation_config.draw_segments,segmentation_config.line_image_drawPolys)

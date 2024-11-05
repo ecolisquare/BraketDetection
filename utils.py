@@ -1079,7 +1079,7 @@ def outputLines(segments,point_map,polys,linePNGPath,drawIntersections=False,dra
     plt.gca().axis('equal')
     plt.savefig(linePNGPath)
     print(f"直线图保存于:{linePNGPath}")
-    plt.close()
+    fig.clf()
 
 def outputPolysAndGeometry(polys,path,draw_polys=False,draw_geometry=False,n=10):
     if draw_geometry:
