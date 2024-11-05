@@ -4,10 +4,10 @@ class SegmentationConfig:
 
         self.json_path=""
         
-        self.line_expand_length=10
+        self.line_expand_length=13
 
-        self.line_image_path="./output/line.png"
-        self.draw_intersections=False
+        self.line_image_path="/home/user10/code/BraketDetection/output/line.png"
+        self.draw_intersections=True
         self.draw_segments=True
         self.line_image_drawPolys=True
 
@@ -16,24 +16,24 @@ class SegmentationConfig:
         self.draw_polys=True
         self.draw_geometry=True
 
-        self.segment_filter_length=12
-        self.segment_filter_iters=25
+        self.segment_filter_length=14
+        self.segment_filter_iters=100
 
         self.segment_split_epsilon=0.25
 
         self.intersection_epsilon=1e-9
 
         self.bbox_area=3000
-        self.bbox_ratio=3
+        self.bbox_ratio=4
 
 
         self.remove_tolerance=1e-5
 
 
-        self.eps=25.0
+        self.eps=15.0
         self.min_samples=1
 
-        self.path_max_length = 15
+        self.path_max_length = 20
         self.path_min_length = 3
 
         self.poly_info_dir = "./output"

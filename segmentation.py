@@ -14,6 +14,15 @@ if segmentation_config.verbose:
     print("读取json文件")
 #文件中线段元素的读取和根据颜色过滤
 elements,ori_segments=readJson(json_path)
+# braket_texts=findBraketByHints(elements)
+# for e in elements:
+#     if isinstance(e,DText):
+#         texts.append(e)
+#         print(e)
+# print(len(texts))
+# for t in braket_texts:
+#     print(t)
+# print(len(braket_texts))
 if segmentation_config.verbose:
     print("json文件读取完毕")
 #将线进行适当扩张
