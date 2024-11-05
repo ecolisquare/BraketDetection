@@ -919,6 +919,7 @@ def remove_complicated_polygons(polys, tolerance=1e-5):
     return res
 
 def outputLines(segments,point_map,polys,linePNGPath,drawIntersections=False,drawLines=False,drawPolys=False):
+    fig, ax = plt.subplots()
     if drawLines:
         for seg in segments:
             vs, ve = seg.start_point, seg.end_point
@@ -938,6 +939,7 @@ def outputLines(segments,point_map,polys,linePNGPath,drawIntersections=False,dra
     plt.gca().axis('equal')
     plt.savefig(linePNGPath)
     print(f"直线图保存于:{linePNGPath}")
+    plt.close()
 
 def outputPolysAndGeometry(polys,path,draw_polys=False,draw_geometry=False,n=10):
     if draw_geometry:

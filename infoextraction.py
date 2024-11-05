@@ -256,6 +256,9 @@ def outputPolyInfo(poly, segments, segmentation_config, point_map, index):
     if len(free_edges) > 1:
         print(f"回路{index}超过两条自由边！")
         return
+    if len(free_edges) == 0:
+        print(f"回路{index}没有自由边！")
+        return
 
     # step6: 绘制对边分类后的几何图像
     plot_info_poly(poly_refs, os.path.join(segmentation_config.poly_info_dir, f'infopoly{index}.png'))
