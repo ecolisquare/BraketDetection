@@ -174,4 +174,10 @@ class DText:
   
 
 
+class DCornorHole:
+    cornor_hole_id=0
+    def __init__(self,segments=[]):
+        self.segments=segments
+        self.ID=DCornorHole.cornor_hole_id
+        DCornorHole.cornor_hole_id+=1
 

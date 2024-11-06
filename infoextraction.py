@@ -1,7 +1,7 @@
 from  element import *
 from plot_geo import plot_geometry,plot_polys, plot_info_poly
 import os
-
+from utils import segment_intersection
 def log_to_file(filename, content):
     """将内容写入指定的文件。"""
     with open(filename, 'a') as file:  # 以追加模式打开文件
@@ -29,14 +29,18 @@ def calculate_poly_centroid(poly):
 def are_equal_with_tolerance(k1, k2, tolerance = 0.1):
     return abs(k1 - k2) <= tolerance
 
-def calculate_poly_refs(poly):
+def calculate_poly_refs(poly,cornor_holes,cornor_holes_map):
     refs = []
+    cornor_holes_in_poly=[]
     for segment in poly:
-        if isinstance(segment.ref, DArc) and len(refs) != 0 and isinstance(refs[-1].ref, DArc):
-            if(segment.ref.start_angle, segment.ref.end_angle, segment.ref.center, segment.ref.radius) == (refs[-1].ref.start_angle, refs[-1].ref.end_angle, refs[-1].ref.center, refs[-1].ref.radius):
-                continue
-        elif isinstance(segment.ref, DArc):
+        # if isinstance(segment.ref, DArc) and len(refs) != 0 and isinstance(refs[-1].ref, DArc):
+        #     if(segment.ref.start_angle, segment.ref.end_angle, segment.ref.center, segment.ref.radius) == (refs[-1].ref.start_angle, refs[-1].ref.end_angle, refs[-1].ref.center, refs[-1].ref.radius):
+        #         continue
+        # elif isinstance(segment.ref, DArc):
+        #     refs.append(segment)
+        if segment in cornor_holes_map and cornor_holes_map[segment] not in cornor_holes_in_poly:
             refs.append(segment)
+            cornor_holes_in_poly.append(cornor_holes_map[segment])
         else:
             if len(refs) != 0:
                 dx_1 = segment.end_point.x - segment.start_point.x
@@ -87,27 +91,75 @@ def calculate_poly_refs(poly):
     return refs
 
 
-def outputPolyInfo(poly, segments, segmentation_config, point_map, index):
+def outputPolyInfo(poly, segments, segmentation_config, point_map, index,star_pos_map,cornor_holes):
     # step1: 计算几何中心坐标
     poly_centroid = calculate_poly_centroid(poly)
 
     # step2: 合并边界线
-    poly_refs = calculate_poly_refs(poly)
+    cornor_holes_map={}
+    for cornor_hole in cornor_holes:
+        for s in cornor_hole.segments:
+            cornor_holes_map[s]=cornor_hole.ID
+            cornor_holes_map[DSegment(s.end_point,s.start_point,s.ref)]=cornor_hole.ID
+    poly_refs = calculate_poly_refs(poly,cornor_holes,cornor_holes_map)
 
     # step3: 标记角隅孔
-    corner_holes = []
-    for i,segment in enumerate(poly_refs):
+    # corner_holes = []
+    # for i,segment in enumerate(poly_refs):
         # 如果是角隅孔(圆弧角隅孔和直线角隅孔)
-        if isinstance(segment.ref, DArc) and segment.ref.radius > 20 and segment.ref.radius < 160:
-            poly_refs[i].isCornerhole = True
-            segment.isCornerhole = True
-            corner_holes.append(segment)
-        # TODO:判断并标记直线角隅孔
+        # if isinstance(segment.ref, DArc) and segment.ref.radius > 20 and segment.ref.radius < 160:
+        # if segment in arc_replines_set:
+        #     poly_refs[i].isCornerhole = True
+        #     segment.isCornerhole = True
+        #     corner_holes.append(segment)
+        # elif segment in line_replines_set:
+        #     poly_refs[i].isCornerhole = True
+        #     segment.isCornerhole = True
+        #     corner_holes.append(segment)
+        # 判断并标记直线角隅孔
         # elif isinstance(segment.ref, DLine):
         #     continue
     
-    # TODO: 根据星形角隅孔的位置，将角隅孔的坐标标记到相邻segment的StarCornerhole属性中，同时将该边标记为固定边
-
+    #  根据星形角隅孔的位置，将角隅孔的坐标标记到相邻segment的StarCornerhole属性中，同时将该边标记为固定边
+    star_set=set()
+    for s in poly:
+        if s in star_pos_map:
+            for ss in star_pos_map[s]:
+                star_set.add(ss)
+    stars_pos=list(star_set)
+    for p in stars_pos:
+        x,y=p.x,p.y
+        lines=[]
+        lines.append(DSegment(DPoint(x,y),DPoint(x-5000,y)))
+        lines.append(DSegment(DPoint(x,y),DPoint(x+5000,y)))
+        lines.append(DSegment(DPoint(x,y),DPoint(x,y+5000)))
+        lines.append(DSegment(DPoint(x,y),DPoint(x,y-5000)))
+        cornor=[]
+        for i, seg1 in enumerate(lines):
+            dist=None
+            s=None
+            for j, seg2 in enumerate(poly_refs):
+                p1, p2 = seg1.start_point, seg1.end_point
+                q1, q2 = seg2.start_point, seg2.end_point
+                intersection = segment_intersection(p1, p2, q1, q2)
+                if intersection:
+                    if dist is None:
+                        dist=(intersection[0]-p1.x)*(intersection[0]-p1.x)+(intersection[1]-p1.y)*(intersection[1]-p1.y)
+                        s=seg2
+                    else:
+                        if dist>(intersection[0]-p1.x)*(intersection[0]-p1.x)+(intersection[1]-p1.y)*(intersection[1]-p1.y):
+                            dist=(intersection[0]-p1.x)*(intersection[0]-p1.x)+(intersection[1]-p1.y)*(intersection[1]-p1.y)
+                            s=seg2
+            if s is not None:
+               cornor.append((dist,s,p))
+        cornor=sorted(cornor,key=lambda p:p[0])
+        if len(cornor)>=2:
+            cornor[0][1].isConstraint=True
+            cornor[0][1].isCornerhole=False
+            cornor[0][1].StarCornerhole=cornor[0][2]
+            cornor[1][1].isConstraint=True
+            cornor[1][1].isCornerhole=False
+            cornor[1][1].StarCornerhole=cornor[1][2]
     # step4: 标记固定边
     for i, segment in enumerate(poly_refs):
         # 颜色确定
@@ -256,7 +308,9 @@ def outputPolyInfo(poly, segments, segmentation_config, point_map, index):
     if len(free_edges) > 1:
         print(f"回路{index}超过两条自由边！")
         return
-
+    elif len(free_edges)==0:
+        print(f"回路{index}没有自由边！")
+        return
     # step6: 绘制对边分类后的几何图像
     plot_info_poly(poly_refs, os.path.join(segmentation_config.poly_info_dir, f'infopoly{index}.png'))
 
@@ -291,10 +345,10 @@ def outputPolyInfo(poly, segments, segmentation_config, point_map, index):
         seg = edge[0]
         if seg.isCornerhole:
             log_to_file(file_path, f"角隅孔{cornerhole_index}轮廓：")
-            if isinstance(seg.ref, DArc):
-                log_to_file(file_path, f"起点：{seg.ref.start_point}、终点：{seg.ref.end_point}、圆心：{seg.ref.center}、半径：{seg.ref.radius}（圆弧）")
-            else:
-                log_to_file(file_path, f"起点：{seg.start_point}、终点{seg.end_point}（直线）")
+            # if isinstance(seg.ref, DArc):
+            #     log_to_file(file_path, f"起点：{seg.ref.start_point}、终点：{seg.ref.end_point}、圆心：{seg.ref.center}、半径：{seg.ref.radius}（圆弧）")
+            # else:
+            #     log_to_file(file_path, f"起点：{seg.start_point}、终点{seg.end_point}（直线）")
             cornerhole_index += 1
         # 星形角隅孔
         if seg.StarCornerhole is not None:

@@ -29,11 +29,11 @@ if segmentation_config.verbose:
 segments=expandFixedLength(ori_segments,segmentation_config.line_expand_length)
 
 #找出所有包含角隅孔圆弧的基本环
-polys, new_segments, point_map=findClosedPolys_via_BFS(elements,segments,segmentation_config)
+polys, new_segments, point_map,star_pos_map,cornor_holes=findClosedPolys_via_BFS(elements,segments,segmentation_config)
 
 #结构化输出每个肘板信息
 print("正在输出结构化信息...")
-for i, poly in enumerate(polys):
-    outputPolyInfo(poly, new_segments, segmentation_config, point_map, i)
+# for i, poly in enumerate(polys):
+#     outputPolyInfo(poly, new_segments, segmentation_config, point_map, i,star_pos_map,cornor_holes)
 
 print("结构化信息输出完毕，保存于:", segmentation_config.poly_info_dir)
