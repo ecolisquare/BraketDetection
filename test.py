@@ -1,32 +1,76 @@
-# from element import *
-# edge1=DSegment(DPoint(1.001,1.002),DPoint(2.003,2.102),None)
-# edge2=DSegment(DPoint(1.000,1.053),DPoint(2.014,2.135),DLine())
-# print(edge1==edge2)
-# print(hash(edge1)==hash(edge2))
-# edge_set=set()
-# edge_set.add(edge1)
-# print(edge2 in edge_set)
+from element import *
+import matplotlib.pyplot as plt
+from utils import *
+from infoextraction import *
+import numpy as np
+import os
+from plot_geo import *
+
+from config import *
+
+def process_json_files(folder_path, output_foler):
+    # 检查文件夹是否存在
+    if not os.path.isdir(folder_path):
+        print(f"路径 {folder_path} 不存在或不是一个文件夹。")
+        return
+    
+    # 遍历文件夹中的每个文件
+    for filename in os.listdir(folder_path):
+        # 检查文件是否是JSON文件
+        if filename.endswith('.json'):
+            file_path = os.path.join(folder_path, filename)
+            name = os.path.splitext(filename)[0]
+            output_path = os.path.join(output_foler, name)
+            print(f"正在处理文件: {file_path}")
+            
+            # 打开并读取JSON文件内容
+            try:
+                process_json_data(file_path, output_path)  # 对数据进行操作
+            except json.JSONDecodeError as e:
+                print(f"解析JSON文件 {file_path} 时出错: {e}")
+            except Exception as e:
+                print(f"处理文件 {file_path} 时出错: {e}")
+
+def process_json_data(json_path, output_path):
+    segmentation_config=SegmentationConfig()
+    segmentation_config.line_image_path = os.path.join(output_path, "line.png")
+    segmentation_config.poly_image_dir = os.path.join(output_path, "poly_image")
+    segmentation_config.poly_info_dir = os.path.join(output_path, "poly_info")
+    segmentation_config.res_image_path = os.path.join(output_path, "res.png")
+
+    try:
+        os.makedirs(segmentation_config.poly_image_dir, exist_ok=True)
+        os.makedirs(segmentation_config.poly_info_dir, exist_ok=True)
+    except Exception as e:
+        print(f"创建文件夹时出错: {e}")
+
+    if segmentation_config.verbose:
+        print("读取json文件")
+    #文件中线段元素的读取和根据颜色过滤
+    elements,ori_segments=readJson(json_path)
+    if segmentation_config.verbose:
+        print("json文件读取完毕")
+    #将线进行适当扩张
+    segments=expandFixedLength(ori_segments,segmentation_config.line_expand_length)
+
+    #找出所有包含角隅孔圆弧的基本环
+    polys, new_segments, point_map=findClosedPolys_via_BFS(elements,segments,segmentation_config)
+
+    #结构化输出每个肘板信息
+    print("正在输出结构化信息...")
+    polys_info = []
+    print("正在输出结构化信息...")
+    for i, poly in enumerate(polys):
+        res = outputPolyInfo(poly, new_segments, segmentation_config, point_map, i)
+        if res is not None:
+            polys_info.append(res)
+
+    print("结构化信息输出完毕，保存于:", segmentation_config.poly_info_dir)
+
+    outputRes(new_segments, point_map, polys_info, segmentation_config.res_image_path,segmentation_config.draw_intersections,segmentation_config.draw_segments,segmentation_config.line_image_drawPolys)
 
 
-    Segment(Point(-286865.0, -47744.99999999999), Point(-286865.0, -47910.0), length=165.00000000000728, ref=Line(Point(-286865.0, -47709.99999999999), Point(-286865.0, -50581.38297872339))),
-    Segment(Point(-286865.0, -47910.0), Point(-286845.0, -47910.0), length=20.0, ref=Line(Point(-286865.0, -47910.0), Point(-286845.0, -47910.0))),
-    Segment(Point(-286845.0, -47910.0), Point(-286654.5360931593, -47870.34887328015), length=194.5474534893254, ref=Line(Point(-286845.0, -47910.0), Point(-286364.6724895735, -47810.00453472332))), 
-    Segment(Point(-286654.5360931593, -47870.34887328015), Point(-286364.6724895735, -47810.00453472332), length=296.0782799862419, ref=Line(Point(-286845.0, -47910.0), Point(-286364.6724895735, -47810.00453472332))), 
-    Segment(Point(-286364.6724895735, -47810.00453472332), Point(-286364.6724895735, -47745.00453472331), length=65.00000000000728, ref=Lwpolyline([Point(-286364.6724895735, -47710.00453472331), Point(-286364.6724895735, -47810.00453472331), Point(-286301.6724895735, -47810.00453472331)])), 
-    
-    
-    Segment(Point(-286364.6724895735, -47745.00453472331), Point(-286364.6724895735, -47709.99999999999), length=35.00453472331719, ref=Lwpolyline([Point(-286364.6724895735, -47710.00453472331), Point(-286364.6724895735, -47810.00453472331), Point(-286301.6724895735, -47810.00453472331)])), 
-    Segment(Point(-286364.6724895735, -47709.99999999999), Point(-286399.6724892796, -47709.99999999999), length=34.99999970610952, ref=Line(Point(-287075.5026072102, -47709.99999999999), Point(-286175.4137126597, -47709.99999999999))), 
-    
-    
-    
-    Segment(Point(-286399.6724892796, -47709.99999999999), Point(-286830.0, -47709.99999999999), length=430.3275107204099, ref=Line(Point(-287075.5026072102, -47709.99999999999), Point(-286175.4137126597, -47709.99999999999))), 
 
-
-
-    Segment(Point(-286865.0, -47744.99999999999), Point(-286865.0, -47910.0), length=165.00000000000728, ref=Line(Point(-286865.0, -47709.99999999999), Point(-286865.0, -50581.38297872339))), 
-    Segment(Point(-286865.0, -47910.0), Point(-286845.0, -47910.0), length=20.0, ref=Line(Point(-286865.0, -47910.0), Point(-286845.0, -47910.0))), 
-    Segment(Point(-286845.0, -47910.0), Point(-286654.5360931593, -47870.34887328015), length=194.5474534893254, ref=Line(Point(-286845.0, -47910.0), Point(-286364.6724895735, -47810.00453472332))), 
-    Segment(Point(-286654.5360931593, -47870.34887328015), Point(-286364.6724895735, -47810.00453472332), length=296.0782799862419, ref=Line(Point(-286845.0, -47910.0), Point(-286364.6724895735, -47810.00453472332))), 
-    Segment(Point(-286364.6724895735, -47810.00453472332), Point(-286364.6724895735, -47745.00453472331), length=65.00000000000728, ref=Lwpolyline([Point(-286364.6724895735, -47710.00453472331), Point(-286364.6724895735, -47810.00453472331), Point(-286301.6724895735, -47810.00453472331)])), 
-    Segment(Point(-286399.6724892796, -47709.99999999999), Point(-286830.0, -47709.99999999999), length=430.3275107204099, ref=Line(Point(-287075.5026072102, -47709.99999999999), Point(-286175.4137126597, -47709.99999999999))), 
+folder_path = "../jndata"
+output_foler = "./output"
+process_json_files(folder_path, output_foler)

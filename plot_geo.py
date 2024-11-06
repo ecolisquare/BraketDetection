@@ -71,3 +71,42 @@ def plot_info_poly(segments, path):
     ax.set_aspect('equal', 'box')
     plt.savefig(path)
     plt.close()
+
+def outputRes(segments,point_map,polys,resPNGPath,drawIntersections=False,drawLines=False,drawPolys=False):
+    fig, ax = plt.subplots()
+    if drawLines:
+        for seg in segments:
+            vs, ve = seg.start_point, seg.end_point
+            plt.plot([vs.x, ve.x], [vs.y, ve.y], 'k-')
+    if drawIntersections:
+        for p,ss in point_map.items():
+            if len(ss)>1:
+                # print(p.x,p.y)
+                plt.plot(p.x, p.y, 'r.')
+    if drawPolys:
+        for poly in polys:
+            for i, segment in enumerate(poly):
+                if segment.isCornerhole:
+                    color = "red"
+                elif segment.isConstraint:
+                    color = "green"
+                else:
+                    color = "blue"
+                if isinstance(segment.ref, DArc):
+                    if segment.ref.end_angle < segment.ref.start_angle:
+                        end_angle = segment.ref.end_angle + 360
+                    else:
+                        end_angle = segment.ref.end_angle
+                    theta = np.linspace(np.radians(segment.ref.start_angle), np.radians(end_angle), 100)
+                    x_arc = segment.ref.center.x + segment.ref.radius * np.cos(theta)
+                    y_arc = segment.ref.center.y + segment.ref.radius * np.sin(theta)
+                    ax.plot(x_arc, y_arc, color, lw=2)
+                else:
+                    x_values = [segment.start_point.x, segment.end_point.x]
+                    y_values = [segment.start_point.y, segment.end_point.y]
+                    ax.plot(x_values, y_values, color, lw=2)
+
+    plt.gca().axis('equal')
+    plt.savefig(resPNGPath)
+    print(f"结果图保存于:{resPNGPath}")
+    fig.clf()

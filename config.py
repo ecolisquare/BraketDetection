@@ -7,7 +7,7 @@ class SegmentationConfig:
         self.line_expand_length=17
 
         self.line_image_path="/home/user10/code/BraketDetection/output/line.png"
-        self.draw_intersections=True
+        self.draw_intersections=False
         self.draw_segments=True
         self.line_image_drawPolys=True
 
@@ -36,4 +36,5 @@ class SegmentationConfig:
         self.path_max_length = 20
         self.path_min_length = 3
 
-        self.poly_info_dir = "/home/user10/code/BraketDetection/output"
+        self.poly_info_dir = "./output"
+        self.res_image_path = "./output/res.png"
