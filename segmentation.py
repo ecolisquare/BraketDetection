@@ -34,11 +34,11 @@ polys, new_segments, point_map,star_pos_map,cornor_holes=findClosedPolys_via_BFS
 #结构化输出每个肘板信息
 polys_info = []
 print("正在输出结构化信息...")
-# for i, poly in enumerate(polys):
-#     res = outputPolyInfo(poly, new_segments, segmentation_config, point_map, i)
-#     if res is not None:
-#         polys_info.append(res)
+for i, poly in enumerate(polys):
+    res = outputPolyInfo(poly, new_segments, segmentation_config, point_map, i, star_pos_map, cornor_holes)
+    if res is not None:
+        polys_info.append(res)
 
 print("结构化信息输出完毕，保存于:", segmentation_config.poly_info_dir)
 
-#outputRes(new_segments, point_map, polys_info, segmentation_config.res_image_path,segmentation_config.draw_intersections,segmentation_config.draw_segments,segmentation_config.line_image_drawPolys)
+outputRes(new_segments, point_map, polys_info, segmentation_config.res_image_path,segmentation_config.draw_intersections,segmentation_config.draw_segments,segmentation_config.line_image_drawPolys)

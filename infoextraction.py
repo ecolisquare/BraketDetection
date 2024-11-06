@@ -29,18 +29,14 @@ def calculate_poly_centroid(poly):
 def are_equal_with_tolerance(k1, k2, tolerance = 0.1):
     return abs(k1 - k2) <= tolerance
 
-def calculate_poly_refs(poly,cornor_holes,cornor_holes_map):
+def calculate_poly_refs(poly):
     refs = []
-    cornor_holes_in_poly=[]
     for segment in poly:
-        # if isinstance(segment.ref, DArc) and len(refs) != 0 and isinstance(refs[-1].ref, DArc):
-        #     if(segment.ref.start_angle, segment.ref.end_angle, segment.ref.center, segment.ref.radius) == (refs[-1].ref.start_angle, refs[-1].ref.end_angle, refs[-1].ref.center, refs[-1].ref.radius):
-        #         continue
-        # elif isinstance(segment.ref, DArc):
-        #     refs.append(segment)
-        if segment in cornor_holes_map and cornor_holes_map[segment] not in cornor_holes_in_poly:
+        if isinstance(segment.ref, DArc) and len(refs) != 0 and isinstance(refs[-1].ref, DArc):
+            if(segment.ref.start_angle, segment.ref.end_angle, segment.ref.center, segment.ref.radius) == (refs[-1].ref.start_angle, refs[-1].ref.end_angle, refs[-1].ref.center, refs[-1].ref.radius):
+                continue
+        elif isinstance(segment.ref, DArc):
             refs.append(segment)
-            cornor_holes_in_poly.append(cornor_holes_map[segment])
         else:
             if len(refs) != 0:
                 dx_1 = segment.end_point.x - segment.start_point.x
@@ -96,29 +92,23 @@ def outputPolyInfo(poly, segments, segmentation_config, point_map, index,star_po
     poly_centroid = calculate_poly_centroid(poly)
 
     # step2: 合并边界线
+    poly_refs = calculate_poly_refs(poly)
+
+    # step3: 标记角隅孔
+    # for corner_hole in cornor_holes:
+    #     for seg in corner_hole.segments:
+    #         seg.isCornerHole=True
+    # print(len(cornor_holes))
     cornor_holes_map={}
     for cornor_hole in cornor_holes:
         for s in cornor_hole.segments:
             cornor_holes_map[s]=cornor_hole.ID
             cornor_holes_map[DSegment(s.end_point,s.start_point,s.ref)]=cornor_hole.ID
-    poly_refs = calculate_poly_refs(poly,cornor_holes,cornor_holes_map)
+    for seg in poly_refs:
+        if seg in cornor_holes_map:
+            seg.isCornerhole=True
+            
 
-    # step3: 标记角隅孔
-    # corner_holes = []
-    # for i,segment in enumerate(poly_refs):
-        # 如果是角隅孔(圆弧角隅孔和直线角隅孔)
-        # if isinstance(segment.ref, DArc) and segment.ref.radius > 20 and segment.ref.radius < 160:
-        # if segment in arc_replines_set:
-        #     poly_refs[i].isCornerhole = True
-        #     segment.isCornerhole = True
-        #     corner_holes.append(segment)
-        # elif segment in line_replines_set:
-        #     poly_refs[i].isCornerhole = True
-        #     segment.isCornerhole = True
-        #     corner_holes.append(segment)
-        # 判断并标记直线角隅孔
-        # elif isinstance(segment.ref, DLine):
-        #     continue
     
     #  根据星形角隅孔的位置，将角隅孔的坐标标记到相邻segment的StarCornerhole属性中，同时将该边标记为固定边
     star_set=set()
@@ -160,6 +150,7 @@ def outputPolyInfo(poly, segments, segmentation_config, point_map, index,star_po
             cornor[1][1].isConstraint=True
             cornor[1][1].isCornerhole=False
             cornor[1][1].StarCornerhole=cornor[1][2]
+    
     # step4: 标记固定边
     for i, segment in enumerate(poly_refs):
         # 颜色确定
@@ -221,35 +212,35 @@ def outputPolyInfo(poly, segments, segmentation_config, point_map, index,star_po
     # step:5 确定自由边，合并相邻的固定边
     constraint_edges = []
     free_edges = []
+    cornerhole_edges = []
     edges = []
 
     # 初始化合并边的列表和当前的合并状态
     current_edge = []
-    is_current_constraint = None
+    current_type = None  # 使用三种类型：'constraint', 'free', 'cornerhole'
 
     for segment in poly_refs:
-        # 如果当前段是角隅孔，直接处理
+        # 处理角隅孔
         if segment.isCornerhole:
-            # 如果有合并的边，保存到相应的列表
-            if current_edge:
-                if is_current_constraint:
-                    constraint_edges.append(current_edge)
+            # 如果当前是角隅孔边
+            if current_type == 'cornerhole':
+                current_edge.append(segment)  # 将当前段添加到当前的角隅孔边
+            else:
+                # 保存上一个合并边
+                if current_edge:
+                    if current_type == 'constraint':
+                        constraint_edges.append(current_edge)
+                    elif current_type == 'free':
+                        free_edges.append(current_edge)
                     edges.append(current_edge)
-                else:
-                    free_edges.append(current_edge)
-                    edges.append(current_edge)
-            # 重置合并状态
-            edges.append([segment])
-            current_edge = []
-            is_current_constraint = None
-            continue
+
+                # 开始新的角隅孔边合并
+                current_edge = [segment]
+                current_type = 'cornerhole'
 
         # 处理固定边
-        if segment.isConstraint:
-            if is_current_constraint is None:  # 如果当前没有边在合并
-                current_edge = [segment]  # 开始一个新的合并边
-                is_current_constraint = True
-            elif is_current_constraint:  # 如果当前是固定边
+        elif segment.isConstraint:
+            if current_type == 'constraint':  # 如果当前在合并固定边
                 if current_edge[-1].ref.color == segment.ref.color:  # 如果颜色相同
                     current_edge.append(segment)  # 添加到当前边
                 else:
@@ -258,18 +249,21 @@ def outputPolyInfo(poly, segments, segmentation_config, point_map, index,star_po
                     edges.append(current_edge)
                     current_edge = [segment]  # 开始新的合并边
             else:
-                # 如果当前是自由边，保存当前合并边，并开始新的合并边
-                constraint_edges.append(current_edge)
-                edges.append(current_edge)
-                current_edge = [segment]  # 开始新的合并边
-                is_current_constraint = True
+                # 保存上一个合并边
+                if current_edge:
+                    if current_type == 'free':
+                        free_edges.append(current_edge)
+                    elif current_type == 'cornerhole':
+                        cornerhole_edges.append(current_edge)
+                    edges.append(current_edge)
+                
+                # 开始新的固定边合并
+                current_edge = [segment]
+                current_type = 'constraint'
 
         # 处理自由边
         else:
-            if is_current_constraint is None:  # 如果当前没有边在合并
-                current_edge = [segment]  # 开始一个新的合并边
-                is_current_constraint = False
-            elif not is_current_constraint:  # 如果当前是自由边
+            if current_type == 'free':  # 如果当前在合并自由边
                 if current_edge[-1].ref.color == segment.ref.color:  # 如果颜色相同
                     current_edge.append(segment)  # 添加到当前边
                 else:
@@ -278,29 +272,40 @@ def outputPolyInfo(poly, segments, segmentation_config, point_map, index,star_po
                     edges.append(current_edge)
                     current_edge = [segment]  # 开始新的合并边
             else:
-                # 如果当前是固定边，保存当前合并边，并开始新的合并边
-                free_edges.append(current_edge)
-                edges.append(current_edge)
-                current_edge = [segment]  # 开始新的合并边
-                is_current_constraint = False
+                # 保存上一个合并边
+                if current_edge:
+                    if current_type == 'constraint':
+                        constraint_edges.append(current_edge)
+                    elif current_type == 'cornerhole':
+                        cornerhole_edges.append(current_edge)
+                    edges.append(current_edge)
+                
+                # 开始新的自由边合并
+                current_edge = [segment]
+                current_type = 'free'
 
     # 添加最后一个合并边，并检查与第一条边的属性
     if current_edge:
-        if is_current_constraint:
+        if current_type == 'constraint':
             # 检查最后一个合并边的属性是否与第一条边相同
             if poly_refs[0].isConstraint and not poly_refs[0].isCornerhole:
-                constraint_edges[0].insert(0, *current_edge)  # 合并到第一条固定边
-                edges[0].insert(0, *current_edge)
+                constraint_edges[0] = current_edge + constraint_edges[0]  # 合并到第一条固定边
+                edges[0] = current_edge + edges[0]
             else:
                 constraint_edges.append(current_edge)
                 edges.append(current_edge)
-        else:
-            # 检查最后一个合并边的属性是否与第一条边相同
+        elif current_type == 'free':
             if not poly_refs[0].isConstraint and not poly_refs[0].isCornerhole:
-                free_edges[0].insert(0, *current_edge)  # 合并到第一条自由边
-                edges[0].insert(0, *current_edge)
+                free_edges[0] = current_edge + free_edges[0]  # 合并到第一条自由边
+                edges[0] = current_edge + edges[0]
             else:
                 free_edges.append(current_edge)
+                edges.append(current_edge)
+        elif current_type == 'cornerhole':
+            if poly_refs[0].isCornerhole:
+                cornerhole_edges[0] = current_edge + cornerhole_edges[0]
+            else:
+                cornerhole_edges.append(current_edge)
                 edges.append(current_edge)
 
 
@@ -343,13 +348,13 @@ def outputPolyInfo(poly, segments, segmentation_config, point_map, index,star_po
     cornerhole_index = 1
     for edge in edges:
         # 圆弧角隅孔和直线角隅孔
-        seg = edge[0]
-        if seg.isCornerhole:
+        if edge[0].isCornerhole:
             log_to_file(file_path, f"角隅孔{cornerhole_index}轮廓：")
-            # if isinstance(seg.ref, DArc):
-            #     log_to_file(file_path, f"起点：{seg.ref.start_point}、终点：{seg.ref.end_point}、圆心：{seg.ref.center}、半径：{seg.ref.radius}（圆弧）")
-            # else:
-            #     log_to_file(file_path, f"起点：{seg.start_point}、终点{seg.end_point}（直线）")
+            for seg in edge:
+                if isinstance(seg.ref, DArc):
+                    log_to_file(file_path, f"起点：{seg.ref.start_point}、终点：{seg.ref.end_point}、圆心：{seg.ref.center}、半径：{seg.ref.radius}（圆弧）")
+                else:
+                    log_to_file(file_path, f"起点：{seg.start_point}、终点{seg.end_point}（直线）")
             cornerhole_index += 1
         # 星形角隅孔
         if seg.StarCornerhole is not None:
