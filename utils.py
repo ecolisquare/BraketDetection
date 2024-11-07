@@ -582,9 +582,10 @@ def compute_star_replines(new_segments,elements):
     vertical_lines=[]
     star_replines=[]
     star_pos_map={}
+    star_pos_set=set()
     for e in elements:
         if isinstance(e,DText) and e.content=="*":
-            x,y=e.insert[0],e.insert[1]
+            x,y=(e.bound["x1"]+e.bound["x2"])/2,(e.bound["y1"]+e.bound["y2"])/2
             vertical_lines.append(DSegment(DPoint(x,y),DPoint(x,y+5000)))
     for i, seg1 in enumerate(vertical_lines):
         y_min=None
@@ -611,9 +612,10 @@ def compute_star_replines(new_segments,elements):
                 star_pos_map[rs]=set()
             star_pos_map[s].add(seg1.start_point)
             star_pos_map[rs].add(seg1.start_point)
+            star_pos_set.add(seg1.start_point)
     for pos,ss in star_pos_map.items():
         star_pos_map[pos]=list(ss)
-    return star_replines,star_pos_map
+    return star_replines,star_pos_map,list(star_pos_set)
 
 
 def compute_line_replines(new_segments,point_map):
@@ -643,11 +645,33 @@ def compute_line_replines(new_segments,point_map):
     return line_replines
 
 def is_repline(s):
-    if isinstance(s.ref,DArc) and s.ref.radius<=160 and s.ref.radius>=20:
+    if isinstance(s.ref,DArc) and s.ref.radius<=200 and s.ref.radius>=20 and s.length()>=10 and s.length()<=40:
         return True
-    elif s.length()>=20 and s.length()<=30:
+    elif s.length()>=10 and s.length()<=40:
         return True
     return False
+
+
+def checkRefAndSlope(segments):
+    dxs=[math.fabs(segment.end_point.x - segment.start_point.x) for segment in segments ]
+    dys=[math.fabs(segment.end_point.y - segment.start_point.y) for segment in segments ]
+    slopes=[ math.pi/2 if (segment.end_point.x - segment.start_point.x) == 0 else math.atan((segment.end_point.y - segment.start_point.y) / (segment.end_point.x - segment.start_point.x)) for segment in segments ]
+    #print(slopes)
+    flag=False
+    for i,k1 in enumerate(slopes):
+        for j,k2 in enumerate(slopes):
+            if i>=j:
+                continue
+            if (math.fabs(k1 - k2) <= 0.1 or (dxs[i] <=0.1 and dxs[j] <=0.1)) and segments[i].ref==segments[j].ref:
+                flag=True
+                break
+        if flag:
+            break
+    return flag
+
+            
+  
+                    
 def compute_cornor_holes(filtered_segments,filtered_point_map):
     cornor_holes=[]
     segment_is_visited=set()
@@ -656,8 +680,12 @@ def compute_cornor_holes(filtered_segments,filtered_point_map):
         degs,dege=len(filtered_point_map[vs]),len(filtered_point_map[ve])
         if s not in segment_is_visited and (degs>2 or dege>2) and is_repline(s):
             if degs>2 and dege>2:
-                segment_is_visited.add(s)
-                cornor_holes.append(DCornorHole([s]))
+                ns=[ss for ss in filtered_point_map[vs] if ss!=s]
+                ne=[ss for ss in filtered_point_map[ve] if ss!=s]
+                #print(222)
+                if checkRefAndSlope(ns) and checkRefAndSlope(ne):
+                    segment_is_visited.add(s)
+                    cornor_holes.append(DCornorHole([s]))
             else:
                 start=None
                 other=None
@@ -682,9 +710,13 @@ def compute_cornor_holes(filtered_segments,filtered_point_map):
                         flag=False
                         break
                 if flag:
-                    for ss in segments:
-                        segment_is_visited.add(ss)
-                    cornor_holes.append(DCornorHole(segments))
+                    ns=[ss for ss in filtered_point_map[start] if ss!=s]
+                    ne=[ss for ss in filtered_point_map[other] if ss!=current]
+                    #print(111)
+                    if checkRefAndSlope(ns) and checkRefAndSlope(ne):
+                        for ss in segments:
+                            segment_is_visited.add(ss)
+                        cornor_holes.append(DCornorHole(segments))
     for cornor_hole in cornor_holes:
         for s in cornor_hole.segments:
             s.isCornerhole=True
@@ -716,6 +748,7 @@ def filter_cornor_holes(cornor_holes,filtered_point_map):
 def findBraketByHints(elements,all_segments,filtered_segments,point_map):
     braket_texts=[]
     vertical_lines=[]
+    braket_pos=[]
     for e in elements:
         if isinstance(e,DText) and len(e.content)==6 and "B" in e.content:
             braket_texts.append(e)
@@ -777,10 +810,36 @@ def findBraketByHints(elements,all_segments,filtered_segments,point_map):
                         s=seg2
         if s is not None:
             braket_start_lines.append(s)
+            braket_pos.append(seg1.start_point)
     
 
-    return braket_start_lines
+    return braket_start_lines,braket_pos
 
+def findBracketByPoints(pos,filtered_segments):
+    braket_start_lines=[]
+    vertical_lines=[]
+    for p in pos:
+        x,y=p.x,p.y
+        vertical_lines.append(DSegment(DPoint(x,y),DPoint(x,y-5000)))
+    for i, seg1 in enumerate(vertical_lines):
+        y_max=None
+        s=None
+        for j, seg2 in enumerate(filtered_segments):
+          
+            p1, p2 = seg1.start_point, seg1.end_point
+            q1, q2 = seg2.start_point, seg2.end_point
+            intersection = segment_intersection(p1, p2, q1, q2)
+            if intersection:
+                if y_max is None:
+                    y_max=intersection[1]
+                    s=seg2
+                else:
+                    if y_max<intersection[1]:
+                        y_max=intersection[1]
+                        s=seg2
+        if s is not None:
+            braket_start_lines.append(s)
+    return braket_start_lines
 
 def removeReferenceLines(elements,initial_segments,all_segments,point_map):
     vertical_lines=[]
@@ -1000,8 +1059,11 @@ def filterPolys(polys,max_length=15,min_length=3,t=100,d=5):
             poly[0].end_point=p
     filtered_polys=[]
     for poly in polys:
+
         if len(poly)>max_length or len(poly)<=min_length:
             continue
+       
+        #area and box
         x_min,x_max=poly[0].start_point.x,poly[0].start_point.x
         y_min,y_max=poly[0].start_point.y,poly[0].start_point.y
         if x_min>poly[0].end_point.x:
@@ -1044,7 +1106,40 @@ def filterPolys(polys,max_length=15,min_length=3,t=100,d=5):
             div=yy/xx
         else:
             div=xx/yy
-        if area>t and div<d:
+        if area<=t or div>=d:
+            continue
+        #parellel line
+        flag=False
+        for i,segment in enumerate(poly):
+            dx_1 = segment.end_point.x - segment.start_point.x
+            dy_1 = segment.end_point.y - segment.start_point.y
+            l=(dx_1**2+dy_1**2)**0.5
+            v_1=(dy_1/l*50.0,-dx_1/l*50.0)
+
+            for j,other in  enumerate(poly):
+                if i==j:
+                    continue
+                dx_2 = other.end_point.x - other.start_point.x
+                dy_2 = other.end_point.y - other.start_point.y
+                
+                # 计算斜率
+                k_1 = math.pi/2 if dx_1 == 0 else math.atan(dy_1 / dx_1)
+                k_2 = math.pi/2 if dx_2 == 0 else math.atan(dy_2 / dx_2)
+                if (math.fabs(dx_1) <=0.025 and math.fabs(dx_2) <=0.025) or (math.fabs(k_1-k_2)<=0.1):
+                    s1=DSegment(DPoint(segment.start_point.x+v_1[0],segment.start_point.y+v_1[1]),DPoint(segment.start_point.x-v_1[0],segment.start_point.y-v_1[1]))
+                    s2=DSegment(DPoint(segment.end_point.x+v_1[0],segment.end_point.y+v_1[1]),DPoint(segment.end_point.x-v_1[0],segment.end_point.y-v_1[1]))                                
+                    i1=segment_intersection(s1.start_point,s1.end_point,other.start_point,other.end_point)
+                    if i1==other.end_point or i1==other.start_point:
+                        i1=None
+                    i2=segment_intersection(s2.start_point,s2.end_point,other.start_point,other.end_point)
+                    if i2==other.end_point or i2==other.start_point:
+                        i2=None
+                    if (i1 is not None) or (i2 is not None):
+                        flag=True
+                        break
+            if flag:
+                break
+        if not flag:
             filtered_polys.append(poly)
     
     #print(filtered_polys[0])
@@ -1120,7 +1215,7 @@ def remove_complicated_polygons(polys, tolerance=1e-5):
 
     return res
 
-def outputLines(segments,point_map,polys,cornor_holes,linePNGPath,drawIntersections=False,drawLines=False,drawPolys=False):
+def outputLines(segments,point_map,polys,cornor_holes,star_pos,braket_pos,replines,linePNGPath,drawIntersections=False,drawLines=False,drawPolys=False):
     if drawLines:
         for seg in segments:
             vs, ve = seg.start_point, seg.end_point
@@ -1141,6 +1236,15 @@ def outputLines(segments,point_map,polys,cornor_holes,linePNGPath,drawIntersecti
             x_values = [edge.start_point.x, edge.end_point.x]
             y_values = [edge.start_point.y, edge.end_point.y]
             plt.plot(x_values, y_values, 'g-', lw=2)
+    for p in star_pos:
+        plt.plot(p.x, p.y, 'b.')
+    for p in braket_pos:
+        plt.plot(p.x, p.y, 'g.')
+    for edge in replines:
+        x_values = [edge.start_point.x, edge.end_point.x]
+        y_values = [edge.start_point.y, edge.end_point.y]
+        plt.plot(x_values, y_values, 'r-', lw=2)
+
     plt.gca().axis('equal')
     plt.savefig(linePNGPath)
     print(f"直线图保存于:{linePNGPath}")
@@ -1159,6 +1263,35 @@ def outputPolysAndGeometry(polys,path,draw_polys=False,draw_geometry=False,n=10)
             plot_polys(poly,os.path.join(path,f"poly{i}.png"))
     print(f"封闭多边形图像保存于:{path}")
 
+def removeOddPoints(filtered_segments,filtered_point_map):
+    edge_set=set()
+    for p,ne in filtered_point_map.items():
+        for e in ne:
+            edge_set.add(e)
+    for p,ne in filtered_point_map.items():
+        degp=len(ne)
+        if p==2 and checkRefAndSlope(ne):
+            a=ne[0].start_point if ne[0].start_point!=p else ne[0].end_point
+            b=ne[1].start_point if ne[1].start_point!=p else ne[1].end_point
+            new_edge=DSegment(a,b,ne[0].ref)
+            edge_set.remove(ne[0])
+            edge_set.remove(ne[1])
+            edge_set.add(new_edge)
+    new_segments=list(edge_set)
+    new_point_map={}
+    for s in new_segments:
+        vs,ve=s.start_point,s.end_point
+        if vs not in new_point_map:
+            new_point_map[vs]=set()
+        if ve not in new_point_map:
+            new_point_map[ve]=set()
+        new_point_map[vs].add(s)
+        new_point_map[ve].add(s)
+    for p,ss in new_point_map.items():
+        new_point_map[p]=list(ss)
+    return new_segments,new_point_map
+    
+
 
 def findClosedPolys_via_BFS(elements,segments,segmentation_config):
     verbose=segmentation_config.verbose
@@ -1172,7 +1305,7 @@ def findClosedPolys_via_BFS(elements,segments,segmentation_config):
         print("根据交点分割线段")
     new_segments, edge_map,point_map= split_segments(segments, isecDic,segmentation_config.segment_filter_length)
     filtered_segments, filtered_edge_map,filtered_point_map= filter_segments(segments,isecDic,point_map,segmentation_config.segment_filter_length,segmentation_config.segment_filter_iters)
-    braket_start_lines=findBraketByHints(elements,new_segments,filtered_segments,point_map)
+    braket_start_lines,braket_pos=findBraketByHints(elements,new_segments,filtered_segments,point_map)
     
     
     #remove rfernce lines
@@ -1186,7 +1319,7 @@ def findClosedPolys_via_BFS(elements,segments,segmentation_config):
     # polys=[]
     # outputLines(new_segments,point_map,polys,segmentation_config.line_image_path,segmentation_config.draw_intersections,segmentation_config.draw_segments,segmentation_config.line_image_drawPolys)
 
-
+    #filtered_segments,filtered_point_map=removeOddPoints(filtered_segments,filtered_point_map)
 
     # Step 3: 构建基于分割后线段的图结构
     if verbose:
@@ -1198,7 +1331,7 @@ def findClosedPolys_via_BFS(elements,segments,segmentation_config):
 
     # 基于角隅孔计算参考边
     #arc_replines = compute_arc_replines(filtered_segments,point_map)
-    star_replines,star_pos_map=compute_star_replines(filtered_segments,elements)
+    star_replines,star_pos_map,star_pos=compute_star_replines(filtered_segments,elements)
     #line_replines=compute_line_replines(filtered_segments,filtered_point_map)
     cornor_holes=compute_cornor_holes(filtered_segments,filtered_point_map)
     #cornor_holes=filter_cornor_holes(cornor_holes,filtered_point_map)
@@ -1214,7 +1347,9 @@ def findClosedPolys_via_BFS(elements,segments,segmentation_config):
     replines=[]
     for cornor_hole in cornor_holes:
         replines.append(cornor_hole.segments[0])
-    replines=replines+braket_start_lines
+    star_replines=findBracketByPoints(star_pos,filtered_segments)
+    braket_start_lines=findBracketByPoints(braket_pos,filtered_segments)
+    replines=replines+braket_start_lines+star_replines
     replines_set=set()
     #arc_replines_set=set()
     #line_replines_set=set()
@@ -1268,5 +1403,5 @@ def findClosedPolys_via_BFS(elements,segments,segmentation_config):
     if verbose:
         print(f"封闭多边形个数:{len(polys)}")
     outputPolysAndGeometry(polys,segmentation_config.poly_image_dir,segmentation_config.draw_polys,segmentation_config.draw_geometry,segmentation_config.draw_poly_nums)
-    outputLines(filtered_segments,filtered_point_map,polys,cornor_holes,segmentation_config.line_image_path,segmentation_config.draw_intersections,segmentation_config.draw_segments,segmentation_config.line_image_drawPolys)
+    outputLines(filtered_segments,filtered_point_map,polys,cornor_holes,star_pos,braket_pos ,replines,segmentation_config.line_image_path,segmentation_config.draw_intersections,segmentation_config.draw_segments,segmentation_config.line_image_drawPolys)
     return polys, new_segments, point_map,star_pos_map,cornor_holes

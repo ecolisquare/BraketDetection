@@ -71,6 +71,6 @@ def process_json_data(json_path, output_path):
 
 
 
-folder_path = "../jndata"
-output_foler = "./output"
+folder_path = "/home/user10/code/BraketDetection/data/split"
+output_foler = "/home/user10/code/BraketDetection/output"
 process_json_files(folder_path, output_foler)
