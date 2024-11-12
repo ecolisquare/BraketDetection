@@ -31,14 +31,17 @@ segments=expandFixedLength(ori_segments,segmentation_config.line_expand_length)
 #找出所有包含角隅孔圆弧的基本环
 polys, new_segments, point_map,star_pos_map,cornor_holes=findClosedPolys_via_BFS(elements,segments,segmentation_config)
 
+
+text_and_dimensions=findAllTextAndDimensions(elements)
 #结构化输出每个肘板信息
 polys_info = []
-print("正在输出结构化信息...")
+pbar=tqdm(total=len(polys),desc="正在输出结构化信息")
 for i, poly in enumerate(polys):
-    res = outputPolyInfo(poly, new_segments, segmentation_config, point_map, i, star_pos_map, cornor_holes)
+    res = outputPolyInfo(poly, new_segments, segmentation_config, point_map, i, star_pos_map, cornor_holes,text_and_dimensions)
+    pbar.update()
     if res is not None:
         polys_info.append(res)
-
+pbar.close()
 print("结构化信息输出完毕，保存于:", segmentation_config.poly_info_dir)
 
 outputRes(new_segments, point_map, polys_info, segmentation_config.res_image_path,segmentation_config.draw_intersections,segmentation_config.draw_segments,segmentation_config.line_image_drawPolys)

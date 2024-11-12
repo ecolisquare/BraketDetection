@@ -4,6 +4,8 @@ __pycache__/
 
 # Ignore output files
 output/
+DGCNN/data_folder
+DGCNN/cpkt
 
 # Ignore virtual environments (optional, if you use venv)
 venv/

@@ -86,14 +86,15 @@ class DSegment:
 
 #color=7 white color=3 green
 class DLine:  
-    def __init__(self, start_point: DPoint=DPoint(0,0), end_point: DPoint=DPoint(1,0),color=7):  
+    def __init__(self, start_point: DPoint=DPoint(0,0), end_point: DPoint=DPoint(1,0),color=7,handle=""):  
         self.start_point = start_point  
         self.end_point = end_point  
         self.color=color
+        self.handle=handle
         # self.computeCenterCoordinateAndWeight()
 
     def __repr__(self):  
-        return f"Line({self.start_point}, {self.end_point})"  
+        return f"Line({self.start_point}, {self.end_point},handle:{self.handle})"  
     
 
     # def computeCenterCoordinateAndWeight(self):
@@ -102,14 +103,15 @@ class DLine:
     #     self.bc=DPoint((s.start_point.x+s.end_point.x)/2,(s.start_point.y+s.end_point.y)/2)
 
 class DLwpolyline:  
-    def __init__(self, points: list[DPoint],color=7,isClosed=False):  
+    def __init__(self, points: list[DPoint],color=7,isClosed=False,handle=""):  
         self.points = points
         self.color=color  
         self.isClosed=isClosed
+        self.handle=handle
         # self.computeCenterCoordinateAndWeight()
   
     def __repr__(self):  
-        return f"Lwpolyline({self.points})"  
+        return f"Lwpolyline(points:{self.points},color:{self.color},isClosed:{self.isClosed},handle:{self.handle})"  
   
     # def computeCenterCoordinateAndWeight(self):
     #     w=0
@@ -134,12 +136,13 @@ class DLwpolyline:
 
 
 class DArc:  
-    def __init__(self, center: DPoint, radius: float, start_angle: float, end_angle: float,color=7):  
+    def __init__(self, center: DPoint, radius: float, start_angle: float, end_angle: float,color=7,handle=""):  
         self.center = center  
         self.radius = radius  
         self.start_angle = start_angle  # in degrees  
         self.end_angle = end_angle      # in degrees  
         self.color=color
+        self.handle=handle
         sa=start_angle/180*math.pi
         ea=end_angle/180*math.pi
         c1=math.cos(sa)
@@ -151,7 +154,7 @@ class DArc:
   
     def __repr__(self):  
         return (f"Arc(center={self.center}, radius={self.radius}, "  
-                f"start_angle={self.start_angle}, end_angle={self.end_angle})")  
+                f"start_angle={self.start_angle}, end_angle={self.end_angle}),handle:{self.handle}")  
     
     # def __eq__(self, other):
     #     if isinstance(other, DArc):
@@ -161,18 +164,31 @@ class DArc:
   
 
 class DText:  
-    def __init__(self,bound,insert: DPoint=DPoint(0,0),color=7,content="",height=100):  
+    def __init__(self,bound,insert: DPoint=DPoint(0,0),color=7,content="",height=100,handle=""):  
         self.bound=bound
         self.insert=insert
         self.color=color
         self.content=content
         self.height=height
+        self.handle=handle
 
   
     def __repr__(self):  
-        return f"Text({self.insert}, color:{self.color},content:{self.content},height:{self.height})"  
+        return f"Text({self.insert}, color:{self.color},content:{self.content},height:{self.height},handle:{self.handle})"  
   
 
+class DDimension:
+    def __init__(self,textpos: DPoint=DPoint(0,0),color=7,text="",measurement=100,defpoints=[],handle=""):  
+        self.textpos=textpos
+        self.text=text
+        self.color=color
+        self.measurement=measurement
+        self.defpoints=defpoints
+        self.handle=handle
+
+  
+    def __repr__(self):  
+        return f"Dimension(pos:{self.textpos}, text:{self.text},color:{self.color},measurement:{self.measurement},defpoints:{self.defpoints},handle:{self.handle})"  
 
 class DCornorHole:
     cornor_hole_id=0

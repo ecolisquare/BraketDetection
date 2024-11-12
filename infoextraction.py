@@ -1,7 +1,7 @@
 from  element import *
 from plot_geo import plot_geometry,plot_polys, plot_info_poly
 import os
-from utils import segment_intersection
+from utils import segment_intersection,computeBoundingBox
 def log_to_file(filename, content):
     """将内容写入指定的文件。"""
     with open(filename, 'a') as file:  # 以追加模式打开文件
@@ -127,8 +127,23 @@ def calculate_poly_refs(poly):
     #             del refs[-1]
     return refs
 
+def textsInPoly(text_and_dimensions,poly):
+    x_min,x_max,y_min,y_max=computeBoundingBox(poly)
+    xx=(x_max-x_min)*0.25
+    yy=(y_max-y_min)*0.25
+    x_min=x_min-xx
+    x_max=x_max+xx
+    y_max=y_max+yy
+    y_min=y_min-yy
+    ts=[]
+    for t in text_and_dimensions:
+        pos=DPoint((t.bound["x1"]+t.bound["x2"])/2,(t.bound["y1"]+t.bound["y2"])/2) if isinstance(t,DText) else t.textpos
+        if x_min <= pos.x and pos.x <=x_max and y_min <=pos.y and y_max>=pos.y:
+            ts.append(t)
+    return ts
 
-def outputPolyInfo(poly, segments, segmentation_config, point_map, index,star_pos_map,cornor_holes):
+
+def outputPolyInfo(poly, segments, segmentation_config, point_map, index,star_pos_map,cornor_holes,text_and_dimensions):
     # step1: 计算几何中心坐标
     poly_centroid = calculate_poly_centroid(poly)
 
@@ -345,9 +360,10 @@ def outputPolyInfo(poly, segments, segmentation_config, point_map, index,star_po
 
 
   
-
+    # step 5.5：找到所有的标注
+    ts=textsInPoly(text_and_dimensions,poly)
     # step6: 绘制对边分类后的几何图像
-    plot_info_poly(poly_refs, os.path.join(segmentation_config.poly_info_dir, f'infopoly{index}.png'))
+    plot_info_poly(poly_refs, os.path.join(segmentation_config.poly_info_dir, f'infopoly{index}.png'),ts)
     # 如果有多于两条的自由边则判定为不是肘板，不进行输出
     if len(free_edges) > 1:
         print(f"回路{index}超过两条自由边！")
