@@ -6,13 +6,13 @@ class SegmentationConfig:
         
         self.line_expand_length=17
 
-        self.line_image_path="./output/line.png"
+        self.line_image_path="./output/ALL/line.png"
         self.draw_intersections=False
         self.draw_segments=True
         self.line_image_drawPolys=True
 
         self.draw_poly_nums=1000
-        self.poly_image_dir="./output"
+        self.poly_image_dir="./output/ALL"
         self.draw_polys=True
         self.draw_geometry=True
 
@@ -36,5 +36,5 @@ class SegmentationConfig:
         self.path_max_length = 20
         self.path_min_length = 3
 
-        self.poly_info_dir = "./output"
-        self.res_image_path = "./output/res.png"
+        self.poly_info_dir = "./output/ALL"
+        self.res_image_path = "./output/ALL/res.png"
