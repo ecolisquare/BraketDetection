@@ -385,17 +385,17 @@ def outputPolyInfo(poly, segments, segmentation_config, point_map, index,star_po
         log_to_file(file_path, f"边界轮廓{i + 1}: ")
         for seg in edge:
             if isinstance(seg.ref, DArc):
-                log_to_file(file_path, f"起点：{seg.ref.start_point}、终点：{seg.ref.end_point}、圆心：{seg.ref.center}、半径：{seg.ref.radius}（圆弧）")
+                log_to_file(file_path, f"起点：{seg.ref.start_point}、终点：{seg.ref.end_point}、圆心：{seg.ref.center}、半径：{seg.ref.radius}（圆弧）、句柄: {seg.ref.handle}")
             else:
-                log_to_file(file_path, f"起点：{seg.start_point}、终点{seg.end_point}（直线）")
+                log_to_file(file_path, f"起点：{seg.start_point}、终点{seg.end_point}（直线）、句柄: {seg.ref.handle}")
 
     # step8: 输出自由边信息
     log_to_file(file_path, "自由边轮廓：")
     for seg in free_edges[0]:
         if isinstance(seg.ref, DArc):
-            log_to_file(file_path, f"起点：{seg.ref.start_point}、终点：{seg.ref.end_point}、圆心：{seg.ref.center}、半径：{seg.ref.radius}（圆弧）")
+            log_to_file(file_path, f"起点：{seg.ref.start_point}、终点：{seg.ref.end_point}、圆心：{seg.ref.center}、半径：{seg.ref.radius}（圆弧）、句柄: {seg.ref.handle}")
         else:
-            log_to_file(file_path, f"起点：{seg.start_point}、终点{seg.end_point}（直线）")
+            log_to_file(file_path, f"起点：{seg.start_point}、终点{seg.end_point}（直线）、句柄: {seg.ref.handle}")
 
     # step9: 输出角隅孔信息
     cornerhole_index = 1
@@ -405,9 +405,9 @@ def outputPolyInfo(poly, segments, segmentation_config, point_map, index,star_po
             log_to_file(file_path, f"角隅孔{cornerhole_index}轮廓：")
             for seg in edge:
                 if isinstance(seg.ref, DArc):
-                    log_to_file(file_path, f"起点：{seg.ref.start_point}、终点：{seg.ref.end_point}、圆心：{seg.ref.center}、半径：{seg.ref.radius}（圆弧）")
+                    log_to_file(file_path, f"起点：{seg.ref.start_point}、终点：{seg.ref.end_point}、圆心：{seg.ref.center}、半径：{seg.ref.radius}（圆弧）、句柄: {seg.ref.handle}")
                 else:
-                    log_to_file(file_path, f"起点：{seg.start_point}、终点{seg.end_point}（直线）")
+                    log_to_file(file_path, f"起点：{seg.start_point}、终点{seg.end_point}（直线）、句柄: {seg.ref.handle}")
             cornerhole_index += 1
         # 星形角隅孔
         if seg.StarCornerhole is not None:
@@ -420,7 +420,7 @@ def outputPolyInfo(poly, segments, segmentation_config, point_map, index,star_po
         content=t.content if isinstance(t,DText) else t.text
         pos=DPoint((t.bound["x1"]+t.bound["x2"])/2,(t.bound["y1"]+t.bound["y2"])/2) if isinstance(t,DText) else t.textpos
         log_to_file(file_path,f"标注{i+1}:")
-        log_to_file(file_path,f"位置: {pos}、内容: {content}、颜色: {t.color}")
+        log_to_file(file_path,f"位置: {pos}、内容: {content}、颜色: {t.color}、句柄: {t.handle}")
     # step11: 输出角隅孔和边界之间的关系
     cornerhole_index = 1
     edge_index = 0
