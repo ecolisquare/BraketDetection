@@ -6,7 +6,7 @@ from infoextraction import *
 import numpy as np
 from plot_geo import *
 from config import *
-from DGCNN_model import *
+# from DGCNN_model import *
 from tqdm import tqdm
 segmentation_config=SegmentationConfig()
 
