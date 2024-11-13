@@ -1267,6 +1267,6 @@ def findClosedPolys_via_BFS(elements,segments,segmentation_config):
     polys = remove_complicated_polygons(polys,segmentation_config.remove_tolerance)
     if verbose:
         print(f"封闭多边形个数:{len(polys)}")
-    # outputPolysAndGeometry(polys,segmentation_config.poly_image_dir,segmentation_config.draw_polys,segmentation_config.draw_geometry,segmentation_config.draw_poly_nums)
+    outputPolysAndGeometry(polys,segmentation_config.poly_image_dir,segmentation_config.draw_polys,segmentation_config.draw_geometry,segmentation_config.draw_poly_nums)
     outputLines(filtered_segments,filtered_point_map,polys,cornor_holes,segmentation_config.line_image_path,segmentation_config.draw_intersections,segmentation_config.draw_segments,segmentation_config.line_image_drawPolys)
     return polys, new_segments, point_map,star_pos_map,cornor_holes

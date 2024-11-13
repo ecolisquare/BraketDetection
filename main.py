@@ -6,7 +6,7 @@ from infoextraction import *
 import numpy as np
 from plot_geo import *
 from config import *
-from DGCNN_model import *
+# from DGCNN_model import *
 
 segmentation_config=SegmentationConfig()
 
@@ -24,12 +24,12 @@ segments=expandFixedLength(ori_segments,segmentation_config.line_expand_length)
 #找出所有包含角隅孔圆弧的基本环
 polys, new_segments, point_map,star_pos_map,cornor_holes=findClosedPolys_via_BFS(elements,segments,segmentation_config)
 
-#预训练的几何分类模型筛选肘板
-model_path = "/home/user4/BraketDetection/DGCNN/cpkt/geometry_classifier.pth"
-polys = filter_by_pretrained_DGCNN_Model(polys, model_path)
+# #预训练的几何分类模型筛选肘板
+# model_path = "/home/user4/BraketDetection/DGCNN/cpkt/geometry_classifier.pth"
+# polys = filter_by_pretrained_DGCNN_Model(polys, model_path)
 
-print("DGCNN筛选后剩余回路: ", len(polys))
-outputPolysAndGeometry(polys,segmentation_config.poly_image_dir,segmentation_config.draw_polys,segmentation_config.draw_geometry,segmentation_config.draw_poly_nums)
+# print("DGCNN筛选后剩余回路: ", len(polys))
+# outputPolysAndGeometry(polys,segmentation_config.poly_image_dir,segmentation_config.draw_polys,segmentation_config.draw_geometry,segmentation_config.draw_poly_nums)
 
 #结构化输出每个肘板信息
 polys_info = []

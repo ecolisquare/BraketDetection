@@ -14,6 +14,7 @@ class GeometryDataset(Dataset):
             for file in files:
                 if file.endswith('.txt'):
                     self.file_list.append(os.path.join(root, file))
+        print("num_of_data:", len(self.file_list))
         
         # 添加 _indices 属性
         self._indices = None

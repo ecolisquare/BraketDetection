@@ -93,7 +93,7 @@ def process_json_data(json_path, output_path, training_data_output_path):
     #找出所有包含角隅孔圆弧的基本环
     ppolys, new_segments, point_map,star_pos_map,cornor_holes=findClosedPolys_via_BFS(elements,segments,segmentation_config)
 
-    output_training_data(ppolys, training_data_output_path)
+    # output_training_data(ppolys, training_data_output_path)
 
     #结构化输出每个肘板信息
     print("正在输出结构化信息...")
@@ -110,7 +110,7 @@ def process_json_data(json_path, output_path, training_data_output_path):
 
 
 
-folder_path = "../jndata2"
+folder_path = "../jndata"
 output_folder = "./output"
 training_data_output_folder = "./DGCNN/data_folder"
 process_json_files(folder_path, output_folder, training_data_output_folder)
