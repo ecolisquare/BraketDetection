@@ -3,6 +3,8 @@ from DGCNN.model import GeometryClassifier
 from torch_geometric.data import Data
 
 def filter_by_pretrained_DGCNN_Model(polys, model_path):
+    if model_path=="":
+        return polys
     # 导入并定义与训练时相同的模型结构
     model = GeometryClassifier()
     model.load_state_dict(torch.load(model_path, weights_only=True))

@@ -85,6 +85,7 @@ def process_json_data(json_path, output_path, training_data_output_path):
         print("读取json文件")
     #文件中线段元素的读取和根据颜色过滤
     elements,ori_segments=readJson(json_path)
+    text_and_dimensions=findAllTextAndDimensions(elements)
     if segmentation_config.verbose:
         print("json文件读取完毕")
     #将线进行适当扩张
@@ -95,12 +96,13 @@ def process_json_data(json_path, output_path, training_data_output_path):
 
     # output_training_data(ppolys, training_data_output_path)
 
+    output_training_data(ppolys, training_data_output_path)
     #结构化输出每个肘板信息
     print("正在输出结构化信息...")
     polys_info = []
     print("正在输出结构化信息...")
     for i, poly in enumerate(ppolys):
-        res = outputPolyInfo(poly, new_segments, segmentation_config, point_map, i, star_pos_map, cornor_holes)
+        res = outputPolyInfo(poly, new_segments, segmentation_config, point_map, i, star_pos_map, cornor_holes,text_and_dimensions)
         if res is not None:
             polys_info.append(res)
 
@@ -113,4 +115,7 @@ def process_json_data(json_path, output_path, training_data_output_path):
 folder_path = "../jndata"
 output_folder = "./output"
 training_data_output_folder = "./DGCNN/data_folder"
+folder_path = "/home/user10/code/BraketDetection/data/board_example"
+output_folder = "/home/user10/code/BraketDetection/output"
+training_data_output_folder = "/home/user10/code/BraketDetection/DGCNN/data_folder"
 process_json_files(folder_path, output_folder, training_data_output_folder)

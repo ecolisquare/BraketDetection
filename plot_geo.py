@@ -46,8 +46,12 @@ def plot_polys(segments,path):
     plt.savefig(path)
     plt.close()
 
-def plot_info_poly(segments, path):
+def plot_info_poly(segments, path,texts):
     fig, ax = plt.subplots()
+    for t in texts:
+        content=t.content if isinstance(t,DText) else t.text
+        pos=DPoint((t.bound["x1"]+t.bound["x2"])/2,(t.bound["y1"]+t.bound["y2"])/2) if isinstance(t,DText) else t.textpos
+        ax.text(pos.x, pos.y, content, fontsize=12, color='blue', rotation=0)
     for i, segment in enumerate(segments):
         if segment.isCornerhole:
             color = "red"
