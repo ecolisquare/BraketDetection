@@ -416,11 +416,11 @@ def outputPolyInfo(poly, segments, segmentation_config, point_map, index,star_po
             cornerhole_index += 1
 
     # step10: TODO：输出周围标注信息
-    for i,t in enumerate(ts):
-        content=t.content if isinstance(t,DText) else t.text
-        pos=DPoint((t.bound["x1"]+t.bound["x2"])/2,(t.bound["y1"]+t.bound["y2"])/2) if isinstance(t,DText) else t.textpos
-        log_to_file(file_path,f"标注{i+1}:")
-        log_to_file(file_path,f"位置: {pos}、内容: {content}、颜色: {t.color}、句柄: {t.handle}")
+    # for i,t in enumerate(ts):
+    #     content=t.content if isinstance(t,DText) else t.text
+    #     pos=DPoint((t.bound["x1"]+t.bound["x2"])/2,(t.bound["y1"]+t.bound["y2"])/2) if isinstance(t,DText) else t.textpos
+    #     log_to_file(file_path,f"标注{i+1}:")
+    #     log_to_file(file_path,f"位置: {pos}、内容: {content}、颜色: {t.color}、句柄: {t.handle}")
     # step11: 输出角隅孔和边界之间的关系
     cornerhole_index = 1
     edge_index = 0

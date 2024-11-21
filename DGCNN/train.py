@@ -44,8 +44,8 @@ def test(model, loader):
 
 # 超参数设置
 batch_size = 4
-learning_rate = 0.001
-epochs = 50
+learning_rate = 0.0001
+epochs = 100
 
 # 加载数据
 dataset = GeometryDataset(root_dir="data_folder")
@@ -60,6 +60,8 @@ criterion = torch.nn.CrossEntropyLoss()
 for epoch in range(1, epochs + 1):
     loss = train(model, train_loader, optimizer, criterion)
     accuracy, accuracy_0, accuracy_1 = test(model, train_loader)
+    if epoch % 10 == 0:
+        torch.save(model.state_dict(), f"./cpkt/geometry_classifier{epoch}_ACC_{accuracy:.4f}.pth")
     print(f"Epoch: {epoch}, Loss: {loss:.4f}, Accuracy: {accuracy:.4f}, Accuracy0: {accuracy_0:.4f}, Accuracy1: {accuracy_1:.4f}")
 
 torch.save(model.state_dict(), "./cpkt/geometry_classifier.pth")
