@@ -112,7 +112,7 @@ def process_json_data(json_path, output_path, training_data_output_path):
 
 
 
-folder_path = "../jndata"
-output_folder = "./output"
+folder_path = "/home/user10/code/BraketDetection/data/split"
+output_folder = "/home/user10/code/BraketDetection/output"
 training_data_output_folder = "./DGCNN/data_folder"
 process_json_files(folder_path, output_folder, training_data_output_folder)

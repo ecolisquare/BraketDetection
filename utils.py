@@ -13,6 +13,7 @@ import re
 from tqdm import tqdm
 from concurrent.futures import ProcessPoolExecutor, as_completed,TimeoutError
 import time
+from functools import partial
 def numberInString(content):
     flag=False
     for i in range(10):
@@ -384,6 +385,64 @@ def find_all_intersections(segments, epsilon=1e-9):
     pbar.close()
     return intersection_dict
 
+
+# # # Function to compute intersections for a subset of segments
+# def compute_intersections(subset_segments, all_segments, epsilon=1e-9):
+#     intersection_dict = {}
+#     n=len(all_segments)
+#     m=len(subset_segments)
+#     pbar= tqdm(total=m*n,desc="计算交点")
+#     for seg1 in subset_segments:
+#         for seg2 in all_segments:
+#             pbar.update()
+#             if seg1 == seg2:
+#                 continue  # Skip self-intersection
+
+#             p1, p2 = seg1.start_point, seg1.end_point
+#             q1, q2 = seg2.start_point, seg2.end_point
+#             intersection = segment_intersection(p1, p2, q1, q2, epsilon)
+#             if intersection:
+#                 if seg1 not in intersection_dict:
+#                     intersection_dict[seg1] = [p1,p2]
+#                 if seg2 not in intersection_dict:
+#                     intersection_dict[seg2] = [q1,q2]
+                
+#                 # Append the intersection for both segments
+#                 intersection_dict[seg1].append(intersection)
+#                 intersection_dict[seg2].append(intersection)
+#     pbar.close()
+#     return intersection_dict
+
+# # Function to merge results from different processes
+# def merge_intersections(results):
+#     merged = {}
+#     for result in results:
+#         for seg, intersections in result.items():
+#             if seg not in merged:
+#                 merged[seg] = []
+#             merged[seg].extend(intersections)
+#     # Remove duplicates and sort intersections for each segment
+#     for seg, intersections in merged.items():
+#         unique_isects = list(set(intersections))
+#         unique_isects.sort(key=lambda p: (p.x - seg.start_point.x)**2 + (p.y - seg.start_point.y)**2)
+#         merged[seg] = unique_isects
+#     return merged
+
+# # Main function to find all intersections using multiprocessing
+# def find_all_intersections(segments, epsilon=1e-9):
+#     n = len(segments)
+#     num_processes = min(32, n)  # Limit the number of processes
+#     chunk_size = (n + num_processes - 1) // num_processes  # Divide into roughly equal chunks
+
+#     segment_chunks = [segments[i:i + chunk_size] for i in range(0, n, chunk_size)]
+#     partial_compute = partial(compute_intersections, all_segments=segments, epsilon=epsilon)
+
+#     with ProcessPoolExecutor(max_workers=num_processes) as executor:
+#         results = list(executor.map(partial_compute, segment_chunks))
+
+#     # Merge results from all processes
+#     intersection_dict = merge_intersections(results)
+#     return intersection_dict
 
 from collections import deque
 
