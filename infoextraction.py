@@ -345,7 +345,7 @@ def outputPolyInfo(poly, segments, segmentation_config, point_map, index,star_po
                 constraint_edges.append(current_edge)
                 edges.append(current_edge)
         elif current_type == 'free':
-            if not poly_refs[0].isConstraint and not poly_refs[0].isCornerhole:
+            if not poly_refs[0].isConstraint and not poly_refs[0].isCornerhole and len(free_edges)>0:
                 free_edges[0] = current_edge + free_edges[0]  # 合并到第一条自由边
                 edges[0] = current_edge + edges[0]
             else:
@@ -367,12 +367,12 @@ def outputPolyInfo(poly, segments, segmentation_config, point_map, index,star_po
     # 如果有多于两条的自由边则判定为不是肘板，不进行输出
     if len(free_edges) > 1:
         print(f"回路{index}超过两条自由边！")
-        return poly_refs
-        #return None
+        #return poly_refs
+        return None
     if len(free_edges) == 0:
         print(f"回路{index}没有自由边！")
-        return poly_refs
-        #return  None
+        #return poly_refs
+        return  None
 
     # step7: 输出几何中心和边界信息
     file_path = os.path.join(segmentation_config.poly_info_dir, f'info{index}.txt')
