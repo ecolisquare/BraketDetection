@@ -11,7 +11,8 @@ import os
 from sklearn.cluster import DBSCAN
 import re
 from tqdm import tqdm
-
+from concurrent.futures import ProcessPoolExecutor, as_completed,TimeoutError
+import time
 def numberInString(content):
     flag=False
     for i in range(10):
@@ -549,12 +550,17 @@ def build_graph(segments):
     return graph
 
 
-def bfs_paths(graph, start_point, end_point,max_length):
+def bfs_paths(graph, start_point, end_point,max_length,timeout=5):
     """基于广度优先搜索找到所有从start_point到end_point的路径，返回路径中的Dsegment"""
+    start_time=time.time()
     queue = deque([(start_point, [start_point], [])])  # (当前点，路径中的点，路径中的线段)
     all_paths = []
 
     while queue:
+        current_time=time.time()
+        if (current_time-start_time)>=timeout:
+            print(f'{start_point}->{end_point}已超时')
+            break
         (current_point, point_path, seg_path) = queue.popleft()
         if len(seg_path)>=max_length:
             continue
@@ -665,9 +671,9 @@ def compute_line_replines(new_segments,point_map):
     return line_replines
 
 def is_repline(s):
-    if isinstance(s.ref,DArc) and s.ref.radius<=200 and s.ref.radius>=20 and s.length()>=10 :
+    if isinstance(s.ref,DArc) and s.ref.radius<=200 and s.ref.radius>=20:
         return True
-    elif(not isinstance(s.ref,DArc)) and s.length()>=10 and s.length()<=40:
+    elif(not isinstance(s.ref,DArc)) and s.length()>=20 and s.length()<=40:
         return True
     return False
 
@@ -695,8 +701,21 @@ def checkRefAndSlope(segments):
             break
     return [flag,segments[idx] if idx is not None else None]
 
-            
-  
+def checkValid(repline,segments):
+    dxs=[math.fabs(segment.end_point.x - segment.start_point.x) for segment in segments ]
+    dys=[math.fabs(segment.end_point.y - segment.start_point.y) for segment in segments ]
+    slopes=[ math.pi/2 if (segment.end_point.x - segment.start_point.x) == 0 else math.atan((segment.end_point.y - segment.start_point.y) / (segment.end_point.x - segment.start_point.x)) for segment in segments ]
+    #print(slopes)
+    dx_r= math.fabs(repline.end_point.x - repline.start_point.x)
+    dy_r= math.fabs(repline.end_point.y - repline.start_point.y)
+    k2=math.pi/2 if (repline.end_point.x - repline.start_point.x) == 0 else math.atan((repline.end_point.y - repline.start_point.y) / (repline.end_point.x - repline.start_point.x))
+    flag=True
+    for i,k1 in enumerate(slopes):
+        if (math.fabs(k1 - k2) <= 0.1 or (dxs[i] <=0.1 and dx_r <=0.1)) and segments[i].ref==repline.ref:
+            flag=False
+            break
+        
+    return flag
                     
 def compute_cornor_holes(filtered_segments,filtered_point_map):
     cornor_holes=[]
@@ -709,7 +728,7 @@ def compute_cornor_holes(filtered_segments,filtered_point_map):
                 ns=[ss for ss in filtered_point_map[vs] if ss!=s]
                 ne=[ss for ss in filtered_point_map[ve] if ss!=s]
                 #print(222)
-                if checkRefAndSlope(ns)[0] and checkRefAndSlope(ne)[0]:
+                if checkRefAndSlope(ns)[0] and checkRefAndSlope(ne)[0] and checkValid(s,ns) and checkValid(s,ne):
                     # a,b=checkRefAndSlope(ns)[1],checkRefAndSlope(ne)[1]
                     # pa=a.start_point if a.start_point!=vs else a.end_point
                     # pb=b.start_point if b.start_point!=ve else b.end_point
@@ -735,8 +754,24 @@ def compute_cornor_holes(filtered_segments,filtered_point_map):
                 current=s
                 flag=True
                 while dego==2 and flag:
-                    current=[ss for ss in filtered_point_map[other] if ss!=current][0]
-                    other=[p for p in [current.start_point,current.end_point] if p!=other][0]
+                    
+                    cs=[ss for ss in filtered_point_map[other] if ss!=current]
+                    if  len(cs)!=1:
+                        flag=False
+                        # print("？？？")
+                        break
+                    else:
+                        current=cs[0]
+                        # if isinstance(current.ref,DArc):
+                        #     print(current)
+                    os=[p for p in [current.start_point,current.end_point] if p!=other]
+                    if len(os)!=1 :
+                        flag=False
+                        # print("？？？")
+                        break
+                    else:
+                        other=os[0]
+                        # print(other)
                     dego=len(filtered_point_map[other])
                     if  current not in segment_is_visited and is_repline(current):
                             segments.append(current)
@@ -747,7 +782,7 @@ def compute_cornor_holes(filtered_segments,filtered_point_map):
                     ns=[ss for ss in filtered_point_map[start] if ss!=s]
                     ne=[ss for ss in filtered_point_map[other] if ss!=current]
                     #print(111)
-                    if checkRefAndSlope(ns)[0] and checkRefAndSlope(ne)[0]:
+                    if checkRefAndSlope(ns)[0] and checkRefAndSlope(ne)[0] and checkValid(s,ns) and checkValid(current,ne):
                         # a,b=checkRefAndSlope(ns)[1],checkRefAndSlope(ne)[1]
                         # pa=a.start_point if a.start_point!=start else a.end_point
                         # pb=b.start_point if b.start_point!=other else b.end_point
@@ -790,7 +825,7 @@ def filter_cornor_holes(cornor_holes,filtered_point_map):
             total+=s.length()
             n+=1
 
-        if n>0 and total>=20 and total/n>=15:
+        if n>0 and total>=10 and total/n>=10:
             filtered_cornor_holes.append(cornor_hole)
     return filtered_cornor_holes
 
@@ -1362,7 +1397,19 @@ def removeOddPoints(filtered_segments,filtered_point_map):
         new_point_map[p]=list(ss)
     return new_segments,new_point_map
     
+def process_repline(repline, graph, segmentation_config):
+    """
+    处理单个 repline 的逻辑，使用 BFS 查找路径并构成闭合路径。
+    """
+    start_point = repline.start_point
+    end_point = repline.end_point
+    # 使用 BFS 查找从 start_point 到 end_point 的所有路径
+    paths = bfs_paths(graph, start_point, end_point, segmentation_config.path_max_length,segmentation_config.timeout)
 
+    # 构成闭合路径
+    for path in paths:
+        path.append(repline)
+    return paths
 
 def findClosedPolys_via_BFS(elements,segments,segmentation_config):
     verbose=segmentation_config.verbose
@@ -1437,26 +1484,38 @@ def findClosedPolys_via_BFS(elements,segments,segmentation_config):
             replines_set.add(rep)
             replines_set.add(DSegment(rep.end_point,rep.start_point))
     # Step 4: 对每个 repline，使用 BFS 查找路径
+    # 多线程加速部分
     if verbose:
-        pbar=tqdm(total=len(replines),desc="查找闭合路径")
-    for repline in replines:
-        start_point = repline.start_point
-        end_point = repline.end_point
+        pbar = tqdm(total=len(replines), desc="查找闭合路径")
 
-        # 使用 BFS 查找从 start_point 到 end_point 的所有路径
-        paths = bfs_paths(graph, start_point, end_point,segmentation_config.path_max_length)
+    # 使用 ThreadPoolExecutor
+    closed_polys = []
+    multi_thread_start_time = time.time()
+    errors=[]
+    if verbose:
+        print(min(32, os.cpu_count())if segmentation_config.max_workers <=0 else segmentation_config.max_workers)
+    with ProcessPoolExecutor(max_workers=min(32, os.cpu_count()  )if segmentation_config.max_workers <=0 else segmentation_config.max_workers) as executor:
+        # 提交任务到线程池
+        future_to_repline = {executor.submit(process_repline, repline, graph, segmentation_config): repline for repline in replines}
+        
+        for future in as_completed(future_to_repline):
+            repline = future_to_repline[future]
+            try:
+                # 获取结果，设置超时时间
+                paths = future.result()
+                closed_polys.extend(paths)
+                # print(f"任务 {repline} 完成")
+            except Exception as exc:
+                errors.append(f"处理 {repline} 时发生错误: {exc}")
+            if verbose:
+                pbar.update()
 
-        # 构成闭合路径
-        for path in paths:
-            path.append(repline)
-
-        # 将找到的路径添加到 closed_polys
-        closed_polys.extend(paths)
-        if verbose:
-            pbar.update()
     if verbose:
         pbar.close()
+        print(errors)
+    multi_thread_end_time = time.time()
     if verbose:
+        print(f"多线程执行部分耗时: {multi_thread_end_time - multi_thread_start_time:.2f} 秒")
         print("查找完毕")
     # for closed_poly in closed_polys:
     #     print(closed_poly)

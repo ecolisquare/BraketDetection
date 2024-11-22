@@ -38,3 +38,6 @@ class SegmentationConfig:
 
         self.poly_info_dir = "./output"
         self.res_image_path = "./output/res.png"
+
+        self.max_workers=0
+        self.timeout=2
