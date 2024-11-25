@@ -142,8 +142,24 @@ def textsInPoly(text_and_dimensions,poly):
             ts.append(t)
     return ts
 
+def braketTextInPoly(braket_texts,braket_pos,poly):
+    x_min,x_max,y_min,y_max=computeBoundingBox(poly)
+    xx=(x_max-x_min)*0.25
+    yy=(y_max-y_min)*0.25
+    x_min=x_min-xx
+    x_max=x_max+xx
+    y_max=y_max+yy
+    y_min=y_min-yy
+    ts=[]
+    bps=[]
+    for i,t in enumerate(braket_pos):
+        pos=t
+        if x_min <= pos.x and pos.x <=x_max and y_min <=pos.y and y_max>=pos.y:
+            ts.append(braket_texts[i])
+            bps.append(braket_pos[i])
+    return ts,bps
 
-def outputPolyInfo(poly, segments, segmentation_config, point_map, index,star_pos_map,cornor_holes,text_and_dimensions):
+def outputPolyInfo(poly, segments, segmentation_config, point_map, index,star_pos_map,cornor_holes,text_and_dimensions,braket_texts,braket_pos):
     # step1: 计算几何中心坐标
     poly_centroid = calculate_poly_centroid(poly)
 
@@ -362,8 +378,9 @@ def outputPolyInfo(poly, segments, segmentation_config, point_map, index,star_po
   
     # step 5.5：找到所有的标注
     ts=textsInPoly(text_and_dimensions,poly)
+    bs,bps=braketTextInPoly(braket_texts,braket_pos,poly)
     # step6: 绘制对边分类后的几何图像
-    plot_info_poly(poly_refs, os.path.join(segmentation_config.poly_info_dir, f'infopoly{index}.png'),ts)
+    plot_info_poly(poly_refs, os.path.join(segmentation_config.poly_info_dir, f'infopoly{index}.png'),ts,bs,bps)
     # 如果有多于两条的自由边则判定为不是肘板，不进行输出
     if len(free_edges) > 1:
         print(f"回路{index}超过两条自由边！")
@@ -416,11 +433,18 @@ def outputPolyInfo(poly, segments, segmentation_config, point_map, index,star_po
             cornerhole_index += 1
 
     # step10: TODO：输出周围标注信息
-    # for i,t in enumerate(ts):
-    #     content=t.content if isinstance(t,DText) else t.text
-    #     pos=DPoint((t.bound["x1"]+t.bound["x2"])/2,(t.bound["y1"]+t.bound["y2"])/2) if isinstance(t,DText) else t.textpos
-    #     log_to_file(file_path,f"标注{i+1}:")
-    #     log_to_file(file_path,f"位置: {pos}、内容: {content}、颜色: {t.color}、句柄: {t.handle}")
+    k=0
+    for i,t in enumerate(ts):
+        content=t.content if isinstance(t,DText) else t.text
+        pos=DPoint((t.bound["x1"]+t.bound["x2"])/2,(t.bound["y1"]+t.bound["y2"])/2) if isinstance(t,DText) else t.textpos
+        log_to_file(file_path,f"标注{i+1}:")
+        log_to_file(file_path,f"位置: {pos}、内容: {content}、颜色: {t.color}、句柄: {t.handle}")
+        k+=1
+    for i,t in enumerate(bs):
+        content=t.content if isinstance(t,DText) else t.text
+        pos=DPoint((t.bound["x1"]+t.bound["x2"])/2,(t.bound["y1"]+t.bound["y2"])/2) if isinstance(t,DText) else t.textpos
+        log_to_file(file_path,f"标注{i+1+k}:")
+        log_to_file(file_path,f"位置: {pos}、内容: {content}、颜色: {t.color}、句柄: {t.handle}")
     # step11: 输出角隅孔和边界之间的关系
     cornerhole_index = 1
     edge_index = 0

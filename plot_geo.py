@@ -46,12 +46,17 @@ def plot_polys(segments,path):
     plt.savefig(path)
     plt.close()
 
-def plot_info_poly(segments, path,texts):
+def plot_info_poly(segments, path,texts,braket_texts,braket_pos):
     fig, ax = plt.subplots()
+    for p in braket_pos:
+        ax.plot(p.x,p.y,'g.')
     for t in texts:
         content=t.content if isinstance(t,DText) else t.text
         pos=DPoint((t.bound["x1"]+t.bound["x2"])/2,(t.bound["y1"]+t.bound["y2"])/2) if isinstance(t,DText) else t.textpos
         ax.text(pos.x, pos.y, content, fontsize=12, color='blue', rotation=0)
+    for i,t in enumerate(braket_texts):
+        content=t.content if isinstance(t,DText) else t.text
+        ax.text(braket_pos[i].x, braket_pos[i].y+10, content, fontsize=12, color='green', rotation=0)
     for i, segment in enumerate(segments):
         if segment.isCornerhole:
             color = "red"

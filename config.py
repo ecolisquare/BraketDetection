@@ -39,5 +39,5 @@ class SegmentationConfig:
         self.poly_info_dir = "/home/user10/code/BraketDetection/output"
         self.res_image_path = "/home/user10/code/BraketDetection/output/res.png"
 
-        self.max_workers=0
+        self.max_workers=-1
         self.timeout=2

@@ -50,7 +50,7 @@ class DSegment:
 
     def __eq__(self, other):  
         if isinstance(other, DSegment):  
-            return (self.start_point, self.end_point,self.ref) == (other.start_point, other.end_point,self.ref)  
+            return (self.start_point, self.end_point) == (other.start_point, other.end_point)  
         return False  
   
     def __hash__(self):  
@@ -96,6 +96,11 @@ class DLine:
     def __repr__(self):  
         return f"Line({self.start_point}, {self.end_point},handle:{self.handle})"  
     
+    def __eq__(self,other):
+        if not isinstance(other,DLine):
+            return False
+        else:
+            return (self.start_point,self.end_point,self.color,self.handle)==(other.start_point,other.end_point,other.color,other.handle)
 
     # def computeCenterCoordinateAndWeight(self):
     #     s=DSegment(self.start_point,self.end_point,None)
@@ -112,7 +117,20 @@ class DLwpolyline:
   
     def __repr__(self):  
         return f"Lwpolyline(points:{self.points},color:{self.color},isClosed:{self.isClosed},handle:{self.handle})"  
-  
+    
+    def __eq__(self,other):
+        if not isinstance(other,DLwpolyline):
+            return False
+        else:
+            if len(self.points) != len(other.points):
+                return False
+            else:
+                for i in range(len(self.points)):
+                    if self.points[i]!=other.points[i]:
+                        return False
+                
+                return (self.isClosed,self.color,self.handle)==(other.isClosed,other.color,other.handle)
+
     # def computeCenterCoordinateAndWeight(self):
     #     w=0
     #     x=0
@@ -155,7 +173,11 @@ class DArc:
     def __repr__(self):  
         return (f"Arc(center={self.center}, radius={self.radius}, "  
                 f"start_angle={self.start_angle}, end_angle={self.end_angle}),handle:{self.handle}")  
-    
+    def  __eq__(self,other):
+        if not isinstance(other,DArc):
+            return False
+        else:
+            return (self.center,self.radius,self.start_angle,self.end_angle,self.color,self.handle)==(other.center,other.radius,other.start_angle,other.end_angle,other.color,other.handle)
     # def __eq__(self, other):
     #     if isinstance(other, DArc):
     #         return (self.center, self.radius, self.start_angle, self.end_angle) == (other.center, other.radius, other.start_angle, other.end_angle)
