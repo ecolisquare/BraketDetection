@@ -39,7 +39,7 @@ polys_conerhole_edges = []
 polys_free_edges = []
 pbar=tqdm(total=len(polys),desc="正在输出结构化信息")
 for i, poly in enumerate(polys):
-    res, cornerhole_edges, free_edges = outputPolyInfo(poly, new_segments, segmentation_config, point_map, i, star_pos_map, cornor_holes,text_and_dimensions)
+    res, cornerhole_edges, free_edges = outputPolyInfo(poly, new_segments, segmentation_config, point_map, i, star_pos_map, cornor_holes,text_and_dimensions, braket_texts, braket_pos)
     pbar.update()
     if res is not None:
         polys_info.append(res)
