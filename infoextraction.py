@@ -385,11 +385,11 @@ def outputPolyInfo(poly, segments, segmentation_config, point_map, index,star_po
     if len(free_edges) > 1:
         print(f"回路{index}超过两条自由边！")
         #return poly_refs
-        return None
+        return None, None, None
     if len(free_edges) == 0:
         print(f"回路{index}没有自由边！")
         #return poly_refs
-        return  None
+        return  None, None, None
 
     # step7: 输出几何中心和边界信息
     file_path = os.path.join(segmentation_config.poly_info_dir, f'info{index}.txt')
