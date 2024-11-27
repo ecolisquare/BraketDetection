@@ -22,7 +22,7 @@ if segmentation_config.verbose:
 segments=expandFixedLength(ori_segments,segmentation_config.line_expand_length)
 
 #找出所有包含角隅孔圆弧的基本环
-polys, new_segments, point_map,star_pos_map,cornor_holes=findClosedPolys_via_BFS(elements,segments,segmentation_config)
+polys, new_segments, point_map,star_pos_map,cornor_holes,braket_texts,braket_pos=findClosedPolys_via_BFS(elements,segments,segmentation_config)
 
 # #预训练的几何分类模型筛选肘板
 # model_path = "/home/user4/BraketDetection/DGCNN/cpkt/geometry_classifier.pth"

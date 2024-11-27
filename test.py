@@ -92,7 +92,7 @@ def process_json_data(json_path, output_path, training_data_output_folder, train
     segments=expandFixedLength(ori_segments,segmentation_config.line_expand_length)
 
     #找出所有包含角隅孔圆弧的基本环
-    ppolys, new_segments, point_map,star_pos_map,cornor_holes=findClosedPolys_via_BFS(elements,segments,segmentation_config)
+    ppolys, new_segments, point_map,star_pos_map,cornor_holes,braket_texts,braket_pos=findClosedPolys_via_BFS(elements,segments,segmentation_config)
 
     output_training_data(ppolys, training_data_output_folder, name)
 
@@ -102,7 +102,7 @@ def process_json_data(json_path, output_path, training_data_output_folder, train
     polys_info = []
     print("正在输出结构化信息...")
     for i, poly in enumerate(ppolys):
-        res = outputPolyInfo(poly, new_segments, segmentation_config, point_map, i, star_pos_map, cornor_holes,text_and_dimensions)
+        res = outputPolyInfo(poly, new_segments, segmentation_config, point_map, i, star_pos_map, cornor_holes,text_and_dimensions,braket_texts,braket_pos)
         if res is not None:
             polys_info.append(res)
 
@@ -112,8 +112,8 @@ def process_json_data(json_path, output_path, training_data_output_folder, train
 
 
 
-folder_path = "../jndata"
-output_folder = "./output"
+folder_path = "/home/user10/code/BraketDetection/data/board_example"
+output_folder = "/home/user10/code/BraketDetection/output"
 training_data_output_folder = "./DGCNN/data_folder"
 training_img_output_folder = "./training_img"
 process_json_files(folder_path, output_folder, training_data_output_folder, training_img_output_folder)

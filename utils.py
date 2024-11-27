@@ -13,6 +13,8 @@ import re
 from tqdm import tqdm
 from concurrent.futures import ProcessPoolExecutor, as_completed,TimeoutError
 import time
+from functools import partial
+from itertools import combinations
 def numberInString(content):
     flag=False
     for i in range(10):
@@ -308,7 +310,10 @@ def expandFixedLength(segList,dist,both=True):
 
 
     new_seglist=[] 
+    n=len(segList)
+    pbar=tqdm(total=n,desc="Preprocess")
     for seg in segList:
+        pbar.update()
         p1=seg[0]
         p2=seg[1]
         v=(p2[0]-p1[0],p2[1]-p1[1])
@@ -319,6 +324,7 @@ def expandFixedLength(segList,dist,both=True):
         vs=DPoint(p1[0]-v[0],p1[1]-v[1]) if both else DPoint(p1[0],p1[1])
         ve=DPoint(p2[0]+v[0],p2[1]+v[1])
         new_seglist.append(DSegment(vs,ve,seg.ref))
+    pbar.close()
     return new_seglist
 
 #remove duplicate points on the same edge
@@ -359,10 +365,10 @@ def segment_intersection(p1, p2, q1, q2, epsilon=1e-9):
 def find_all_intersections(segments, epsilon=1e-9):
     intersection_dict = {}
     n=len(segments)
-    pbar=tqdm(total=n*(n-1)//2,desc="计算交点")
+    pbar=tqdm(total=n*(n-1)/2,desc="计算交点")
     for i, seg1 in enumerate(segments):
         for j, seg2 in enumerate(segments):
-            if i >= j:
+            if i >= j :
                 continue  # Avoid duplicate checks and self-intersections
 
             p1, p2 = seg1.start_point, seg1.end_point
@@ -380,11 +386,71 @@ def find_all_intersections(segments, epsilon=1e-9):
             pbar.update()
     # Sort intersections along each segment by their distance from the start point
     for seg, isects in intersection_dict.items():
+        
         isects.sort(key=lambda p: (p.x - seg.start_point.x)**2 + (p.y - seg.start_point.y)**2)
+        intersection_dict[seg]=isects
     pbar.close()
     return intersection_dict
 
+# # Function to compute intersections for two subsets of segments
+def compute_intersections(chunk1, chunk2, epsilon=1e-9):
+    intersection_dict = {}
+    n=len(chunk1)*(len(chunk2))
+    pbar=tqdm(total=n,desc="计算交点")
+    for seg1 in chunk1:
+        for seg2 in chunk2:
+            pbar.update()
+            if seg1 == seg2:
+                continue  # Skip self-intersection
+            
+            p1, p2 = seg1.start_point, seg1.end_point
+            q1, q2 = seg2.start_point, seg2.end_point
+            intersection = segment_intersection(p1, p2, q1, q2, epsilon)
+            if intersection:
+                if seg1 not in intersection_dict:
+                    intersection_dict[seg1] = []
+                # if seg2 not in intersection_dict:
+                #     intersection_dict[seg2] = []
+                
+                # Append the intersection for both segments
+                intersection_dict[seg1].append(intersection)
+                # intersection_dict[seg2].append(intersection)
+            
+    pbar.close()
+  
+    return intersection_dict
 
+# Function to merge results from multiple processes
+def merge_intersections(results):
+    merged = {}
+    for result in results:
+        for seg, intersections in result.items():
+            if seg not in merged:
+                merged[seg] = []
+            merged[seg].extend(intersections)
+    for seg, isects in merged.items():
+    
+        isects.sort(key=lambda p: (p.x - seg.start_point.x)**2 + (p.y - seg.start_point.y)**2)
+        merged[seg]=isects
+    return merged
+
+# Main function to find all intersections using multiprocessing
+def find_all_intersections(segments, epsilon=1e-9):
+    n = len(segments)
+    k= (n+31)//32
+    # Divide segments into chunks of size k
+    segment_chunks = [segments[i:i + k] for i in range(0, n, k)]
+    s_l=[len(c) for c in segment_chunks]
+    print(len(segment_chunks))
+    print(s_l)
+    # Use ProcessPoolExecutor for parallel computation
+    with ProcessPoolExecutor(max_workers=32) as executor:
+        partial_intersections = partial(compute_intersections, chunk2=segments,epsilon=epsilon)
+        results = list(executor.map(partial_intersections, segment_chunks))
+
+    # Merge results from all processes
+    intersection_dict = merge_intersections(results)
+    return intersection_dict
 from collections import deque
 
 def split_segments(segments, intersections,epsilon=0.25): 
@@ -844,7 +910,8 @@ def findBraketByHints(elements,all_segments,filtered_segments,point_map):
             x,y=mid_point.x,mid_point.y
             vertical_lines.append(DSegment(DPoint(x,y),DPoint(x,y-5000)))
     horizontal_line=[]
-  
+    hb=[]
+    
             
     for i, seg1 in enumerate(vertical_lines):
         y_max=None
@@ -864,9 +931,11 @@ def findBraketByHints(elements,all_segments,filtered_segments,point_map):
                         s=seg2
         if s is not None:
             horizontal_line.append(s)
+            hb.append(braket_texts[i])
     #print(horizontal_line)
     vertical_lines=[]
-    for line in horizontal_line:
+    vb=[]
+    for i,line in enumerate(horizontal_line):
         if len(point_map[line.start_point])==1:
             p=line.end_point
         else:
@@ -877,9 +946,12 @@ def findBraketByHints(elements,all_segments,filtered_segments,point_map):
             l2=DSegment(s.end_point,p)
             if l1.length()>=l2.length():
                 vertical_lines.append(DSegment(s.start_point,DPoint(s.start_point.x,s.start_point.y+5000)))
+                vb.append(hb[i])
             else:
                 vertical_lines.append(DSegment(s.end_point,DPoint(s.end_point.x,s.end_point.y+5000)))
+                vb.append(hb[i])
     braket_start_lines=[]
+    bs=[]
     #print(vertical_lines)
     for i, seg1 in enumerate(vertical_lines):
         y_min=None
@@ -899,9 +971,10 @@ def findBraketByHints(elements,all_segments,filtered_segments,point_map):
         if s is not None:
             braket_start_lines.append(s)
             braket_pos.append(seg1.start_point)
+            bs.append(vb[i])
     
 
-    return braket_start_lines,braket_pos
+    return braket_start_lines,braket_pos,bs
 
 def findBracketByPoints(pos,filtered_segments):
     braket_start_lines=[]
@@ -960,7 +1033,7 @@ def removeReferenceLines(elements,initial_segments,all_segments,point_map):
             text_pos=seg1.start_point
             if (text_pos.y-y_max)<=500 and s.ref.color==7 and (len(point_map[s.start_point])==1 or len(point_map[s.end_point])==1):
                 horizontal_line.append(s)
-    #print(len(horizontal_line))
+    # print(len(horizontal_line))
     reference_lines=[]
     for line in horizontal_line:
         if len(point_map[line.start_point])==1:
@@ -968,13 +1041,16 @@ def removeReferenceLines(elements,initial_segments,all_segments,point_map):
         else:
             p=line.start_point
         ss=[s.ref for s in point_map[p] if s.length()>30  and (isinstance(s.ref, DLine) or isinstance(s.ref,DLwpolyline))]
+        
         for s in ss:
             reference_lines.append(s)
-    #print(len(reference_lines))
+    #print(reference_lines)
     new_segments=[]
     for s in initial_segments:
+        
         if s.ref not in reference_lines:
             new_segments.append(s)
+            #print(s.ref)
     return new_segments,reference_lines
 
            
@@ -1423,7 +1499,7 @@ def findClosedPolys_via_BFS(elements,segments,segmentation_config):
     #     print("根据交点分割线段")
     new_segments, edge_map,point_map= split_segments(segments, isecDic,segmentation_config.segment_filter_length)
     filtered_segments, filtered_edge_map,filtered_point_map= filter_segments(segments,isecDic,point_map,segmentation_config.segment_filter_length,segmentation_config.segment_filter_iters)
-    braket_start_lines,braket_pos=findBraketByHints(elements,new_segments,filtered_segments,point_map)
+    braket_start_lines,braket_pos,braket_texts=findBraketByHints(elements,new_segments,filtered_segments,point_map)
     
     
     #remove rfernce lines
@@ -1509,13 +1585,17 @@ def findClosedPolys_via_BFS(elements,segments,segmentation_config):
                 errors.append(f"处理 {repline} 时发生错误: {exc}")
             if verbose:
                 pbar.update()
-
+    # closed_polys=[]
+    # for repline in replines:
+    #     paths=bfs_paths(graph,repline.start_point,repline.end_point,segmentation_config.path_max_length,timeout=1000)
+    #     closed_polys.extend(paths)
+    #     pbar.update()
     if verbose:
         pbar.close()
         print(errors)
     multi_thread_end_time = time.time()
     if verbose:
-        print(f"多线程执行部分耗时: {multi_thread_end_time - multi_thread_start_time:.2f} 秒")
+        print(f"回路探测执行部分耗时: {multi_thread_end_time - multi_thread_start_time:.2f} 秒")
         print("查找完毕")
     # for closed_poly in closed_polys:
     #     print(closed_poly)
@@ -1538,7 +1618,7 @@ def findClosedPolys_via_BFS(elements,segments,segmentation_config):
         print(f"封闭多边形个数:{len(polys)}")
     outputPolysAndGeometry(polys,segmentation_config.poly_image_dir,segmentation_config.draw_polys,segmentation_config.draw_geometry,segmentation_config.draw_poly_nums)
     outputLines(filtered_segments,filtered_point_map,polys,cornor_holes,star_pos,braket_pos ,replines,segmentation_config.line_image_path,segmentation_config.draw_intersections,segmentation_config.draw_segments,segmentation_config.line_image_drawPolys)
-    return polys, new_segments, point_map,star_pos_map,cornor_holes
+    return polys, new_segments, point_map,star_pos_map,cornor_holes,braket_texts,braket_pos
 
 
  
