@@ -446,4 +446,4 @@ def outputPolyInfo(poly, segments, segmentation_config, point_map, index,star_po
             log_to_file(file_path, f"角隅孔{cornerhole_index}位于边界{pre}和边界{nex}之间")
             cornerhole_index += 1
 
-    return poly_refs
+    return poly_refs, cornerhole_edges, free_edges
