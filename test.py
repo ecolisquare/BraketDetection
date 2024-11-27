@@ -98,13 +98,16 @@ def process_json_data(json_path, output_path, training_data_output_folder, train
 
     output_training_img(ppolys, new_segments, training_img_output_folder, name)
     #结构化输出每个肘板信息
-    print("正在输出结构化信息...")
     polys_info = []
+    polys_conerhole_edges = []
+    polys_free_edges = []
     print("正在输出结构化信息...")
     for i, poly in enumerate(ppolys):
-        res = outputPolyInfo(poly, new_segments, segmentation_config, point_map, i, star_pos_map, cornor_holes,text_and_dimensions,braket_texts,braket_pos)
+        res, cornerhole_edges, free_edges = outputPolyInfo(poly, new_segments, segmentation_config, point_map, i, star_pos_map, cornor_holes,text_and_dimensions,braket_texts,braket_pos)
         if res is not None:
             polys_info.append(res)
+            polys_conerhole_edges.append(cornerhole_edges)
+            polys_free_edges.append(free_edges)
 
     print("结构化信息输出完毕，保存于:", segmentation_config.poly_info_dir)
 
