@@ -8,6 +8,8 @@ from plot_geo import *
 from config import *
 # from DGCNN_model import *
 from tqdm import tqdm
+from classifier import *
+
 segmentation_config=SegmentationConfig()
 
 json_path = input("请输入路径: ")
@@ -35,16 +37,12 @@ polys, new_segments, point_map,star_pos_map,cornor_holes,braket_texts,braket_pos
 
 #结构化输出每个肘板信息
 polys_info = []
-polys_conerhole_edges = []
-polys_free_edges = []
 pbar=tqdm(total=len(polys),desc="正在输出结构化信息")
 for i, poly in enumerate(polys):
-    res, cornerhole_edges, free_edges = outputPolyInfo(poly, new_segments, segmentation_config, point_map, i, star_pos_map, cornor_holes,text_and_dimensions, braket_texts, braket_pos)
+    res = outputPolyInfo(poly, new_segments, segmentation_config, point_map, i, star_pos_map, cornor_holes,text_and_dimensions, braket_texts, braket_pos)
     pbar.update()
     if res is not None:
         polys_info.append(res)
-        polys_conerhole_edges.append(cornerhole_edges)
-        polys_free_edges.append(free_edges)
 pbar.close()
 print("结构化信息输出完毕，保存于:", segmentation_config.poly_info_dir)
 
