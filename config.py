@@ -41,3 +41,5 @@ class SegmentationConfig:
 
         self.max_workers=-1
         self.timeout=2
+
+        self.type_path = "./type.json"

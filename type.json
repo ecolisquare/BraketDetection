@@ -1,0 +1,32 @@
+{
+  "type_1": {
+    "cornerhole_nums": 1,
+    "free_edges": ["line", "line"],
+    "non_free_edges": [
+      {"type": "constraint", "edges": ["line"]},
+      {"type": "cornerhole", "edges": ["arc"]},
+      {"type": "constraint", "edges": ["line"]},
+      {"type": "constraint", "edges": ["line"]}
+    ]
+  },
+  "type_2": {
+    "cornerhole_nums": 1,
+    "free_edges": ["line", "line", "line"],
+    "non_free_edges": [
+      {"type": "constraint", "edges": ["line"]},
+      {"type": "cornerhole", "edges": ["arc"]},
+      {"type": "constraint", "edges": ["line"]}
+    ]
+  },
+  "type_3": {
+    "cornerhole_nums": 2,
+    "free_edges": ["line", "line"],
+    "non_free_edges": [
+      {"type": "constraint", "edges": ["line"]},
+      {"type": "cornerhole", "edges": ["arc"]},
+      {"type": "constraint", "edges": ["line"]},
+      {"type": "cornerhole", "edges": ["arc"]},
+      {"type": "constraint", "edges": ["line"]}
+    ]
+  }
+}
