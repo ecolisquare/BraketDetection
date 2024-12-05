@@ -54,9 +54,7 @@ def poly_classifier(poly_refs, conerhole_num, poly_free_edges, edges, classifica
         if type is not None:
             seq = []
             for seg in edge:
-                if isinstance(seg.ref, DLine):
-                    seq.append("line")
-                elif isinstance(seg.ref, DLwpolyline):
+                if isinstance(seg.ref, DLine) or isinstance(seg.ref, DLwpolyline):
                     seq.append("line")
                 elif isinstance(seg.ref, DArc):
                     seq.append("arc")
