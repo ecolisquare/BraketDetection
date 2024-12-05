@@ -8,6 +8,8 @@ from plot_geo import *
 from config import *
 # from DGCNN_model import *
 from tqdm import tqdm
+from classifier import *
+
 segmentation_config=SegmentationConfig()
 
 json_path = input("请输入路径: ")
@@ -37,7 +39,7 @@ polys, new_segments, point_map,star_pos_map,cornor_holes,braket_texts,braket_pos
 polys_info = []
 pbar=tqdm(total=len(polys),desc="正在输出结构化信息")
 for i, poly in enumerate(polys):
-    res = outputPolyInfo(poly, new_segments, segmentation_config, point_map, i, star_pos_map, cornor_holes,text_and_dimensions,braket_texts,braket_pos)
+    res = outputPolyInfo(poly, new_segments, segmentation_config, point_map, i, star_pos_map, cornor_holes,text_and_dimensions, braket_texts, braket_pos)
     pbar.update()
     if res is not None:
         polys_info.append(res)

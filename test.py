@@ -9,9 +9,9 @@ from plot_geo import *
 from config import *
 
 
-def output_training_data(polys, training_data_output_path):
+def output_training_data(polys, training_data_output_folder, name):
     # 如果输出文件夹不存在，则创建
-    os.makedirs(training_data_output_path, exist_ok=True)
+    os.makedirs(training_data_output_folder, exist_ok=True)
     
     for i, poly in enumerate(polys):
         # 计算多边形中心坐标
@@ -29,7 +29,7 @@ def output_training_data(polys, training_data_output_path):
         center_y /= num_points
 
         # 创建文件并输出每个线段信息
-        output_file = os.path.join(training_data_output_path, f"{i}.txt")
+        output_file = os.path.join(training_data_output_folder, f"{name}_{i}.txt")
         with open(output_file, "w") as f:
             for seg in poly:
                 (start_x, start_y), (end_x, end_y), length = seg.start_point, seg.end_point, seg.length()
@@ -44,7 +44,7 @@ def output_training_data(polys, training_data_output_path):
                 f.write(f"{shifted_start_x:.2f} {shifted_start_y:.2f} {shifted_end_x:.2f} {shifted_end_y:.2f} {length:.2f}\n")
             
 
-def process_json_files(folder_path, output_foler, training_data_output_folder):
+def process_json_files(folder_path, output_foler, training_data_output_folder, training_img_output_folder):
     # 检查文件夹是否存在
     if not os.path.isdir(folder_path):
         print(f"路径 {folder_path} 不存在或不是一个文件夹。")
@@ -57,18 +57,18 @@ def process_json_files(folder_path, output_foler, training_data_output_folder):
             file_path = os.path.join(folder_path, filename)
             name = os.path.splitext(filename)[0]
             output_path = os.path.join(output_foler, name)
-            training_data_output_path = os.path.join(training_data_output_folder, name)
+            # training_data_output_path = os.path.join(training_data_output_folder, name)
             print(f"正在处理文件: {file_path}")
             
             # 打开并读取JSON文件内容
             try:
-                process_json_data(file_path, output_path, training_data_output_path)  # 对数据进行操作
+                process_json_data(file_path, output_path, training_data_output_folder, training_img_output_folder, name)  # 对数据进行操作
             except json.JSONDecodeError as e:
                 print(f"解析JSON文件 {file_path} 时出错: {e}")
             except Exception as e:
                 print(f"处理文件 {file_path} 时出错: {e}")
 
-def process_json_data(json_path, output_path, training_data_output_path):
+def process_json_data(json_path, output_path, training_data_output_folder, training_img_output_folder, name):
     segmentation_config=SegmentationConfig()
     segmentation_config.line_image_path = os.path.join(output_path, "line.png")
     segmentation_config.poly_image_dir = os.path.join(output_path, "poly_image")
@@ -94,11 +94,10 @@ def process_json_data(json_path, output_path, training_data_output_path):
     #找出所有包含角隅孔圆弧的基本环
     ppolys, new_segments, point_map,star_pos_map,cornor_holes,braket_texts,braket_pos=findClosedPolys_via_BFS(elements,segments,segmentation_config)
 
-    # output_training_data(ppolys, training_data_output_path)
+    # output_training_data(ppolys, training_data_output_folder, name)
 
-    output_training_data(ppolys, training_data_output_path)
+    # output_training_img(ppolys, new_segments, training_img_output_folder, name)
     #结构化输出每个肘板信息
-    print("正在输出结构化信息...")
     polys_info = []
     print("正在输出结构化信息...")
     for i, poly in enumerate(ppolys):
@@ -112,7 +111,8 @@ def process_json_data(json_path, output_path, training_data_output_path):
 
 
 
-folder_path = "/home/user10/code/BraketDetection/data/board_example"
-output_folder = "/home/user10/code/BraketDetection/output"
+folder_path = "../jndata"
+output_folder = "./output"
 training_data_output_folder = "./DGCNN/data_folder"
-process_json_files(folder_path, output_folder, training_data_output_folder)
+training_img_output_folder = "./training_img"
+process_json_files(folder_path, output_folder, training_data_output_folder, training_img_output_folder)

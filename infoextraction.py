@@ -2,6 +2,10 @@ from  element import *
 from plot_geo import plot_geometry,plot_polys, plot_info_poly
 import os
 from utils import segment_intersection,computeBoundingBox
+from classifier import poly_classifier
+from scipy.spatial import ConvexHull
+import matplotlib.pyplot as plt
+
 def log_to_file(filename, content):
     """将内容写入指定的文件。"""
     with open(filename, 'a') as file:  # 以追加模式打开文件
@@ -15,6 +19,47 @@ def clear_file(file_path):
     except Exception as e:
         print(f"无法清空文件 '{file_path}'。错误: {e}")
 
+
+def polygon_area(points):
+    """
+    计算多边形的面积，基于顶点的顺序。
+    :param points: 多边形顶点列表 [(x1, y1), (x2, y2), ...]。
+    :return: 多边形面积（绝对值）。
+    """
+    n = len(points)
+    area = 0.0
+    for i in range(n):
+        x1, y1 = points[i]
+        x2, y2 = points[(i + 1) % n]
+        area += x1 * y2 - y1 * x2
+    return abs(area) / 2.0
+
+def is_near_convex(points, i, tolerance=0.05):
+    """
+    判断多边形是否是近似凸多边形（基于面积差）。
+    :param points: 多边形顶点列表，按顺序排列 [(x1, y1), (x2, y2), ...]。
+    :param i: 当前多边形的索引，用于命名图片文件。
+    :param tolerance: 面积差的允许百分比，默认为 5%。
+    :return: True 如果是近似凸多边形，否则 False。
+    """
+    if len(points) < 3:
+        return False  # 不构成多边形
+
+    # 确保输入点集是一个二维数组
+    points = [(float(x), float(y)) for x, y in points]
+
+    # 计算输入多边形面积
+    poly_area = polygon_area(points)
+
+    # 计算凸包的面积
+    convex_hull = ConvexHull(points)
+    hull_area = convex_hull.volume  # ConvexHull 的面积
+
+    # 检查面积差
+    if abs(poly_area - hull_area) / hull_area > tolerance:
+        return False
+
+    return True
 
 # 计算几何中心坐标
 def calculate_poly_centroid(poly):
@@ -382,8 +427,8 @@ def outputPolyInfo(poly, segments, segmentation_config, point_map, index,star_po
     # step 5.5：找到所有的标注
     ts=textsInPoly(text_and_dimensions,poly)
     bs,bps=braketTextInPoly(braket_texts,braket_pos,poly)
-    # step6: 绘制对边分类后的几何图像
-    plot_info_poly(poly_refs, os.path.join(segmentation_config.poly_info_dir, f'infopoly{index}.png'),ts,bs,bps)
+
+    # 附加：添加筛选条件
     # 如果有多于两条的自由边则判定为不是肘板，不进行输出
     if len(free_edges) > 1:
         print(f"回路{index}超过两条自由边！")
@@ -393,6 +438,21 @@ def outputPolyInfo(poly, segments, segmentation_config, point_map, index,star_po
         print(f"回路{index}没有自由边！")
         #return poly_refs
         return  None
+    
+    # 如果除去圆弧外固定边多边形不是凸多边形则不进行输出
+    constraint_edge_poly = []
+    for constarint_edge in constraint_edges:
+        for seg in constarint_edge:
+            if not isinstance(seg.ref, DArc):
+                constraint_edge_poly.append(seg.start_point)
+                constraint_edge_poly.append(seg.end_point)
+
+    if not is_near_convex(constraint_edge_poly, index):
+        return None
+        
+    
+    # step6: 绘制对边分类后的几何图像
+    plot_info_poly(poly_refs, os.path.join(segmentation_config.poly_info_dir, f'infopoly{index}.png'),ts,bs,bps)
 
     # step7: 输出几何中心和边界信息
     file_path = os.path.join(segmentation_config.poly_info_dir, f'info{index}.txt')
@@ -472,5 +532,9 @@ def outputPolyInfo(poly, segments, segmentation_config, point_map, index,star_po
             nex = len(constraint_edges) if nex == 0 else nex
             log_to_file(file_path, f"角隅孔{cornerhole_index}位于边界{pre}和边界{nex}之间")
             cornerhole_index += 1
+
+    # step12 对肘板进行分类：
+    classification_res = poly_classifier(poly_refs, cornerhole_index - 1, free_edges, edges, segmentation_config.type_path)
+    log_to_file(file_path, f"肘板类别为{classification_res}")
 
     return poly_refs
