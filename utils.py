@@ -152,7 +152,7 @@ def readJson(path):
                 if ele.get("linetype") is None or ele["linetype"] not in linetype:
                     continue
                 # 创建DArc对象
-                e = DArc(DPoint(ele["center"][0], ele["center"][1]), ele["radius"], ele["startAngle"], ele["endAngle"],ele["handle"])
+                e = DArc(DPoint(ele["center"][0], ele["center"][1]), ele["radius"], ele["startAngle"], ele["endAngle"],ele["color"],ele["handle"])
                 elements.append(e)
                 A = e.start_point.as_tuple()
                 B = e.end_point.as_tuple()
@@ -237,7 +237,7 @@ def readJson(path):
                     elif sube["type"] == "arc":
                         # 创建DArc对象
                         e = DArc(coordinatesmap(DPoint(sube["center"][0], sube["center"][1]),insert,scales,rotation),
-                         sube["radius"], sube["startAngle"], sube["endAngle"],sube["handle"])
+                         sube["radius"], sube["startAngle"], sube["endAngle"],sube["color"],sube["handle"])
                         elements.append(e)
                         A = e.start_point.as_tuple()
                         B = e.end_point.as_tuple()
@@ -863,9 +863,9 @@ def compute_cornor_holes(filtered_segments,filtered_point_map):
                         for ss in segments:
                             segment_is_visited.add(ss)
                         cornor_holes.append(DCornorHole(segments))
-    # for cornor_hole in cornor_holes:
-    #     for s in cornor_hole.segments:
-    #         s.isCornerhole=True
+    for cornor_hole in cornor_holes:
+        for s in cornor_hole.segments:
+            s.isCornerhole=True
     return cornor_holes
 
 

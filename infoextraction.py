@@ -124,52 +124,52 @@ def calculate_poly_refs(poly):
                     continue
             refs.append(segment)
     # 末尾和首个seg的合并判断
-    # if isinstance(refs[0].ref, DArc)  and isinstance(refs[-1].ref, DArc):
-    #     if(refs[0].ref.start_angle, refs[0].ref.end_angle, refs[0].ref.center, refs[0].ref.radius) == (refs[-1].ref.start_angle, refs[-1].ref.end_angle, refs[-1].ref.center, refs[-1].ref.radius):
-    #         del refs[-1]
-    # elif isinstance(refs[0].ref, DArc):
-    #     pass
-    # else:
+    if isinstance(refs[0].ref, DArc)  and isinstance(refs[-1].ref, DArc):
+        if(refs[0].ref.start_angle, refs[0].ref.end_angle, refs[0].ref.center, refs[0].ref.radius) == (refs[-1].ref.start_angle, refs[-1].ref.end_angle, refs[-1].ref.center, refs[-1].ref.radius):
+            del refs[-1]
+    elif isinstance(refs[0].ref, DArc):
+        pass
+    else:
         
-    #     if len(refs) != 0:
-    #         dx_1 = segment.end_point.x - segment.start_point.x
-    #         dy_1 = segment.end_point.y - segment.start_point.y
-    #         k_1 = math.pi/2 if dx_1 == 0 else math.atan(dy_1 / dx_1)
-    #         dx_2 = refs[-1].end_point.x - refs[-1].start_point.x
-    #         dy_2 = refs[-1].end_point.y - refs[-1].start_point.y
-    #         k_2 = math.pi/2 if dx_2 == 0 else math.atan(dy_2 / dx_2)
+        if len(refs) != 0:
+            dx_1 = segment.end_point.x - segment.start_point.x
+            dy_1 = segment.end_point.y - segment.start_point.y
+            k_1 = math.pi/2 if dx_1 == 0 else math.atan(dy_1 / dx_1)
+            dx_2 = refs[-1].end_point.x - refs[-1].start_point.x
+            dy_2 = refs[-1].end_point.y - refs[-1].start_point.y
+            k_2 = math.pi/2 if dx_2 == 0 else math.atan(dy_2 / dx_2)
 
-    #         # 判断斜率是否相等
-    #         if are_equal_with_tolerance(k_1, k_2) or (math.fabs(dx_1) <0.025 and math.fabs(dx_2) <0.025):
-    #             if refs[-1].start_point==refs[0].end_point:
-    #                 new_segment = DSegment(
-    #                     refs[-1].end_point,     # 保留原本的起点
-    #                     refs[0].start_point,        # 当前segment的终点
-    #                     refs[-1].ref              # 保留原本的ref
-    #                 )
-    #             elif refs[-1].start_point==refs[0].start_point:
-    #                 new_segment = DSegment(
-    #                     refs[-1].end_point,     # 保留原本的起点
-    #                     refs[0].end_point,        # 当前segment的终点
-    #                     refs[-1].ref              # 保留原本的ref
-    #                 )
-    #             elif refs[-1].end_point==refs[0].end_point:
-    #                 new_segment = DSegment(
-    #                     refs[-1].start_point,     # 保留原本的起点
-    #                     refs[0].start_point,        # 当前segment的终点
-    #                     refs[-1].ref              # 保留原本的ref
-    #                 )
-    #             else:
+            # 判断斜率是否相等
+            if are_equal_with_tolerance(k_1, k_2) or (math.fabs(dx_1) <0.025 and math.fabs(dx_2) <0.025):
+                if refs[-1].start_point==refs[0].end_point:
+                    new_segment = DSegment(
+                        refs[-1].end_point,     # 保留原本的起点
+                        refs[0].start_point,        # 当前segment的终点
+                        refs[-1].ref              # 保留原本的ref
+                    )
+                elif refs[-1].start_point==refs[0].start_point:
+                    new_segment = DSegment(
+                        refs[-1].end_point,     # 保留原本的起点
+                        refs[0].end_point,        # 当前segment的终点
+                        refs[-1].ref              # 保留原本的ref
+                    )
+                elif refs[-1].end_point==refs[0].end_point:
+                    new_segment = DSegment(
+                        refs[-1].start_point,     # 保留原本的起点
+                        refs[0].start_point,        # 当前segment的终点
+                        refs[-1].ref              # 保留原本的ref
+                    )
+                else:
                         
-    #                 new_segment = DSegment(
-    #                     refs[-1].start_point,     # 保留原本的起点
-    #                     refs[0].end_point,        # 当前segment的终点
-    #                     refs[-1].ref              # 保留原本的ref
-    #                 )
+                    new_segment = DSegment(
+                        refs[-1].start_point,     # 保留原本的起点
+                        refs[0].end_point,        # 当前segment的终点
+                        refs[-1].ref              # 保留原本的ref
+                    )
                 
-    #             # 替换refs中的第一个Segment
-    #             refs[0] = new_segment
-    #             del refs[-1]
+                # 替换refs中的第一个Segment
+                refs[0] = new_segment
+                del refs[-1]
     return refs
 
 def textsInPoly(text_and_dimensions,poly):
@@ -211,6 +211,7 @@ def outputPolyInfo(poly, segments, segmentation_config, point_map, index,star_po
     # step2: 合并边界线
     poly_refs = calculate_poly_refs(poly)
 
+    # plot_polys({},poly_refs,"./check")
     # step3: 标记角隅孔
     # for corner_hole in cornor_holes:
     #     for seg in corner_hole.segments:
@@ -226,7 +227,7 @@ def outputPolyInfo(poly, segments, segmentation_config, point_map, index,star_po
     for seg in poly_refs:
         if seg in cornor_holes_map:
             seg.isCornerhole=True
-            # print(seg.ref)
+            print(seg.ref)
             
 
     
@@ -427,9 +428,25 @@ def outputPolyInfo(poly, segments, segmentation_config, point_map, index,star_po
     # step 5.5：找到所有的标注
     ts=textsInPoly(text_and_dimensions,poly)
     bs,bps=braketTextInPoly(braket_texts,braket_pos,poly)
+    # print(free_edges)
+    # print(cornor_holes[0].segments)
+    # for s in poly_refs:
+    #     print(s.isCornerhole)
+    # print(current_edge)
+    # print(current_type)
+    # # 附加：添加筛选条件
+    # # 如果有多于两条的自由边则判定为不是肘板，不进行输出
+    # print(constraint_edges)
+    # print(free_edges)
+    # print(cornerhole_edges)
+    # for s in poly:
+    #     print(s.isCornerhole)
+ 
+  
+        
 
-    # 附加：添加筛选条件
-    # 如果有多于两条的自由边则判定为不是肘板，不进行输出
+
+    plot_info_poly(poly_refs, os.path.join(segmentation_config.poly_info_dir, f'infopoly{index}.png'),ts,bs,bps)
     if len(free_edges) > 1:
         print(f"回路{index}超过两条自由边！")
         #return poly_refs
@@ -438,6 +455,10 @@ def outputPolyInfo(poly, segments, segmentation_config, point_map, index,star_po
         print(f"回路{index}没有自由边！")
         #return poly_refs
         return  None
+    if len(constraint_edges)==0:
+        print(f"回路{index}没有约束边！")
+        #return poly_refs
+        return None
     
     # 如果除去圆弧外固定边多边形不是凸多边形则不进行输出
     constraint_edge_poly = []
@@ -452,7 +473,7 @@ def outputPolyInfo(poly, segments, segmentation_config, point_map, index,star_po
         
     
     # step6: 绘制对边分类后的几何图像
-    plot_info_poly(poly_refs, os.path.join(segmentation_config.poly_info_dir, f'infopoly{index}.png'),ts,bs,bps)
+    # plot_info_poly(poly_refs, os.path.join(segmentation_config.poly_info_dir, f'infopoly{index}.png'),ts,bs,bps)
 
     # step7: 输出几何中心和边界信息
     file_path = os.path.join(segmentation_config.poly_info_dir, f'info{index}.txt')
