@@ -227,7 +227,7 @@ def outputPolyInfo(poly, segments, segmentation_config, point_map, index,star_po
     for seg in poly_refs:
         if seg in cornor_holes_map:
             seg.isCornerhole=True
-            print(seg.ref)
+            #print(seg.ref)
             
 
     
