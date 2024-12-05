@@ -141,6 +141,7 @@ def readJson(path):
                 if ele.get("linetype") is None or ele["linetype"] not in linetype:
                     continue
                 e=DLine(DPoint(ele["start"][0],ele["start"][1]),DPoint(ele["end"][0],ele["end"][1]),ele["color"],ele["handle"])
+        
                 elements.append(e)
                 segments.append(DSegment(e.start_point,e.end_point,e))
             elif ele["type"] == "arc":
@@ -514,6 +515,8 @@ def filter_segments(segments,intersections,point_map,expansion_param=12,iters=3)
             start_point, end_point = points[i], points[i+1]
             if (end_point.x, end_point.y) < (start_point.x, start_point.y):
                 start_point, end_point = end_point, start_point
+            if start_point == end_point:
+                continue
             if ((start_point.x-end_point.x)*(start_point.x-end_point.x)+(start_point.y-end_point.y)*(start_point.y-end_point.y)) < expansion_param*expansion_param:
                 continue
    
@@ -860,9 +863,9 @@ def compute_cornor_holes(filtered_segments,filtered_point_map):
                         for ss in segments:
                             segment_is_visited.add(ss)
                         cornor_holes.append(DCornorHole(segments))
-    for cornor_hole in cornor_holes:
-        for s in cornor_hole.segments:
-            s.isCornerhole=True
+    # for cornor_hole in cornor_holes:
+    #     for s in cornor_hole.segments:
+    #         s.isCornerhole=True
     return cornor_holes
 
 
@@ -1418,12 +1421,13 @@ def outputLines(segments,point_map,polys,cornor_holes,star_pos,braket_pos,replin
         x_values = [edge.start_point.x, edge.end_point.x]
         y_values = [edge.start_point.y, edge.end_point.y]
         plt.plot(x_values, y_values, 'r-', lw=2)
-
+    # for cornor_hole in cornor_holes:
+    #     print(cornor_hole.segments)
     plt.gca().axis('equal')
     plt.savefig(linePNGPath)
     print(f"直线图保存于:{linePNGPath}")
 
-def outputPolysAndGeometry(polys,path,draw_polys=False,draw_geometry=False,n=10):
+def outputPolysAndGeometry(point_map,polys,path,draw_polys=False,draw_geometry=False,n=10):
     t=len(polys) if len(polys)<n else n
     
     if draw_geometry:
@@ -1440,7 +1444,7 @@ def outputPolysAndGeometry(polys,path,draw_polys=False,draw_geometry=False,n=10)
         for i,poly in enumerate(polys):
             if i>=n:
                 break
-            plot_polys(poly,os.path.join(path,f"poly{i}.png"))
+            plot_polys(point_map,poly,os.path.join(path,f"poly{i}.png"))
             pbar.update()
         pbar.close()
     print(f"封闭多边形图像保存于:{path}")
@@ -1529,6 +1533,10 @@ def findClosedPolys_via_BFS(elements,segments,segmentation_config):
     #line_replines=compute_line_replines(filtered_segments,filtered_point_map)
     cornor_holes=compute_cornor_holes(filtered_segments,filtered_point_map)
     cornor_holes=filter_cornor_holes(cornor_holes,filtered_point_map)
+    # for cornor_hole in cornor_holes:
+    #     for s in cornor_hole.segments:
+    #         s.isCornerhole=True
+
     if verbose:
         #print(f"圆弧角隅孔个数: {len(arc_replines)}")
         print(f"星形角隅孔个数: {len(star_replines)}")
@@ -1616,7 +1624,7 @@ def findClosedPolys_via_BFS(elements,segments,segmentation_config):
     polys = remove_complicated_polygons(polys,segmentation_config.remove_tolerance)
     if verbose:
         print(f"封闭多边形个数:{len(polys)}")
-    outputPolysAndGeometry(polys,segmentation_config.poly_image_dir,segmentation_config.draw_polys,segmentation_config.draw_geometry,segmentation_config.draw_poly_nums)
+    outputPolysAndGeometry(filtered_point_map,polys,segmentation_config.poly_image_dir,segmentation_config.draw_polys,segmentation_config.draw_geometry,segmentation_config.draw_poly_nums)
     outputLines(filtered_segments,filtered_point_map,polys,cornor_holes,star_pos,braket_pos ,replines,segmentation_config.line_image_path,segmentation_config.draw_intersections,segmentation_config.draw_segments,segmentation_config.line_image_drawPolys)
     return polys, new_segments, point_map,star_pos_map,cornor_holes,braket_texts,braket_pos
 

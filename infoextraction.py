@@ -171,6 +171,8 @@ def outputPolyInfo(poly, segments, segmentation_config, point_map, index,star_po
     #     for seg in corner_hole.segments:
     #         seg.isCornerHole=True
     # print(len(cornor_holes))
+    # for cornor_hole in cornor_holes:
+    #     print(cornor_hole.segments)
     cornor_holes_map={}
     for cornor_hole in cornor_holes:
         for s in cornor_hole.segments:
@@ -179,6 +181,7 @@ def outputPolyInfo(poly, segments, segmentation_config, point_map, index,star_po
     for seg in poly_refs:
         if seg in cornor_holes_map:
             seg.isCornerhole=True
+            # print(seg.ref)
             
 
     
