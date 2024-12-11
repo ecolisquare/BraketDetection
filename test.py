@@ -110,9 +110,9 @@ def process_json_data(json_path, output_path, training_data_output_folder, train
     outputRes(new_segments, point_map, polys_info, segmentation_config.res_image_path,segmentation_config.draw_intersections,segmentation_config.draw_segments,segmentation_config.line_image_drawPolys)
 
 
-
-folder_path = "/home/user10/code/BraketDetection/data/board_example"
-output_folder = "./output"
-training_data_output_folder = "./DGCNN/data_folder"
-training_img_output_folder = "./training_img"
-process_json_files(folder_path, output_folder, training_data_output_folder, training_img_output_folder)
+if __name__ == '__main__':
+    folder_path = "../jndata"
+    output_folder = "./output"
+    training_data_output_folder = "./DGCNN/data_folder"
+    training_img_output_folder = "./training_img"
+    process_json_files(folder_path, output_folder, training_data_output_folder, training_img_output_folder)
