@@ -36,8 +36,17 @@ def plot_geometry(segments, path):
 
 
 #输出封闭多边形
-def plot_polys(segments,path):
+def plot_polys(point_map,segments,path):
     fig, ax = plt.subplots()
+    # for segment in segments:
+    #     vs,ve=segment.start_point,segment.end_point
+    #     if len(point_map[vs])>2:
+    #         # print(p.x,p.y)
+    #         ax.plot(vs.x, vs.y, 'g.')
+    #         # ax.text(vs.x, vs.y,str([s.length() for s in point_map[vs]]), fontsize=12, color='blue', rotation=90)
+    #     if len(point_map[ve])>2:
+    #         ax.plot(ve.x, ve.y, 'g.')
+    #         # ax.text(ve.x, ve.y, str([s.length() for s in point_map[ve]]), fontsize=12, color='blue', rotation=90)
     for i, segment in enumerate(segments):
         x_values = [segment.start_point.x, segment.end_point.x]
         y_values = [segment.start_point.y, segment.end_point.y]
