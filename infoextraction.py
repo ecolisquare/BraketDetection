@@ -34,7 +34,7 @@ def polygon_area(points):
         area += x1 * y2 - y1 * x2
     return abs(area) / 2.0
 
-def is_near_convex(points, i, tolerance=0.05):
+def is_near_convex(points, i, tolerance=0.005):
     """
     判断多边形是否是近似凸多边形（基于面积差）。
     :param points: 多边形顶点列表，按顺序排列 [(x1, y1), (x2, y2), ...]。
@@ -60,6 +60,41 @@ def is_near_convex(points, i, tolerance=0.05):
         return False
 
     return True
+
+
+def calculate_angle(point1, point2, point3):
+    """
+    计算由三点确定的两向量之间的夹角（以度为单位）。
+
+    Parameters:
+        point1, point2, point3: 各为一个元组，表示点的坐标 (x, y)。
+
+    Returns:
+        angle: 两向量之间的夹角（较小的角，范围为 0-180°）。
+    """
+    def vector(a, b):
+        return (b[0] - a[0], b[1] - a[1])
+
+    def magnitude(v):
+        return math.sqrt(v[0]**2 + v[1]**2)
+
+    def dot_product(v1, v2):
+        return v1[0] * v2[0] + v1[1] * v2[1]
+
+    v1 = vector(point2, point1)
+    v2 = vector(point2, point3)
+
+    mag_v1 = magnitude(v1)
+    mag_v2 = magnitude(v2)
+
+    if mag_v1 == 0 or mag_v2 == 0:
+        return 0  # 防止除零错误
+
+    cos_theta = dot_product(v1, v2) / (mag_v1 * mag_v2)
+    cos_theta = max(-1, min(1, cos_theta))  # 修正浮点误差
+
+    angle = math.acos(cos_theta) * (180 / math.pi)  # 弧度转角度
+    return angle
 
 # 计算几何中心坐标
 def calculate_poly_centroid(poly):
@@ -419,22 +454,23 @@ def outputPolyInfo(poly, segments, segmentation_config, point_map, index,star_po
     if current_edge:
         if current_type == 'constraint':
             # 检查最后一个合并边的属性是否与第一条边相同
-            if poly_refs[0].isConstraint and not poly_refs[0].isCornerhole:
+            if poly_refs[0].isConstraint and not poly_refs[0].isCornerhole and len(constarint_edge) > 0:
                 constraint_edges[0] = current_edge + constraint_edges[0]  # 合并到第一条固定边
                 edges[0] = current_edge + edges[0]
             else:
                 constraint_edges.append(current_edge)
                 edges.append(current_edge)
         elif current_type == 'free':
-            if not poly_refs[0].isConstraint and not poly_refs[0].isCornerhole and len(free_edges)>0:
+            if not poly_refs[0].isConstraint and not poly_refs[0].isCornerhole and len(free_edges) > 0:
                 free_edges[0] = current_edge + free_edges[0]  # 合并到第一条自由边
                 edges[0] = current_edge + edges[0]
             else:
                 free_edges.append(current_edge)
                 edges.append(current_edge)
         elif current_type == 'cornerhole':
-            if poly_refs[0].isCornerhole:
+            if poly_refs[0].isCornerhole and len(cornerhole_edges) > 0:
                 cornerhole_edges[0] = current_edge + cornerhole_edges[0]
+                edges[0] = current_edge + edges[0]
             else:
                 cornerhole_edges.append(current_edge)
                 edges.append(current_edge)
@@ -486,7 +522,31 @@ def outputPolyInfo(poly, segments, segmentation_config, point_map, index,star_po
 
     if not is_near_convex(constraint_edge_poly, index):
         return None
-        
+    
+    # 如果自由边轮廓中出现了夹角小于45°的折线则不进行输出
+    for i in range(len(free_edges[0]) - 1):
+        seg1 = free_edges[0][i]
+        seg2 = free_edges[0][i + 1]
+        if isinstance(seg1.ref, DArc) or isinstance(seg2.ref, DArc):
+            continue
+        angle = calculate_angle(seg1.start_point, seg1.end_point, seg2.end_point)
+        if angle < 45:
+            return None
+
+    # 如果自由边长度在总轮廓长度中占比不超过25%则不进行输出
+    free_len = 0
+    all_len = 0
+    for seg in poly_refs:
+        if isinstance(seg.ref, DArc):
+            l = ((seg.ref.end_point.x - seg.ref.start_point.x) ** 2 +   
+                (seg.ref.end_point.y - seg.ref.start_point.y) ** 2) ** 0.5
+        else:
+            l = seg.length()
+        if not seg.isConstraint and not seg.isCornerhole:
+            free_len += l
+        all_len += l
+    if free_len / all_len < 0.25:
+        return None
     
     # step6: 绘制对边分类后的几何图像
     plot_info_poly(poly_refs, os.path.join(segmentation_config.poly_info_dir, f'infopoly{index}.png'),ts,ds)
@@ -547,6 +607,7 @@ def outputPolyInfo(poly, segments, segmentation_config, point_map, index,star_po
         content=d.text
         log_to_file(file_path,f"标注{i+1+k}:")
         log_to_file(file_path,f"位置: {pos}、内容: {content}、颜色: {t.color}、句柄: {t.handle}")
+
     # step11: 输出角隅孔和边界之间的关系
     cornerhole_index = 1
     edge_index = 0
