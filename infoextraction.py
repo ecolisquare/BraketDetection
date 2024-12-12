@@ -172,7 +172,7 @@ def calculate_poly_refs(poly):
                 del refs[-1]
     return refs
 
-def textsInPoly(text_and_dimensions,poly):
+def textsInPoly(text_pos_map,poly):
     x_min,x_max,y_min,y_max=computeBoundingBox(poly)
     xx=(x_max-x_min)*0.25
     yy=(y_max-y_min)*0.25
@@ -181,10 +181,10 @@ def textsInPoly(text_and_dimensions,poly):
     y_max=y_max+yy
     y_min=y_min-yy
     ts=[]
-    for t in text_and_dimensions:
-        pos=DPoint((t.bound["x1"]+t.bound["x2"])/2,(t.bound["y1"]+t.bound["y2"])/2) if isinstance(t,DText) else t.textpos
-        if x_min <= pos.x and pos.x <=x_max and y_min <=pos.y and y_max>=pos.y:
-            ts.append(t)
+    for pos,texts in text_pos_map.items():
+        for t in texts:
+            if x_min <= pos.x and pos.x <=x_max and y_min <=pos.y and y_max>=pos.y:
+                ts.append([t,pos])
     return ts
 
 def braketTextInPoly(braket_texts,braket_pos,poly):
@@ -204,7 +204,23 @@ def braketTextInPoly(braket_texts,braket_pos,poly):
             bps.append(braket_pos[i])
     return ts,bps
 
-def outputPolyInfo(poly, segments, segmentation_config, point_map, index,star_pos_map,cornor_holes,text_and_dimensions,braket_texts,braket_pos):
+
+def dimensionsInPoly(dimensions,poly):
+    x_min,x_max,y_min,y_max=computeBoundingBox(poly)
+    xx=(x_max-x_min)*0.25
+    yy=(y_max-y_min)*0.25
+    x_min=x_min-xx
+    x_max=x_max+xx
+    y_max=y_max+yy
+    y_min=y_min-yy
+    ds=[]
+    for d_t in dimensions:
+        pos=d_t[1]
+        d=d_t[0]
+        if x_min <= pos.x and pos.x <=x_max and y_min <=pos.y and y_max>=pos.y:
+            ds.append([d,pos])
+    return ds
+def outputPolyInfo(poly, segments, segmentation_config, point_map, index,star_pos_map,cornor_holes,texts,dimensions,text_pos_map):
     # step1: 计算几何中心坐标
     poly_centroid = calculate_poly_centroid(poly)
 
@@ -426,8 +442,8 @@ def outputPolyInfo(poly, segments, segmentation_config, point_map, index,star_po
 
   
     # step 5.5：找到所有的标注
-    ts=textsInPoly(text_and_dimensions,poly)
-    bs,bps=braketTextInPoly(braket_texts,braket_pos,poly)
+    ts=textsInPoly(text_pos_map,poly)
+    ds=dimensionsInPoly(dimensions,poly)
     # print(free_edges)
     # print(cornor_holes[0].segments)
     # for s in poly_refs:
@@ -473,7 +489,7 @@ def outputPolyInfo(poly, segments, segmentation_config, point_map, index,star_po
         
     
     # step6: 绘制对边分类后的几何图像
-    plot_info_poly(poly_refs, os.path.join(segmentation_config.poly_info_dir, f'infopoly{index}.png'),ts,bs,bps)
+    plot_info_poly(poly_refs, os.path.join(segmentation_config.poly_info_dir, f'infopoly{index}.png'),ts,ds)
 
     # step7: 输出几何中心和边界信息
     file_path = os.path.join(segmentation_config.poly_info_dir, f'info{index}.txt')
@@ -518,15 +534,17 @@ def outputPolyInfo(poly, segments, segmentation_config, point_map, index,star_po
 
     # step10: TODO：输出周围标注信息
     k=0
-    for i,t in enumerate(ts):
-        content=t.content if isinstance(t,DText) else t.text
-        pos=DPoint((t.bound["x1"]+t.bound["x2"])/2,(t.bound["y1"]+t.bound["y2"])/2) if isinstance(t,DText) else t.textpos
+    for i,t_t in enumerate(ts):
+        t=t_t[0]
+        pos=t_t[1]
+        content=t.content
         log_to_file(file_path,f"标注{i+1}:")
         log_to_file(file_path,f"位置: {pos}、内容: {content}、颜色: {t.color}、句柄: {t.handle}")
         k+=1
-    for i,t in enumerate(bs):
-        content=t.content if isinstance(t,DText) else t.text
-        pos=DPoint((t.bound["x1"]+t.bound["x2"])/2,(t.bound["y1"]+t.bound["y2"])/2) if isinstance(t,DText) else t.textpos
+    for i,d_t in enumerate(ds):
+        d=d_t[0]
+        pos=d_t[1]
+        content=d.text
         log_to_file(file_path,f"标注{i+1+k}:")
         log_to_file(file_path,f"位置: {pos}、内容: {content}、颜色: {t.color}、句柄: {t.handle}")
     # step11: 输出角隅孔和边界之间的关系

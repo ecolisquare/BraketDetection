@@ -7,12 +7,12 @@ class DPoint:
     def __eq__(self, other):  
         # 如果 other 也是 Point 实例，并且 x 和 y 坐标相等，则返回 True  
         if isinstance(other, DPoint):  
-            return (round(self.x/12)*1.0, round(self.y/12)*1.0) == (round(other.x/12)*1.0, round(other.y/12)*1.0)  
+            return (round(self.x/7)*1.0, round(self.y/7)*1.0) == (round(other.x/7)*1.0, round(other.y/7)*1.0)  
         return False  
   
     def __hash__(self):  
         # 返回 (x, y) 元组的哈希值  
-        return hash((round(self.x/12)*1.0, round(self.y/12)*1.0))  
+        return hash((round(self.x/7)*1.0, round(self.y/7)*1.0))  
     def __getitem__(self, index):  
         # 支持通过索引访问坐标  
         if index == 0:  
@@ -193,6 +193,7 @@ class DText:
         self.content=content
         self.height=height
         self.handle=handle
+        self.textpos=False
 
   
     def __repr__(self):  
@@ -200,17 +201,21 @@ class DText:
   
 
 class DDimension:
-    def __init__(self,textpos: DPoint=DPoint(0,0),color=7,text="",measurement=100,defpoints=[],handle=""):  
+    def __init__(self,textpos: DPoint=DPoint(0,0),color=7,text="",measurement=100,defpoints=[],dimtype=32,handle=""):  
         self.textpos=textpos
         self.text=text
         self.color=color
-        self.measurement=measurement
+        self.measurement=round(measurement)
         self.defpoints=defpoints
         self.handle=handle
+        self.dimtype=dimtype
+
+        if self.text=="":
+            self.text=str(self.measurement)
 
   
     def __repr__(self):  
-        return f"Dimension(pos:{self.textpos}, text:{self.text},color:{self.color},measurement:{self.measurement},defpoints:{self.defpoints},handle:{self.handle})"  
+        return f"Dimension(pos:{self.textpos}, text:{self.text},color:{self.color},measurement:{self.measurement},defpoints:{self.defpoints},dimtype:{self.dimtype},handle:{self.handle})"  
 
 class DCornorHole:
     cornor_hole_id=0

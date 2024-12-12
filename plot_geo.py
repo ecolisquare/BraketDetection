@@ -56,17 +56,53 @@ def plot_polys(point_map,segments,path):
     plt.savefig(path)
     plt.close()
 
-def plot_info_poly(segments, path,texts,braket_texts,braket_pos):
+
+def expandFixedLengthGeo(segList,dist,both=True):
+
+
+    new_seglist=[] 
+    n=len(segList)
+
+    for seg in segList:
+        p1=seg[0]
+        p2=seg[1]
+        v=(p2[0]-p1[0],p2[1]-p1[1])
+        l=math.sqrt(v[0]*v[0]+v[1]*v[1])
+        if l<=0.25:
+            continue
+        v=(v[0]/l*dist,v[1]/l*dist)
+        vs=DPoint(p1[0]-v[0],p1[1]-v[1]) if both else DPoint(p1[0],p1[1])
+        ve=DPoint(p2[0]+v[0],p2[1]+v[1])
+        new_seglist.append(DSegment(vs,ve,seg.ref))
+    return new_seglist
+
+def plot_info_poly(segments, path,texts,dimensions):
     fig, ax = plt.subplots()
-    for p in braket_pos:
-        ax.plot(p.x,p.y,'g.')
-    for t in texts:
-        content=t.content if isinstance(t,DText) else t.text
-        pos=DPoint((t.bound["x1"]+t.bound["x2"])/2,(t.bound["y1"]+t.bound["y2"])/2) if isinstance(t,DText) else t.textpos
+
+    for t_t in texts:
+        t=t_t[0]
+        pos=t_t[1]
+        content=t.content
         ax.text(pos.x, pos.y, content, fontsize=12, color='blue', rotation=0)
-    for i,t in enumerate(braket_texts):
-        content=t.content if isinstance(t,DText) else t.text
-        ax.text(braket_pos[i].x, braket_pos[i].y+10, content, fontsize=12, color='green', rotation=0)
+    for d_t in dimensions:
+        d=d_t[0]
+        pos=d_t[1]
+        content=d.text
+        if d.dimtype==32 or d.dimtype==33 or d.dimtype==161:
+            d1,d2,d3,d4=d.defpoints[0], DPoint(d.defpoints[0].x+d.defpoints[1].x-d.defpoints[2].x,d.defpoints[0].y+d.defpoints[1].y-d.defpoints[2].y),d.defpoints[1],d.defpoints[2]
+            ss=[DSegment(d1,d4),DSegment(d4,d3),DSegment(d3,d2)]
+            sss=[DSegment(d2,d1)]
+            ss=expandFixedLengthGeo(ss,25)
+            sss=expandFixedLengthGeo(sss,100)
+            q=sss[0].end_point
+            sss=expandFixedLengthGeo(sss,100,False)
+            for s in ss:
+                ax.plot([s.start_point.x,s.end_point.x], [s.start_point.y,s.end_point.y], color="#FF0000", lw=2)
+            for s in sss:
+                ax.plot([s.start_point.x,s.end_point.x], [s.start_point.y,s.end_point.y], color="#FF0000", lw=2)
+            perp_vx, perp_vy = sss[0].start_point.x - sss[0].end_point.x, sss[0].start_point.y-sss[0].end_point.y
+            rotation_angle = np.arctan2(-perp_vy, -perp_vx) * (180 / np.pi)
+            ax.text(q.x, q.y, d.text,rotation=rotation_angle,color="#00FFFF", fontsize=10)
     for i, segment in enumerate(segments):
         if segment.isCornerhole:
             color = "red"
