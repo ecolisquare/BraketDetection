@@ -3,6 +3,12 @@ import numpy as np
 from element import *
 import os
 
+def p_minus(a,b):
+    return DPoint(a.x-b.x,a.y-b.y)
+def p_add(a,b):
+    return DPoint(a.x+b.x,a.y+b.y)
+def p_mul(a,k):
+    return DPoint(a.x*k,a.y*k)
 # 输出多边形所在原始图形
 def plot_geometry(segments, path):
     fig, ax = plt.subplots()
@@ -78,12 +84,18 @@ def expandFixedLengthGeo(segList,dist,both=True):
 
 def plot_info_poly(segments, path,texts,dimensions):
     fig, ax = plt.subplots()
-
+    t_map={}
     for t_t in texts:
         t=t_t[0]
         pos=t_t[1]
         content=t.content
-        ax.text(pos.x, pos.y, content, fontsize=12, color='blue', rotation=0)
+        if pos not in t_map:
+            t_map[pos]=[]
+            t_map[pos].append(content)
+        else:
+            t_map[pos].append(content)
+    for pos,cs in t_map.items():
+        ax.text(pos.x, pos.y, cs, fontsize=12, color='blue', rotation=0)
     for d_t in dimensions:
         d=d_t[0]
         pos=d_t[1]
@@ -97,12 +109,71 @@ def plot_info_poly(segments, path,texts,dimensions):
             q=sss[0].end_point
             sss=expandFixedLengthGeo(sss,100,False)
             for s in ss:
-                ax.plot([s.start_point.x,s.end_point.x], [s.start_point.y,s.end_point.y], color="#FF0000", lw=2)
+                ax.plot([s.start_point.x,s.end_point.x], [s.start_point.y,s.end_point.y], color="#FF0000", lw=2,linestyle='--')
             for s in sss:
-                ax.plot([s.start_point.x,s.end_point.x], [s.start_point.y,s.end_point.y], color="#FF0000", lw=2)
+                ax.plot([s.start_point.x,s.end_point.x], [s.start_point.y,s.end_point.y], color="#FF0000", lw=2,linestyle='--')
+            ax.arrow(sss[0].end_point.x, sss[0].end_point.y, d1.x-sss[0].end_point.x, d1.y-sss[0].end_point.y, head_width=20, head_length=20, fc='red', ec='red')
+            ax.arrow(sss[0].start_point.x, sss[0].start_point.y, d2.x-sss[0].start_point.x, d2.y-sss[0].start_point.y, head_width=20, head_length=20, fc='red', ec='red')
             perp_vx, perp_vy = sss[0].start_point.x - sss[0].end_point.x, sss[0].start_point.y-sss[0].end_point.y
             rotation_angle = np.arctan2(-perp_vy, -perp_vx) * (180 / np.pi)
-            ax.text(q.x, q.y, d.text,rotation=rotation_angle,color="#00FFFF", fontsize=10)
+            ax.text(q.x, q.y, d.text,rotation=rotation_angle,color="#EEC933", fontsize=15)
+        elif d.dimtype==37:
+            a,b,o=d.defpoints[1],d.defpoints[2],d.defpoints[3]
+            r=DSegment(d.defpoints[0],o).length()
+            ra=DSegment(a,o).length()
+            rb=DSegment(b,o).length()
+            oa_=p_mul(p_minus(a,o),r/ra)
+            ob_=p_mul(p_minus(b,o),r/rb)
+            ao_=p_mul(oa_,-1)
+            bo_=p_mul(ob_,-1)
+            a_= p_add(o, oa_)
+            b_ = p_add(o, ob_)
+            ia_=p_add(o,ao_)
+            ib_=p_add(o,bo_)
+            delta=p_mul(DPoint(oa_.y,-oa_.x),3)
+            sp=p_add(delta,a_)
+            ax.arrow(ia_.x, ia_.y, a_.x-ia_.x,a_.y-ia_.y, head_width=20, head_length=20, fc='red', ec='red',linestyle='--')
+            ax.arrow(ib_.x, ib_.y, b_.x-ib_.x,b_.y-ib_.y, head_width=20, head_length=20, fc='red', ec='red',linestyle='--')
+            ax.plot([sp.x,a_.x], [sp.y,a_.y], color="#FF0000", lw=2,linestyle='--')
+            q=p_mul(p_add(a_,sp),0.5)
+            rotation_angle = np.arctan2(-delta.y, delta.x) * (180 / np.pi)
+            ax.text(q.x, q.y, d.text,rotation=rotation_angle,color="#EEC933", fontsize=15)
+        elif d.dimtype==34:
+            a,b_,b,o=d.defpoints[0],d.defpoints[1],d.defpoints[2],d.defpoints[3]
+            r=DSegment(d.defpoints[4],o).length()
+            ra=DSegment(a,o).length()
+            rb=DSegment(b,o).length()
+            oa_=p_mul(p_minus(a,o),r/ra)
+            ob_=p_mul(p_minus(b,o),r/rb)
+            ao_=p_mul(oa_,-1)
+            bo_=p_mul(ob_,-1)
+            a_= p_add(o, oa_)
+            b_ = p_add(o, ob_)
+            ia_=p_add(o,ao_)
+            ib_=p_add(o,bo_)
+            delta=p_mul(DPoint(oa_.y,-oa_.x),3)
+            sp=p_add(delta,a_)
+            ax.arrow(ia_.x, ia_.y, a_.x-ia_.x,a_.y-ia_.y, head_width=20, head_length=20, fc='red', ec='red',linestyle='--')
+            ax.arrow(ib_.x, ib_.y, b_.x-ib_.x,b_.y-ib_.y, head_width=20, head_length=20, fc='red', ec='red',linestyle='--')
+            ax.plot([sp.x,a_.x], [sp.y,a_.y], color="#FF0000", lw=2,linestyle='--')
+            q=p_mul(p_add(a_,sp),0.5)
+            rotation_angle = np.arctan2(delta.y, -delta.x) * (180 / np.pi)
+            ax.text(q.x, q.y, d.text,rotation=rotation_angle,color="#EEC933", fontsize=15)
+        elif d.dimtype==163:
+            a,b=d.defpoints[0],d.defpoints[3]
+            o=p_mul(p_add(a,b),0.5)
+            ss=[DSegment(a,b)]
+            ss=expandFixedLengthGeo(ss,100)
+            ss=expandFixedLengthGeo(ss,100,False)
+            a_,b_=ss[0].start_point,ss[0].end_point
+            ax.arrow(a_.x, a_.y, a.x-a_.x,a.y-a_.y, head_width=20, head_length=20, fc='red', ec='red')
+            ax.arrow(b_.x, b_.y, b.x-b_.x,b.y-b_.y, head_width=20, head_length=20, fc='red', ec='red')
+            q=p_add(p_mul(b_,0.7),p_mul(b,0.3))
+            ab=p_minus(b,a)
+            rotation_angle = np.arctan2(ab.y, -ab.x) * (180 / np.pi)
+            ax.text(q.x, q.y, d.text,rotation=rotation_angle,color="#EEC933", fontsize=15)
+            
+            
     for i, segment in enumerate(segments):
         if segment.isCornerhole:
             color = "red"

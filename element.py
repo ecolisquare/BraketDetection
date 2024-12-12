@@ -205,13 +205,18 @@ class DDimension:
         self.textpos=textpos
         self.text=text
         self.color=color
-        self.measurement=round(measurement)
+        self.measurement=measurement
         self.defpoints=defpoints
         self.handle=handle
         self.dimtype=dimtype
 
         if self.text=="":
-            self.text=str(self.measurement)
+            if self.dimtype==37 or self.dimtype==34:
+                self.text=str(round(self.measurement/math.pi*180))+"°"
+            elif self.dimtype==163:
+                self.text="Φ"+str(round(self.measurement))
+            else:
+                self.text=str(round(self.measurement))
 
   
     def __repr__(self):  

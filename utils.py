@@ -985,18 +985,18 @@ def removeReferenceLines(elements,texts,initial_segments,all_segments,point_map)
         x,y=mid_point.x,mid_point.y
         x_1=(x+e.bound["x1"])/2
         x_2=(x+e.bound["x2"])/2
-        vertical_lines.append(DSegment(DPoint(x_1,y),DPoint(x_1,y-5000)))
-        vertical_lines.append(DSegment(DPoint(x_2,y),DPoint(x_2,y-5000)))
-        vertical_lines.append(DSegment(DPoint(x,y),DPoint(x,y-5000)))
+        vertical_lines.append(DSegment(DPoint(x_1,y),DPoint(x_1,y-500)))
+        vertical_lines.append(DSegment(DPoint(x_2,y),DPoint(x_2,y-500)))
+        vertical_lines.append(DSegment(DPoint(x,y),DPoint(x,y-500)))
         v1e.append(e)
         v1e.append(e)
         v1e.append(e)
         v2e.append(e)
         v2e.append(e)
         v2e.append(e)
-        vl2.append(DSegment(DPoint(x,y),DPoint(x,y+5000)))
-        vl2.append(DSegment(DPoint(x_1,y),DPoint(x,y+5000)))
-        vl2.append(DSegment(DPoint(x_2,y),DPoint(x,y+5000)))
+        vl2.append(DSegment(DPoint(x,y),DPoint(x,y+500)))
+        vl2.append(DSegment(DPoint(x_1,y),DPoint(x,y+500)))
+        vl2.append(DSegment(DPoint(x_2,y),DPoint(x,y+500)))
     #print(len(vertical_lines))
     horizontal_line=[]
     hl2=[]
@@ -1020,7 +1020,7 @@ def removeReferenceLines(elements,texts,initial_segments,all_segments,point_map)
                         s=seg2
         if s is not None:
             text_pos=seg1.start_point
-            if (text_pos.y-y_max)<=300 and s.ref.color==7 and (len(point_map[s.start_point])==1 or len(point_map[s.end_point])==1):
+            if (text_pos.y-y_max)<=180 and s.ref.color==7 and (len(point_map[s.start_point])==1 or len(point_map[s.end_point])==1):
                 horizontal_line.append(s)
                 h1e.append(v1e[i])
     for i, seg1 in enumerate(vl2):
@@ -1040,7 +1040,7 @@ def removeReferenceLines(elements,texts,initial_segments,all_segments,point_map)
                         s=seg2
         if s is not None:
             text_pos=seg1.start_point
-            if (y_min-text_pos.y)<=300 and s.ref.color==7 and (len(point_map[s.start_point])==1 or len(point_map[s.end_point])==1):
+            if (y_min-text_pos.y)<=180 and s.ref.color==7 and (len(point_map[s.start_point])==1 or len(point_map[s.end_point])==1):
                 hl2.append(s)
                 h2e.append(v2e[i])
     # print(len(horizontal_line))
@@ -1450,6 +1450,12 @@ def remove_complicated_polygons(polys, tolerance=1e-5):
     return res
 
 def outputLines(segments,point_map,polys,cornor_holes,star_pos,texts,texts_pos_map,dimensions,replines,linePNGPath,drawIntersections=False,drawLines=False,drawPolys=False):
+    def p_minus(a,b):
+        return DPoint(a.x-b.x,a.y-b.y)
+    def p_add(a,b):
+        return DPoint(a.x+b.x,a.y+b.y)
+    def p_mul(a,k):
+        return DPoint(a.x*k,a.y*k)
     if drawLines:
         for seg in segments:
             vs, ve = seg.start_point, seg.end_point
@@ -1488,19 +1494,74 @@ def outputLines(segments,point_map,polys,cornor_holes,star_pos,texts,texts_pos_m
             d1,d2,d3,d4=d.defpoints[0], DPoint(d.defpoints[0].x+d.defpoints[1].x-d.defpoints[2].x,d.defpoints[0].y+d.defpoints[1].y-d.defpoints[2].y),d.defpoints[1],d.defpoints[2]
             ss=[DSegment(d1,d4),DSegment(d4,d3),DSegment(d3,d2)]
             sss=[DSegment(d2,d1)]
-            ss=expandFixedLength(ss,25,verbose=False)
-            sss=expandFixedLength(sss,100,verbose=False)
+            ss=expandFixedLength(ss,25,True,False)
+            sss=expandFixedLength(sss,100,True,False)
             q=sss[0].end_point
             sss=expandFixedLength(sss,100,False,False)
             for s in ss:
-                plt.plot([s.start_point.x,s.end_point.x], [s.start_point.y,s.end_point.y], color="#FF0000", lw=2)
+                plt.plot([s.start_point.x,s.end_point.x], [s.start_point.y,s.end_point.y], color="#FF0000", lw=2,linestyle='--')
             for s in sss:
-                plt.plot([s.start_point.x,s.end_point.x], [s.start_point.y,s.end_point.y], color="#FF0000", lw=2)
+                plt.plot([s.start_point.x,s.end_point.x], [s.start_point.y,s.end_point.y], color="#FF0000", lw=2,linestyle='--')
+            plt.arrow(sss[0].end_point.x, sss[0].end_point.y, d1.x-sss[0].end_point.x, d1.y-sss[0].end_point.y, head_width=20, head_length=20, fc='red', ec='red')
+            plt.arrow(sss[0].start_point.x, sss[0].start_point.y, d2.x-sss[0].start_point.x, d2.y-sss[0].start_point.y, head_width=20, head_length=20, fc='red', ec='red')
             perp_vx, perp_vy = sss[0].start_point.x - sss[0].end_point.x, sss[0].start_point.y-sss[0].end_point.y
             rotation_angle = np.arctan2(-perp_vy, -perp_vx) * (180 / np.pi)
-            plt.text(q.x, q.y, d.text,rotation=rotation_angle,color="#00FFFF", fontsize=10)
-            #plt.plot([d.defpoints[1].x,d.defpoints[2].x,d.defpoints[0].x], [d.defpoints[1].y,d.defpoints[2].y,d.defpoints[0].y], color="#838C35", lw=2)
-        # plt.plot(p.x, p.y, marker='o', markerfacecolor="#E38C35",markersize=10)
+            plt.text(q.x, q.y, d.text,rotation=rotation_angle,color="#EEC933", fontsize=15)
+        elif d.dimtype==37:
+            a,b,o=d.defpoints[1],d.defpoints[2],d.defpoints[3]
+            r=DSegment(d.defpoints[0],o).length()
+            r0=DSegment(a,o).length()
+            oa_=p_mul(p_minus(a,o),r/r0)
+            ob_=p_mul(p_minus(b,o),r/r0)
+            ao_=p_mul(oa_,-1)
+            bo_=p_mul(ob_,-1)
+            a_= p_add(o, oa_)
+            b_ = p_add(o, ob_)
+            ia_=p_add(o,ao_)
+            ib_=p_add(o,bo_)
+            delta=p_mul(DPoint(oa_.y,-oa_.x),3)
+            sp=p_add(delta,a_)
+            plt.arrow(ia_.x, ia_.y, a_.x-ia_.x,a_.y-ia_.y, head_width=20, head_length=20, fc='red', ec='red')
+            plt.arrow(ib_.x, ib_.y, b_.x-ib_.x,b_.y-ib_.y, head_width=20, head_length=20, fc='red', ec='red')
+            plt.plot([sp.x,a_.x], [sp.y,a_.y], color="#FF0000", lw=2,linestyle='--')
+            q=p_mul(p_add(a_,sp),0.5)
+            rotation_angle = np.arctan2(-delta.y, delta.x) * (180 / np.pi)
+            plt.text(q.x, q.y, d.text,rotation=rotation_angle,color="#EEC933", fontsize=15)
+        elif d.dimtype==163:
+            a,b=d.defpoints[0],d.defpoints[3]
+            o=p_mul(p_add(a,b),0.5)
+            ss=[DSegment(a,b)]
+            ss=expandFixedLength(ss,100,True,False)
+            ss=expandFixedLength(ss,100,False,False)
+            a_,b_=ss[0].start_point,ss[0].end_point
+            plt.arrow(a_.x, a_.y, a.x-a_.x,a.y-a_.y, head_width=20, head_length=20, fc='red', ec='red')
+            plt.arrow(b_.x, b_.y, b.x-b_.x,b.y-b_.y, head_width=20, head_length=20, fc='red', ec='red')
+            q=p_add(p_mul(b_,0.7),p_mul(b,0.3))
+            ab=p_minus(b,a)
+            rotation_angle = np.arctan2(ab.y, -ab.x) * (180 / np.pi)
+            plt.text(q.x, q.y, d.text,rotation=rotation_angle,color="#EEC933", fontsize=15)
+        elif d.dimtype==34:
+            a,b_,b,o=d.defpoints[0],d.defpoints[1],d.defpoints[2],d.defpoints[3]
+            r=DSegment(d.defpoints[4],o).length()
+            ra=DSegment(a,o).length()
+            rb=DSegment(b,o).length()
+            oa_=p_mul(p_minus(a,o),r/ra)
+            ob_=p_mul(p_minus(b,o),r/rb)
+            ao_=p_mul(oa_,-1)
+            bo_=p_mul(ob_,-1)
+            a_= p_add(o, oa_)
+            b_ = p_add(o, ob_)
+            ia_=p_add(o,ao_)
+            ib_=p_add(o,bo_)
+            delta=p_mul(DPoint(oa_.y,-oa_.x),3)
+            sp=p_add(delta,a_)
+            plt.arrow(ia_.x, ia_.y, a_.x-ia_.x,a_.y-ia_.y, head_width=20, head_length=20, fc='red', ec='red')
+            plt.arrow(ib_.x, ib_.y, b_.x-ib_.x,b_.y-ib_.y, head_width=20, head_length=20, fc='red', ec='red')
+            plt.plot([sp.x,a_.x], [sp.y,a_.y], color="#FF0000", lw=2,linestyle='--')
+            q=p_mul(p_add(a_,sp),0.5)
+            rotation_angle = np.arctan2(delta.y, -delta.x) * (180 / np.pi)
+            plt.text(q.x, q.y, d.text,rotation=rotation_angle,color="#EEC933", fontsize=15)
+        #plt.plot(p.x, p.y, marker='o', markerfacecolor="#E38C35",markersize=10)
         
     # for cornor_hole in cornor_holes:
     #     print(cornor_hole.segments)
@@ -1768,11 +1829,18 @@ def processDimensions(dimensions):
     for d in dimensions:
         type=d.dimtype
         if type==32 or type==33 or type==161:
-            #转角标注
+            #转角标注& 对齐标注
             dim_pos=DPoint((d.defpoints[1].x+d.defpoints[2].x)/2,(d.defpoints[1].y+d.defpoints[2].y)/2)
             ds.append([d,dim_pos]) 
-        # elif type==1:
-        #     #长度标注
-        #     dim_pos=DPoint((d.defpoints[0].x+d.defpoints[1].x)/2,(d.defpoints[0].y+d.defpoints[1].y)/2)
-        #     ds.append([d,dim_pos])
+        elif type==37 or type==34:
+            #三点角度标注
+            dim_pos=DPoint(d.defpoints[3].x,d.defpoints[3].y)
+            ds.append([d,dim_pos]) 
+        elif type==38:
+            #坐标标注
+            pass
+        elif type==163:
+            #角度标注
+            dim_pos=DPoint((d.defpoints[0].x+d.defpoints[3].x)/2,(d.defpoints[0].y+d.defpoints[3].y)/2)
+            ds.append([d,dim_pos]) 
     return ds

@@ -454,7 +454,7 @@ def outputPolyInfo(poly, segments, segmentation_config, point_map, index,star_po
     if current_edge:
         if current_type == 'constraint':
             # 检查最后一个合并边的属性是否与第一条边相同
-            if poly_refs[0].isConstraint and not poly_refs[0].isCornerhole and len(constarint_edge) > 0:
+            if poly_refs[0].isConstraint and not poly_refs[0].isCornerhole and len(constraint_edges) > 0:
                 constraint_edges[0] = current_edge + constraint_edges[0]  # 合并到第一条固定边
                 edges[0] = current_edge + edges[0]
             else:
@@ -606,7 +606,7 @@ def outputPolyInfo(poly, segments, segmentation_config, point_map, index,star_po
         pos=d_t[1]
         content=d.text
         log_to_file(file_path,f"标注{i+1+k}:")
-        log_to_file(file_path,f"位置: {pos}、内容: {content}、颜色: {t.color}、句柄: {t.handle}")
+        log_to_file(file_path,f"位置: {pos}、内容: {content}、颜色: {d.color}、类型： {d.dimtype}、句柄: {d.handle}")
 
     # step11: 输出角隅孔和边界之间的关系
     cornerhole_index = 1

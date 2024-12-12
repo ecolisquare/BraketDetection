@@ -30,7 +30,7 @@ class SegmentationConfig:
         self.remove_tolerance=1e-5
 
 
-        self.eps=50
+        self.eps=20
         self.min_samples=1
 
         self.path_max_length = 20
