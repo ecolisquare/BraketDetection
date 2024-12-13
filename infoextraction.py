@@ -109,15 +109,25 @@ def calculate_poly_centroid(poly):
 def are_equal_with_tolerance(a, b, tolerance=1e-6):
     return abs(a - b) < tolerance
 
-def is_parallel(seg1, seg2, tolerance=1e-6):
+def is_parallel(seg1, seg2, tolerance=0.022):
     """判断两条线段是否平行"""
     dx1 = seg1.end_point.x - seg1.start_point.x
     dy1 = seg1.end_point.y - seg1.start_point.y
     dx2 = seg2.end_point.x - seg2.start_point.x
     dy2 = seg2.end_point.y - seg2.start_point.y
+
+    # 计算两个方向向量的模长
+    length1 = math.sqrt(dx1**2 + dy1**2)
+    length2 = math.sqrt(dx2**2 + dy2**2)
     
-    # 计算叉积
-    cross_product = dx1 * dy2 - dy1 * dx2
+    # 防止长度为0的线段
+    if length1 == 0 or length2 == 0:
+        raise ValueError("线段长度不能为0")
+    
+    # 归一化叉积
+    cross_product = (dx1 * dy2 - dy1 * dx2) / (length1 * length2)
+    
+    # 返回是否接近0
     return are_equal_with_tolerance(cross_product, 0, tolerance)
 
 def calculate_poly_refs(poly):
@@ -318,6 +328,8 @@ def outputPolyInfo(poly, segments, segmentation_config, point_map, index,star_po
 
     # step2: 合并边界线
     poly_refs = calculate_poly_refs(poly)
+
+
 
     # plot_polys({},poly_refs,"./check")
     # step3: 标记角隅孔
