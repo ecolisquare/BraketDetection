@@ -18,7 +18,6 @@ if __name__ == '__main__':
         print("读取json文件")
     #文件中线段元素的读取和根据颜色过滤
     elements,ori_segments=readJson(json_path)
-    elements,ori_segments=readJson(json_path)
     texts ,dimensions=findAllTextsAndDimensions(elements)
     ori_dimensions=dimensions
     dimensions=processDimensions(dimensions)

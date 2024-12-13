@@ -1,10 +1,8 @@
 import json 
 from  element import *
 import math
-from SweepIntersectorLib.SweepIntersector import SweepIntersector
 from plot_geo import plot_geometry,plot_polys, plot_info_poly
 import matplotlib.pyplot as plt
-import networkx as nx
 import numpy as np
 from collections import deque
 import os
