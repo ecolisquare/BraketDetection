@@ -85,15 +85,17 @@ def process_json_data(json_path, output_path, training_data_output_folder, train
         print("读取json文件")
     #文件中线段元素的读取和根据颜色过滤
     elements,ori_segments=readJson(json_path)
-    text_and_dimensions=findAllTextAndDimensions(elements)
+    texts ,dimensions=findAllTextsAndDimensions(elements)
+    ori_dimensions=dimensions
+    dimensions=processDimensions(dimensions)
+    texts=processTexts(texts)
     if segmentation_config.verbose:
         print("json文件读取完毕")
     #将线进行适当扩张
     segments=expandFixedLength(ori_segments,segmentation_config.line_expand_length)
 
     #找出所有包含角隅孔圆弧的基本环
-    ppolys, new_segments, point_map,star_pos_map,cornor_holes,braket_texts,braket_pos=findClosedPolys_via_BFS(elements,segments,segmentation_config)
-
+    ppolys, new_segments, point_map,star_pos_map,cornor_holes,text_pos_map=findClosedPolys_via_BFS(elements,texts,dimensions,segments,segmentation_config)
     # output_training_data(ppolys, training_data_output_folder, name)
 
     # output_training_img(ppolys, new_segments, training_img_output_folder, name)
@@ -101,7 +103,7 @@ def process_json_data(json_path, output_path, training_data_output_folder, train
     polys_info = []
     print("正在输出结构化信息...")
     for i, poly in enumerate(ppolys):
-        res = outputPolyInfo(poly, new_segments, segmentation_config, point_map, i, star_pos_map, cornor_holes,text_and_dimensions,braket_texts,braket_pos)
+        res = outputPolyInfo(poly, new_segments, segmentation_config, point_map, i, star_pos_map, cornor_holes,texts,dimensions,text_pos_map)
         if res is not None:
             polys_info.append(res)
 
@@ -111,7 +113,7 @@ def process_json_data(json_path, output_path, training_data_output_folder, train
 
 
 if __name__ == '__main__':
-    folder_path = "../jndata"
+    folder_path = "/home/user10/code/BraketDetection/data/split"
     output_folder = "./output"
     training_data_output_folder = "./DGCNN/data_folder"
     training_img_output_folder = "./training_img"

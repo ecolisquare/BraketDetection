@@ -100,12 +100,20 @@ def plot_info_poly(segments, path,texts,dimensions):
         d=d_t[0]
         pos=d_t[1]
         content=d.text
-        if d.dimtype==32 or d.dimtype==33 or d.dimtype==161:
-            d1,d2,d3,d4=d.defpoints[0], DPoint(d.defpoints[0].x+d.defpoints[1].x-d.defpoints[2].x,d.defpoints[0].y+d.defpoints[1].y-d.defpoints[2].y),d.defpoints[1],d.defpoints[2]
+        if  d.dimtype==32 or d.dimtype==33 or d.dimtype==161 or d.dimtype==160:
+            l0=p_minus(d.defpoints[0],d.defpoints[2])
+            l1=p_minus(d.defpoints[1],d.defpoints[2])
+            d10=l0.x*l1.x+l0.y*l1.y
+            d00=l0.x*l0.x+l0.y*l0.y
+            if d00 <1e-4:
+                x=d.defpoints[1]
+            else:
+                x=p_minus(p_add(d.defpoints[1],l0),p_mul(l0,d10/d00))
+            d1,d2,d3,d4=d.defpoints[0], x,d.defpoints[1],d.defpoints[2]
             ss=[DSegment(d1,d4),DSegment(d4,d3),DSegment(d3,d2)]
             sss=[DSegment(d2,d1)]
-            ss=expandFixedLengthGeo(ss,25)
-            sss=expandFixedLengthGeo(sss,100)
+            ss=expandFixedLengthGeo(ss,25,True)
+            sss=expandFixedLengthGeo(sss,100,True)
             q=sss[0].end_point
             sss=expandFixedLengthGeo(sss,100,False)
             for s in ss:
@@ -117,6 +125,7 @@ def plot_info_poly(segments, path,texts,dimensions):
             perp_vx, perp_vy = sss[0].start_point.x - sss[0].end_point.x, sss[0].start_point.y-sss[0].end_point.y
             rotation_angle = np.arctan2(-perp_vy, -perp_vx) * (180 / np.pi)
             ax.text(q.x, q.y, d.text,rotation=rotation_angle,color="#EEC933", fontsize=15)
+        
         elif d.dimtype==37:
             a,b,o=d.defpoints[1],d.defpoints[2],d.defpoints[3]
             r=DSegment(d.defpoints[0],o).length()
