@@ -34,7 +34,7 @@ def polygon_area(points):
         area += x1 * y2 - y1 * x2
     return abs(area) / 2.0
 
-def is_near_convex(points, i, tolerance=0.005):
+def is_near_convex(points, i, tolerance=0.1):
     """
     判断多边形是否是近似凸多边形（基于面积差）。
     :param points: 多边形顶点列表，按顺序排列 [(x1, y1), (x2, y2), ...]。
@@ -54,8 +54,8 @@ def is_near_convex(points, i, tolerance=0.005):
     # 计算凸包的面积
     convex_hull = ConvexHull(points)
     hull_area = convex_hull.volume  # ConvexHull 的面积
-
     # 检查面积差
+    #print(poly_area,hull_area,abs(poly_area - hull_area) / hull_area)
     if abs(poly_area - hull_area) / hull_area > tolerance:
         return False
 
@@ -106,106 +106,163 @@ def calculate_poly_centroid(poly):
         y = sum(point.y for point in points) / len(points)
     return (x, y)
 
-def are_equal_with_tolerance(k1, k2, tolerance = 0.1):
-    return abs(k1 - k2) <= tolerance
+def are_equal_with_tolerance(a, b, tolerance=1e-6):
+    return abs(a - b) < tolerance
+
+def is_parallel(seg1, seg2, tolerance=1e-6):
+    """判断两条线段是否平行"""
+    dx1 = seg1.end_point.x - seg1.start_point.x
+    dy1 = seg1.end_point.y - seg1.start_point.y
+    dx2 = seg2.end_point.x - seg2.start_point.x
+    dy2 = seg2.end_point.y - seg2.start_point.y
+    
+    # 计算叉积
+    cross_product = dx1 * dy2 - dy1 * dx2
+    return are_equal_with_tolerance(cross_product, 0, tolerance)
 
 def calculate_poly_refs(poly):
     refs = []
+    
     for segment in poly:
-        if isinstance(segment.ref, DArc) and len(refs) != 0 and isinstance(refs[-1].ref, DArc):
-            if(segment.ref.start_angle, segment.ref.end_angle, segment.ref.center, segment.ref.radius) == (refs[-1].ref.start_angle, refs[-1].ref.end_angle, refs[-1].ref.center, refs[-1].ref.radius):
-                continue
-        elif isinstance(segment.ref, DArc):
+        if isinstance(segment.ref, DArc):
+            if len(refs) != 0 and isinstance(refs[-1].ref, DArc):
+                if (segment.ref.start_angle, segment.ref.end_angle, segment.ref.center, segment.ref.radius) == (
+                    refs[-1].ref.start_angle, refs[-1].ref.end_angle, refs[-1].ref.center, refs[-1].ref.radius):
+                    continue
             refs.append(segment)
         else:
             if len(refs) != 0:
-                dx_1 = segment.end_point.x - segment.start_point.x
-                dy_1 = segment.end_point.y - segment.start_point.y
-                k_1 = math.pi/2 if dx_1 == 0 else math.atan(dy_1 / dx_1)
-                dx_2 = refs[-1].end_point.x - refs[-1].start_point.x
-                dy_2 = refs[-1].end_point.y - refs[-1].start_point.y
-                k_2 = math.pi/2 if dx_2 == 0 else math.atan(dy_2 / dx_2)
-
-                # 判断斜率是否相等
-                if are_equal_with_tolerance(k_1, k_2) or (math.fabs(dx_1) <0.025 and math.fabs(dx_2) <0.025):
-                    if refs[-1].start_point==segment.end_point:
-                        new_segment = DSegment(
-                            refs[-1].end_point,     # 保留原本的起点
-                            segment.start_point,        # 当前segment的终点
-                            refs[-1].ref              # 保留原本的ref
-                        )
-                    elif refs[-1].start_point==segment.start_point:
-                        new_segment = DSegment(
-                            refs[-1].end_point,     # 保留原本的起点
-                            segment.end_point,        # 当前segment的终点
-                            refs[-1].ref              # 保留原本的ref
-                        )
-                    elif refs[-1].end_point==segment.end_point:
-                        new_segment = DSegment(
-                            refs[-1].start_point,     # 保留原本的起点
-                            segment.start_point,        # 当前segment的终点
-                            refs[-1].ref              # 保留原本的ref
-                        )
-                    else:
-                            
-                        new_segment = DSegment(
-                            refs[-1].start_point,     # 保留原本的起点
-                            segment.end_point,        # 当前segment的终点
-                            refs[-1].ref              # 保留原本的ref
-                        )
-                
-                    # 替换refs中的最后一个Segment
+                last_segment = refs[-1]
+                # 判断是否平行
+                if is_parallel(last_segment, segment):
+                    new_segment = DSegment(
+                        start_point=last_segment.start_point,
+                        end_point=segment.end_point,
+                        ref=last_segment.ref
+                    )
                     refs[-1] = new_segment
                     continue
             refs.append(segment)
-    # 末尾和首个seg的合并判断
-    if isinstance(refs[0].ref, DArc)  and isinstance(refs[-1].ref, DArc):
-        if(refs[0].ref.start_angle, refs[0].ref.end_angle, refs[0].ref.center, refs[0].ref.radius) == (refs[-1].ref.start_angle, refs[-1].ref.end_angle, refs[-1].ref.center, refs[-1].ref.radius):
-            del refs[-1]
-    elif isinstance(refs[0].ref, DArc):
-        pass
-    else:
-        
-        if len(refs) != 0:
-            dx_1 = segment.end_point.x - segment.start_point.x
-            dy_1 = segment.end_point.y - segment.start_point.y
-            k_1 = math.pi/2 if dx_1 == 0 else math.atan(dy_1 / dx_1)
-            dx_2 = refs[-1].end_point.x - refs[-1].start_point.x
-            dy_2 = refs[-1].end_point.y - refs[-1].start_point.y
-            k_2 = math.pi/2 if dx_2 == 0 else math.atan(dy_2 / dx_2)
 
-            # 判断斜率是否相等
-            if are_equal_with_tolerance(k_1, k_2) or (math.fabs(dx_1) <0.025 and math.fabs(dx_2) <0.025):
-                if refs[-1].start_point==refs[0].end_point:
-                    new_segment = DSegment(
-                        refs[-1].end_point,     # 保留原本的起点
-                        refs[0].start_point,        # 当前segment的终点
-                        refs[-1].ref              # 保留原本的ref
-                    )
-                elif refs[-1].start_point==refs[0].start_point:
-                    new_segment = DSegment(
-                        refs[-1].end_point,     # 保留原本的起点
-                        refs[0].end_point,        # 当前segment的终点
-                        refs[-1].ref              # 保留原本的ref
-                    )
-                elif refs[-1].end_point==refs[0].end_point:
-                    new_segment = DSegment(
-                        refs[-1].start_point,     # 保留原本的起点
-                        refs[0].start_point,        # 当前segment的终点
-                        refs[-1].ref              # 保留原本的ref
-                    )
-                else:
-                        
-                    new_segment = DSegment(
-                        refs[-1].start_point,     # 保留原本的起点
-                        refs[0].end_point,        # 当前segment的终点
-                        refs[-1].ref              # 保留原本的ref
-                    )
-                
-                # 替换refs中的第一个Segment
+    # 判断首尾是否可以合并
+    if len(refs) > 1:
+        first_segment = refs[0]
+        last_segment = refs[-1]
+
+        if isinstance(first_segment.ref, DArc) and isinstance(last_segment.ref, DArc):
+            if (first_segment.ref.start_angle, first_segment.ref.end_angle, first_segment.ref.center, first_segment.ref.radius) == (
+                last_segment.ref.start_angle, last_segment.ref.end_angle, last_segment.ref.center, last_segment.ref.radius):
+                refs.pop()
+        elif not isinstance(first_segment.ref, DArc) and not isinstance(last_segment.ref, DArc):
+            if is_parallel(first_segment, last_segment):
+                new_segment = DSegment(
+                    start_point=last_segment.start_point,
+                    end_point=first_segment.end_point,
+                    ref=last_segment.ref
+                )
                 refs[0] = new_segment
-                del refs[-1]
+                refs.pop()
+
     return refs
+
+
+# def calculate_poly_refs(poly):
+#     refs = []
+#     for segment in poly:
+#         if isinstance(segment.ref, DArc) and len(refs) != 0 and isinstance(refs[-1].ref, DArc):
+#             if(segment.ref.start_angle, segment.ref.end_angle, segment.ref.center, segment.ref.radius) == (refs[-1].ref.start_angle, refs[-1].ref.end_angle, refs[-1].ref.center, refs[-1].ref.radius):
+#                 continue
+#         elif isinstance(segment.ref, DArc):
+#             refs.append(segment)
+#         else:
+#             if len(refs) != 0:
+#                 dx_1 = segment.end_point.x - segment.start_point.x
+#                 dy_1 = segment.end_point.y - segment.start_point.y
+#                 k_1 = math.pi/2 if dx_1 == 0 else math.atan(dy_1 / dx_1)
+#                 dx_2 = refs[-1].end_point.x - refs[-1].start_point.x
+#                 dy_2 = refs[-1].end_point.y - refs[-1].start_point.y
+#                 k_2 = math.pi/2 if dx_2 == 0 else math.atan(dy_2 / dx_2)
+
+#                 # 判断斜率是否相等
+#                 if are_equal_with_tolerance(k_1, k_2) or (math.fabs(dx_1) <0.025 and math.fabs(dx_2) <0.025):
+#                     if refs[-1].start_point==segment.end_point:
+#                         new_segment = DSegment(
+#                             refs[-1].end_point,     # 保留原本的起点
+#                             segment.start_point,        # 当前segment的终点
+#                             refs[-1].ref              # 保留原本的ref
+#                         )
+#                     elif refs[-1].start_point==segment.start_point:
+#                         new_segment = DSegment(
+#                             refs[-1].end_point,     # 保留原本的起点
+#                             segment.end_point,        # 当前segment的终点
+#                             refs[-1].ref              # 保留原本的ref
+#                         )
+#                     elif refs[-1].end_point==segment.end_point:
+#                         new_segment = DSegment(
+#                             refs[-1].start_point,     # 保留原本的起点
+#                             segment.start_point,        # 当前segment的终点
+#                             refs[-1].ref              # 保留原本的ref
+#                         )
+#                     else:
+                            
+#                         new_segment = DSegment(
+#                             refs[-1].start_point,     # 保留原本的起点
+#                             segment.end_point,        # 当前segment的终点
+#                             refs[-1].ref              # 保留原本的ref
+#                         )
+                
+#                     # 替换refs中的最后一个Segment
+#                     refs[-1] = new_segment
+#                     continue
+#             refs.append(segment)
+#     # 末尾和首个seg的合并判断
+#     if isinstance(refs[0].ref, DArc)  and isinstance(refs[-1].ref, DArc):
+#         if(refs[0].ref.start_angle, refs[0].ref.end_angle, refs[0].ref.center, refs[0].ref.radius) == (refs[-1].ref.start_angle, refs[-1].ref.end_angle, refs[-1].ref.center, refs[-1].ref.radius):
+#             del refs[-1]
+#     elif isinstance(refs[0].ref, DArc):
+#         pass
+#     else:
+        
+#         if len(refs) != 0:
+#             dx_1 = segment.end_point.x - segment.start_point.x
+#             dy_1 = segment.end_point.y - segment.start_point.y
+#             k_1 = math.pi/2 if dx_1 == 0 else math.atan(dy_1 / dx_1)
+#             dx_2 = refs[-1].end_point.x - refs[-1].start_point.x
+#             dy_2 = refs[-1].end_point.y - refs[-1].start_point.y
+#             k_2 = math.pi/2 if dx_2 == 0 else math.atan(dy_2 / dx_2)
+
+#             # 判断斜率是否相等
+#             if are_equal_with_tolerance(k_1, k_2) or (math.fabs(dx_1) <0.025 and math.fabs(dx_2) <0.025):
+#                 if refs[-1].start_point==refs[0].end_point:
+#                     new_segment = DSegment(
+#                         refs[-1].end_point,     # 保留原本的起点
+#                         refs[0].start_point,        # 当前segment的终点
+#                         refs[-1].ref              # 保留原本的ref
+#                     )
+#                 elif refs[-1].start_point==refs[0].start_point:
+#                     new_segment = DSegment(
+#                         refs[-1].end_point,     # 保留原本的起点
+#                         refs[0].end_point,        # 当前segment的终点
+#                         refs[-1].ref              # 保留原本的ref
+#                     )
+#                 elif refs[-1].end_point==refs[0].end_point:
+#                     new_segment = DSegment(
+#                         refs[-1].start_point,     # 保留原本的起点
+#                         refs[0].start_point,        # 当前segment的终点
+#                         refs[-1].ref              # 保留原本的ref
+#                     )
+#                 else:
+                        
+#                     new_segment = DSegment(
+#                         refs[-1].start_point,     # 保留原本的起点
+#                         refs[0].end_point,        # 当前segment的终点
+#                         refs[-1].ref              # 保留原本的ref
+#                     )
+                
+#                 # 替换refs中的第一个Segment
+#                 refs[0] = new_segment
+#                 del refs[-1]
+#     return refs
 
 def textsInPoly(text_pos_map,poly):
     x_min,x_max,y_min,y_max=computeBoundingBox(poly)
@@ -278,7 +335,7 @@ def outputPolyInfo(poly, segments, segmentation_config, point_map, index,star_po
     for seg in poly_refs:
         if seg in cornor_holes_map:
             seg.isCornerhole=True
-            #print(seg.ref)
+            # print(seg)
             
 
     
@@ -337,30 +394,86 @@ def outputPolyInfo(poly, segments, segmentation_config, point_map, index,star_po
         else:
             dx_1 = segment.end_point.x - segment.start_point.x
             dy_1 = segment.end_point.y - segment.start_point.y
-            l=(dx_1**2+dy_1**2)**0.5
-            v_1=(dy_1/l*50.0,-dx_1/l*50.0)
-            for j,other in  enumerate(segments):
-                if segment==other:
+            mid_point=DPoint((segment.end_point.x+segment.start_point.x)/2,(segment.end_point.y+segment.start_point.y)/2)
+            l = (dx_1**2 + dy_1**2)**0.5
+            v_1 = (dy_1 / l * 50.0, -dx_1 / l * 50.0)
+            point1,point2,point3=segment.start_point,segment.end_point,mid_point
+            for j, other in enumerate(segments):
+                if segment == other:
                     continue
-                dx_2 = other.end_point.x - other.start_point.x
-                dy_2 = other.end_point.y - other.start_point.y
                 
-                # 计算斜率
-                k_1 = math.pi/2 if dx_1 == 0 else math.atan(dy_1 / dx_1)
-                k_2 = math.pi/2 if dx_2 == 0 else math.atan(dy_2 / dx_2)
-                if (math.fabs(dx_1) <=0.025 and math.fabs(dx_2) <=0.025) or (math.fabs(k_1-k_2)<=0.1):
-                    s1=DSegment(DPoint(segment.start_point.x+v_1[0],segment.start_point.y+v_1[1]),DPoint(segment.start_point.x-v_1[0],segment.start_point.y-v_1[1]))
-                    s2=DSegment(DPoint(segment.end_point.x+v_1[0],segment.end_point.y+v_1[1]),DPoint(segment.end_point.x-v_1[0],segment.end_point.y-v_1[1]))                                
-                    i1=segment_intersection(s1.start_point,s1.end_point,other.start_point,other.end_point)
-                    if i1==other.end_point or i1==other.start_point:
+                if is_parallel(segment, other):
+                    s1 = DSegment(
+                        DPoint(segment.start_point.x + v_1[0], segment.start_point.y + v_1[1]),
+                        DPoint(segment.start_point.x - v_1[0], segment.start_point.y - v_1[1])
+                    )
+                    s2 = DSegment(
+                        DPoint(segment.end_point.x + v_1[0], segment.end_point.y + v_1[1]),
+                        DPoint(segment.end_point.x - v_1[0], segment.end_point.y - v_1[1])
+                    )
+                    s3 = DSegment(
+                        DPoint(mid_point.x + v_1[0], mid_point.y + v_1[1]),
+                        DPoint(mid_point.x - v_1[0], mid_point.y - v_1[1])
+                    )
+
+                    i1 = segment_intersection(s1.start_point, s1.end_point, other.start_point, other.end_point)
+                    if i1 == other.end_point or i1 == other.start_point:
+                        i1 = None
+                    
+                    i2 = segment_intersection(s2.start_point, s2.end_point, other.start_point, other.end_point)
+                    if i2 == other.end_point or i2 == other.start_point:
+                        i2 = None
+                    i3 = segment_intersection(s3.start_point, s3.end_point, other.start_point, other.end_point)
+                    if i3 == other.end_point or i3 == other.start_point:
+                        i3 = None
+                    if i1 is not None and DSegment(i1,point1).length()<15:
                         i1=None
-                    i2=segment_intersection(s2.start_point,s2.end_point,other.start_point,other.end_point)
-                    if i2==other.end_point or i2==other.start_point:
+                    if i2 is not None and DSegment(i2,point2).length()<15:
                         i2=None
-                    if (i1 is not None) or (i2 is not None):
+                    if i3 is not None and DSegment(i3,point3).length()<15:
+                        i3=None
+                    if i1 is not None or i2 is not None or i3 is not None:
                         segment.isConstraint = True
                         poly_refs[i].isConstraint = True
                         break
+
+    # for i, segment in enumerate(poly_refs):
+    #     # 颜色确定
+    #     if segment.ref.color == 3:
+    #         segment.isConstraint = True
+    #         poly_refs[i].isConstraint = True
+    #     # 角隅孔确定
+    #     elif poly_refs[(i - 1) % len(poly_refs)].isCornerhole or poly_refs[(i + 1) % len(poly_refs)].isCornerhole:
+    #         segment.isConstraint = True
+    #         poly_refs[i].isConstraint = True
+    #     # 平行线确定
+    #     else:
+    #         dx_1 = segment.end_point.x - segment.start_point.x
+    #         dy_1 = segment.end_point.y - segment.start_point.y
+    #         l=(dx_1**2+dy_1**2)**0.5
+    #         v_1=(dy_1/l*50.0,-dx_1/l*50.0)
+    #         for j,other in  enumerate(segments):
+    #             if segment==other:
+    #                 continue
+    #             dx_2 = other.end_point.x - other.start_point.x
+    #             dy_2 = other.end_point.y - other.start_point.y
+                
+    #             # 计算斜率
+    #             k_1 = math.pi/2 if dx_1 == 0 else math.atan(dy_1 / dx_1)
+    #             k_2 = math.pi/2 if dx_2 == 0 else math.atan(dy_2 / dx_2)
+    #             if (math.fabs(dx_1) <=0.025 and math.fabs(dx_2) <=0.025) or (math.fabs(k_1-k_2)<=0.1):
+    #                 s1=DSegment(DPoint(segment.start_point.x+v_1[0],segment.start_point.y+v_1[1]),DPoint(segment.start_point.x-v_1[0],segment.start_point.y-v_1[1]))
+    #                 s2=DSegment(DPoint(segment.end_point.x+v_1[0],segment.end_point.y+v_1[1]),DPoint(segment.end_point.x-v_1[0],segment.end_point.y-v_1[1]))                                
+    #                 i1=segment_intersection(s1.start_point,s1.end_point,other.start_point,other.end_point)
+    #                 if i1==other.end_point or i1==other.start_point:
+    #                     i1=None
+    #                 i2=segment_intersection(s2.start_point,s2.end_point,other.start_point,other.end_point)
+    #                 if i2==other.end_point or i2==other.start_point:
+    #                     i2=None
+    #                 if (i1 is not None) or (i2 is not None):
+    #                     segment.isConstraint = True
+    #                     poly_refs[i].isConstraint = True
+    #                     break
                        
 
     # 属于同一参考线的边只要有一个是固定边，则所有都是固定边
@@ -497,7 +610,11 @@ def outputPolyInfo(poly, segments, segmentation_config, point_map, index,star_po
   
         
 
-
+    # print(constraint_edges)
+    # print("===========")
+    # print(free_edges)
+    # print("=============")
+    # print(cornerhole_edges)
     #plot_info_poly(poly_refs, os.path.join(segmentation_config.poly_info_dir, f'infopoly{index}.png'),ts,bs,bps)
     if len(free_edges) > 1:
         print(f"回路{index}超过两条自由边！")
@@ -514,6 +631,7 @@ def outputPolyInfo(poly, segments, segmentation_config, point_map, index,star_po
     
     # 如果除去圆弧外固定边多边形不是凸多边形则不进行输出
     constraint_edge_poly = []
+
     for constarint_edge in constraint_edges:
         for seg in constarint_edge:
             if not isinstance(seg.ref, DArc):
@@ -521,6 +639,7 @@ def outputPolyInfo(poly, segments, segmentation_config, point_map, index,star_po
                 constraint_edge_poly.append(seg.end_point)
 
     if not is_near_convex(constraint_edge_poly, index):
+        print("去圆弧外固定边多边形不是凸多边形")
         return None
     
     # 如果自由边轮廓中出现了夹角小于45°的折线则不进行输出
@@ -531,6 +650,7 @@ def outputPolyInfo(poly, segments, segmentation_config, point_map, index,star_po
             continue
         angle = calculate_angle(seg1.start_point, seg1.end_point, seg2.end_point)
         if angle < 45:
+            print("自由边轮廓中出现了夹角小于45°的折线")
             return None
 
     # 如果自由边长度在总轮廓长度中占比不超过25%则不进行输出
@@ -546,6 +666,7 @@ def outputPolyInfo(poly, segments, segmentation_config, point_map, index,star_po
             free_len += l
         all_len += l
     if free_len / all_len < 0.25:
+        print("自由边长度在总轮廓长度中占比不超过25%")
         return None
     
     # step6: 绘制对边分类后的几何图像

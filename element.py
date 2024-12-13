@@ -216,7 +216,7 @@ class DDimension:
             elif self.dimtype==163:
                 self.text="Φ"+str(round(self.measurement))
             else:
-                self.text=str(round(self.measurement))
+                self.text=str(round(round(self.measurement/2)*2))
 
   
     def __repr__(self):  

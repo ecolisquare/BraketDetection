@@ -1488,8 +1488,16 @@ def outputLines(segments,point_map,polys,cornor_holes,star_pos,texts,texts_pos_m
     for d_t in dimensions:
         p=d_t[1]
         d=d_t[0]
-        if d.dimtype==32 or d.dimtype==33 or d.dimtype==161:
-            d1,d2,d3,d4=d.defpoints[0], DPoint(d.defpoints[0].x+d.defpoints[1].x-d.defpoints[2].x,d.defpoints[0].y+d.defpoints[1].y-d.defpoints[2].y),d.defpoints[1],d.defpoints[2]
+        if d.dimtype==32 or d.dimtype==33 or d.dimtype==161 or d.dimtype==160:
+            l0=p_minus(d.defpoints[0],d.defpoints[2])
+            l1=p_minus(d.defpoints[1],d.defpoints[2])
+            d10=l0.x*l1.x+l0.y*l1.y
+            d00=l0.x*l0.x+l0.y*l0.y
+            if d00 <1e-4:
+                x=d.defpoints[1]
+            else:
+                x=p_minus(p_add(d.defpoints[1],l0),p_mul(l0,d10/d00))
+            d1,d2,d3,d4=d.defpoints[0], x,d.defpoints[1],d.defpoints[2]
             ss=[DSegment(d1,d4),DSegment(d4,d3),DSegment(d3,d2)]
             sss=[DSegment(d2,d1)]
             ss=expandFixedLength(ss,25,True,False)
@@ -1826,7 +1834,7 @@ def processDimensions(dimensions):
     ds=[]
     for d in dimensions:
         type=d.dimtype
-        if type==32 or type==33 or type==161:
+        if type==32 or type==33 or type==161 or type==160:
             #转角标注& 对齐标注
             dim_pos=DPoint((d.defpoints[1].x+d.defpoints[2].x)/2,(d.defpoints[1].y+d.defpoints[2].y)/2)
             ds.append([d,dim_pos]) 
