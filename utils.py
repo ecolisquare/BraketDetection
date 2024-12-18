@@ -134,9 +134,9 @@ def coordinatesmap(p:DPoint,insert,scales,rotation):
 def readJson(path):
     elements=[]
     segments=[]
-    color = [3, 7, 8, 4]
+    color = [3, 7, 8, 4,2,140]
     linetype = ["BYLAYER", "Continuous","Bylayer","CONTINUOUS","ByBlock","BYBLOCK"]
-    elementtype=["line","arc","lwpolyline","polyline"]
+    elementtype=["line","arc","lwpolyline","polyline","spline"]
     try:  
         with open(path, 'r', encoding='utf-8') as file:  
             data_list = json.load(file)
@@ -195,6 +195,26 @@ def readJson(path):
                     end_point = DPoint(x2, y2)
                     # if start_point.y>-48500 or end_point.y>-48500:
                     segments.append(DSegment(start_point, end_point, e))
+            elif ele["type"]=="spline":
+                # 颜色过滤
+                if ele["color"] not in color:
+                    continue
+                # 虚线过滤
+                if ele.get("linetype") is None or ele["linetype"] not in linetype:
+                    continue
+                vs = ele["vertices"]
+                ps = [DPoint(v[0], v[1]) for v in vs]
+
+                # Apply line simplification
+                simplified_ps = rdp(ps, epsilon=5.0)  # Adjust epsilon for simplification level
+
+                e = DLwpolyline(simplified_ps, ele["color"], False,ele["handle"])
+                elements.append(e)
+                l = len(simplified_ps)
+                for i in range(l - 1):
+                    # if simplified_ps[i].y>-48500 or simplified_ps[i+1].y>-48500:
+                    segments.append(DSegment(simplified_ps[i], simplified_ps[i + 1], e))
+                
             elif ele["type"]=="lwpolyline" or ele["type"]=="polyline":
                 # 颜色过滤
                 if ele["color"] not in color:
@@ -235,15 +255,20 @@ def readJson(path):
                         break
 
                 for sube in block_data:
-                    if  (T_is_contained and sube.get("layerName") is not None and sube["layerName"]!="T") or (T_is_contained and sube.get("layerName") is None) or sube["type"] not in elementtype or sube["color"] not in color  or sube.get("linetype") is None or sube["linetype"] not in linetype:
+                    #or sube["type"] not in elementtype or sube["color"] not in color  or sube.get("linetype") is None or sube["linetype"] not in linetype
+                    if  (T_is_contained and sube.get("layerName") is not None and sube["layerName"]!="T") or (T_is_contained and sube.get("layerName") is None) :
                         continue
                     if sube["type"]=="line":
+                        if sube["color"] not in color  or sube.get("linetype") is None or sube["linetype"] not in linetype:
+                            continue
                         e=DLine(coordinatesmap(DPoint(sube["start"][0],sube["start"][1]),insert,scales,rotation),
                         coordinatesmap(DPoint(sube["end"][0],sube["end"][1]),insert,scales,rotation)
                         ,sube["color"],sube["handle"])
                         elements.append(e)
                         segments.append(DSegment(e.start_point,e.end_point,e))
                     elif sube["type"] == "arc":
+                        if sube["color"] not in color  or sube.get("linetype") is None or sube["linetype"] not in linetype:
+                            continue
                         # 创建DArc对象
                         e = DArc(coordinatesmap(DPoint(sube["center"][0], sube["center"][1]),insert,scales,rotation),
                          sube["radius"], sube["startAngle"], sube["endAngle"],sube["color"],sube["handle"])
@@ -279,7 +304,9 @@ def readJson(path):
                             start_point = DPoint(x1, y1)
                             end_point = DPoint(x2, y2)
                             segments.append(DSegment(start_point, end_point, e))
-                    elif sube["type"]=="lwpolyline" or sube["type"]=="polyline":
+                    elif sube["type"]=="lwpolyline" or sube["type"]=="polyline" :
+                        if sube["color"] not in color  or sube.get("linetype") is None or sube["linetype"] not in linetype:
+                            continue
                         vs = sube["vertices"]
                         ps = [coordinatesmap(DPoint(v[0], v[1]),insert,scales,rotation) for v in vs]
 
@@ -292,8 +319,39 @@ def readJson(path):
                             segments.append(DSegment(simplified_ps[i], simplified_ps[i + 1], e))
                         if sube["isClosed"]:
                             segments.append(DSegment(simplified_ps[-1], simplified_ps[0], e))
+                    elif sube["type"]=="spline":
+                        if sube["color"] not in color  or sube.get("linetype") is None or sube["linetype"] not in linetype:
+                            continue
+                        vs = sube["vertices"]
+                        ps = [coordinatesmap(DPoint(v[0], v[1]),insert,scales,rotation) for v in vs]
+
+                        # Apply line simplification
+                        simplified_ps = rdp(ps, epsilon=5.0)  # Adjust epsilon for simplification level
+                        e = DLwpolyline(simplified_ps, sube["color"], False,sube["handle"])
+                        elements.append(e)
+                        l = len(simplified_ps)
+                        for i in range(l - 1):
+                            segments.append(DSegment(simplified_ps[i], simplified_ps[i + 1], e))
+                    # elif sube["type"]=="text" or sube["type"]=="mtext":
+                    #     e=DText(sube["bound"],sube["insert"], sube["color"],sube["content"].strip(),sube["height"],sube["handle"])
+                    #     elements.append(e)
+                    # elif sube["type"]=="dimension":
+                    #     textpos=sube["textpos"]
+                    #     defpoints=[]
+                    #     for i in range(5):
+                    #         k="defpoint"+str(i+1)
+                    #         if k in sube:
+                    #             defpoint=sube[k]
+                    #             defpoints.append(DPoint(defpoint[0],defpoint[1]))
+                    #         else:
+                    #             break
+                    #     e=DDimension(DPoint(textpos[0],textpos[1]),sube["color"],sube["text"].strip(),sube["measurement"],defpoints,sube["dimtype"],sube["handle"])
+                    #     elements.append(e)
             elif ele["type"]=="text":
                 e=DText(ele["bound"],ele["insert"], ele["color"],ele["content"].strip(),ele["height"],ele["handle"])
+                elements.append(e)
+            elif  ele["type"]=="mtext":
+                e=DText(ele["bound"],ele["insert"], ele["color"],ele["text"].strip(),ele["width"],ele["handle"])
                 elements.append(e)
             elif ele["type"]=="dimension":
                 textpos=ele["textpos"]
@@ -1797,7 +1855,7 @@ def is_r_numeric(s):
     return bool(re.match(r'^R[0-9]+$', s))
 
 def is_material(s):
-    return bool(re.match(r"^[A-Z]{2}$",s)) or bool(re.match(r"^~[A-Z]{2}$",s))
+    return bool(re.match(r"^[A-Z]{2}$",s)) or bool(re.match(r"^~[A-Z]{2}$",s)) or bool(re.match(r"^[0-9]{2}[A-Z]{2}$",s))  or bool(re.match(r"^~[0-9]{2}[A-Z]{2}$",s))
 # def isUsefulHints(e):
 #     if (not isinstance(e,DText)) and (not isinstance(e,DDimension)):
 #         return False
