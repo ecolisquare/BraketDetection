@@ -135,7 +135,7 @@ def readJson(path):
     elements=[]
     segments=[]
     color = [3, 7, 8, 4]
-    linetype = ["BYLAYER", "Continuous","Bylayer","CONTINUOUS"]
+    linetype = ["BYLAYER", "Continuous","Bylayer","CONTINUOUS","ByBlock","BYBLOCK"]
     elementtype=["line","arc","lwpolyline","polyline"]
     try:  
         with open(path, 'r', encoding='utf-8') as file:  
@@ -755,7 +755,7 @@ def compute_line_replines(new_segments,point_map):
 def is_repline(s):
     if isinstance(s.ref,DArc) and s.ref.radius<=200 and s.ref.radius>=20:
         return True
-    elif(not isinstance(s.ref,DArc)) and s.length()>=20 and s.length()<=40:
+    elif(not isinstance(s.ref,DArc)) and s.length()>=20 and s.length()<=70:
         return True
     return False
 
