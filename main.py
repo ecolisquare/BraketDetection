@@ -17,15 +17,20 @@ if __name__ == '__main__':
     if segmentation_config.verbose:
         print("读取json文件")
     #文件中线段元素的读取和根据颜色过滤
-    elements,ori_segments=readJson(json_path)
+    elements,ori_segments,arcs=readJson(json_path)
+    #将线进行适当扩张
+    
+    ori_segments=expandFixedLength(ori_segments,segmentation_config.line_expand_length)
+    arc_splits=split_arcs(arcs,ori_segments)
+    arc_splits=expandFixedLength(arc_splits,segmentation_config.arc_expand_length)
     texts ,dimensions=findAllTextsAndDimensions(elements)
     ori_dimensions=dimensions
     dimensions=processDimensions(dimensions)
     texts=processTexts(texts)
     if segmentation_config.verbose:
         print("json文件读取完毕")
-    #将线进行适当扩张
-    segments=expandFixedLength(ori_segments,segmentation_config.line_expand_length)
+    
+    segments=ori_segments+arc_splits
 
     #找出所有包含角隅孔圆弧的基本环
     polys, new_segments, point_map,star_pos_map,cornor_holes,text_pos_map=findClosedPolys_via_BFS(elements,texts,dimensions,segments,segmentation_config)

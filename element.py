@@ -182,6 +182,18 @@ class DArc:
     #     if isinstance(other, DArc):
     #         return (self.center, self.radius, self.start_angle, self.end_angle) == (other.center, other.radius, other.start_angle, other.end_angle)
     #     return False
+    def points_on_arc(self):
+        # Convert start and end angles to radians
+        sa = math.radians(self.start_angle)
+        ea = math.radians(self.end_angle)
+
+        # Compute start and end points
+        start_point = DPoint(self.center.x + self.radius * math.cos(sa),
+                             self.center.y + self.radius * math.sin(sa))
+        end_point = DPoint(self.center.x + self.radius * math.cos(ea),
+                           self.center.y + self.radius * math.sin(ea))
+
+        return start_point, end_point
         
   
 

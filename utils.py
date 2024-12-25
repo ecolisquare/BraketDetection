@@ -133,6 +133,7 @@ def coordinatesmap(p:DPoint,insert,scales,rotation):
 #json --> elements
 def readJson(path):
     elements=[]
+    arcs=[]
     segments=[]
     color = [3, 7, 8, 4,2,140]
     linetype = ["BYLAYER", "Continuous","Bylayer","CONTINUOUS","ByBlock","BYBLOCK"]
@@ -163,6 +164,8 @@ def readJson(path):
                 # 创建DArc对象
                 e = DArc(DPoint(ele["center"][0], ele["center"][1]), ele["radius"], ele["startAngle"], ele["endAngle"],ele["color"],ele["handle"])
                 elements.append(e)
+                arcs.append(e)
+                continue
                 A = e.start_point.as_tuple()
                 B = e.end_point.as_tuple()
                 O = e.center.as_tuple()
@@ -273,6 +276,8 @@ def readJson(path):
                         e = DArc(coordinatesmap(DPoint(sube["center"][0], sube["center"][1]),insert,scales,rotation),
                          sube["radius"], sube["startAngle"], sube["endAngle"],sube["color"],sube["handle"])
                         elements.append(e)
+                        arcs.append(e)
+                        continue
                         A = e.start_point.as_tuple()
                         B = e.end_point.as_tuple()
                         O = e.center.as_tuple()
@@ -367,11 +372,81 @@ def readJson(path):
                 elements.append(e)
             else:
                 pass
-        return elements,segments
+        return elements,segments,arcs
     except FileNotFoundError:  
         print("The file does not exist.")
     except json.JSONDecodeError:  
         print("Error decoding JSON.")
+
+def segment_arc_intersection(segment: DSegment, arc: DArc):
+    # Parametrize the segment
+    p1 = segment.start_point
+    p2 = segment.end_point
+    cx, cy = arc.center.x, arc.center.y
+    r = arc.radius
+
+    dx = p2.x - p1.x
+    dy = p2.y - p1.y
+    a = dx**2 + dy**2
+    b = 2 * (dx * (p1.x - cx) + dy * (p1.y - cy))
+    c = (p1.x - cx)**2 + (p1.y - cy)**2 - r**2
+
+    discriminant = b**2 - 4 * a * c
+
+    if discriminant < 0:
+        return []  # No intersection
+
+    t1 = (-b - math.sqrt(discriminant)) / (2 * a)
+    t2 = (-b + math.sqrt(discriminant)) / (2 * a)
+
+    points = []
+
+    for t in [t1, t2]:
+        if 0 <= t <= 1:
+            ix = p1.x + t * dx
+            iy = p1.y + t * dy
+            intersection_point = DPoint(ix, iy)
+
+            # Check if the intersection point is on the arc
+            angle = math.degrees(math.atan2(intersection_point.y - cy, intersection_point.x - cx))
+            angle = (angle + 360) % 360
+            start_angle = (arc.start_angle + 360) % 360
+            end_angle = (arc.end_angle + 360) % 360
+
+            if start_angle > end_angle:
+                if angle >= start_angle or angle <= end_angle:
+                    points.append(intersection_point)
+            else:
+                if start_angle <= angle <= end_angle:
+                    points.append(intersection_point)
+
+    return points
+
+def angle_from_center(point,start_point,arc):
+    if point==start_point:
+        return -10
+    angle = math.degrees(math.atan2(point.y - arc.center.y, point.x - arc.center.x))
+    # Normalize angle to [0, 360)
+    angle = (angle + 360) % 360
+    return angle
+def angle_from_center_cross_zero(point,st_ag,start_point,arc):
+    if point==start_point:
+        return -10
+    ag=angle_from_center(point,start_point,arc)
+    if ag<st_ag:
+        ag+=360
+    return ag
+# Function to sort points by angle on the arc
+def sort_points_on_arc(points, arc):
+    start_point, end_point = arc.points_on_arc()
+    start_angle = (arc.start_angle + 360) % 360
+    end_angle = (arc.end_angle+ 360) % 360
+
+    if start_angle > end_angle:
+        # If the arc crosses 0 degrees, handle the wrap-around
+        return sorted(points, key=lambda pt: angle_from_center_cross_zero(pt,start_angle,start_point,arc))
+    else:
+        return sorted(points, key=lambda pt: angle_from_center(pt,start_point,arc))
 
 
 #expand lines by fixed length
@@ -398,6 +473,55 @@ def expandFixedLength(segList,dist,both=True,verbose=True):
     if verbose:
         pbar.close()
     return new_seglist
+# Function to split arcs using segments
+def split_arcs(arcs, segments):
+    split_segments = []
+    for arc in arcs:
+        start_point, end_point = arc.points_on_arc()
+        intersection_points = [start_point,end_point]
+
+        for segment in segments:
+            intersection_points.extend(segment_arc_intersection(segment, arc))
+
+        # Remove duplicates and sort by angle
+        intersection_points = list(set(intersection_points))
+        intersection_points=sort_points_on_arc(intersection_points, arc)
+
+
+         # Convert to segments
+
+        for i in range(len(intersection_points) - 1):
+            sp, ep = intersection_points[i], intersection_points[i + 1]
+
+            # Calculate angles of the segment's points on the arc
+            sp_angle = math.degrees(math.atan2(sp.y - arc.center.y, sp.x - arc.center.x))
+            ep_angle = math.degrees(math.atan2(ep.y - arc.center.y, ep.x - arc.center.x))
+
+            sp_angle = (sp_angle + 360) % 360
+            ep_angle = (ep_angle + 360) % 360
+
+            if sp_angle > ep_angle:
+                ep_angle += 360
+            delta_angle=ep_angle-sp_angle
+            num_subdivisions = max(2, int((ep_angle - sp_angle) / 45))  # At least 2 segments, split every 10 degrees
+            if delta_angle<30:
+                num_subdivisions=1
+            for j in range(num_subdivisions):
+                t1 = j / num_subdivisions
+                t2 = (j + 1) / num_subdivisions
+
+                sub_sp_angle = sp_angle + t1 * (ep_angle - sp_angle)
+                sub_ep_angle = sp_angle + t2 * (ep_angle - sp_angle)
+
+                sub_sp = DPoint(arc.center.x + arc.radius * math.cos(math.radians(sub_sp_angle)),
+                                arc.center.y + arc.radius * math.sin(math.radians(sub_sp_angle)))
+                sub_ep = DPoint(arc.center.x + arc.radius * math.cos(math.radians(sub_ep_angle)),
+                                arc.center.y + arc.radius * math.sin(math.radians(sub_ep_angle)))
+
+                split_segments.append(DSegment(sub_sp, sub_ep,arc))
+        
+        
+    return split_segments
 
 #remove duplicate points on the same edge
 def remove_duplicates(input_list):  
@@ -440,7 +564,7 @@ def find_all_intersections(segments, epsilon=1e-9):
     pbar=tqdm(total=n*(n-1)/2,desc="计算交点")
     for i, seg1 in enumerate(segments):
         for j, seg2 in enumerate(segments):
-            if i >= j :
+            if i >= j or (isinstance(seg1.ref,DArc) and isinstance(seg2.ref,DArc)):
                 continue  # Avoid duplicate checks and self-intersections
 
             p1, p2 = seg1.start_point, seg1.end_point
@@ -472,7 +596,7 @@ def compute_intersections(chunk1, chunk2, epsilon=1e-9):
     for seg1 in chunk1:
         for seg2 in chunk2:
             pbar.update()
-            if seg1 == seg2:
+            if seg1 == seg2 :
                 continue  # Skip self-intersection
             
             p1, p2 = seg1.start_point, seg1.end_point
@@ -880,7 +1004,6 @@ def compute_cornor_holes(filtered_segments,filtered_point_map):
                     segment_is_visited.add(s)
                     cornor_holes.append(DCornorHole([s]))
             else:
-                start=None
                 other=None
                 segments=[]
                 if degs>2:

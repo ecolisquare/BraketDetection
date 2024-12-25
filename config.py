@@ -5,7 +5,7 @@ class SegmentationConfig:
         self.json_path=""
         
         self.line_expand_length=13
-
+        self.arc_expand_length=8
         self.line_image_path="./output/line.png"
         self.draw_intersections=False
         self.draw_segments=True
