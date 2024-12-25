@@ -8,7 +8,7 @@ import matplotlib.pyplot as plt
 
 def log_to_file(filename, content):
     """将内容写入指定的文件。"""
-    with open(filename, 'a') as file:  # 以追加模式打开文件
+    with open(filename, 'a', encoding='utf-8') as file:  # 以追加模式打开文件
         file.write(content + '\n')  # 写入内容并换行
 
 def clear_file(file_path):
@@ -174,105 +174,6 @@ def calculate_poly_refs(poly):
                 refs.pop()
 
     return refs
-
-
-# def calculate_poly_refs(poly):
-#     refs = []
-#     for segment in poly:
-#         if isinstance(segment.ref, DArc) and len(refs) != 0 and isinstance(refs[-1].ref, DArc):
-#             if(segment.ref.start_angle, segment.ref.end_angle, segment.ref.center, segment.ref.radius) == (refs[-1].ref.start_angle, refs[-1].ref.end_angle, refs[-1].ref.center, refs[-1].ref.radius):
-#                 continue
-#         elif isinstance(segment.ref, DArc):
-#             refs.append(segment)
-#         else:
-#             if len(refs) != 0:
-#                 dx_1 = segment.end_point.x - segment.start_point.x
-#                 dy_1 = segment.end_point.y - segment.start_point.y
-#                 k_1 = math.pi/2 if dx_1 == 0 else math.atan(dy_1 / dx_1)
-#                 dx_2 = refs[-1].end_point.x - refs[-1].start_point.x
-#                 dy_2 = refs[-1].end_point.y - refs[-1].start_point.y
-#                 k_2 = math.pi/2 if dx_2 == 0 else math.atan(dy_2 / dx_2)
-
-#                 # 判断斜率是否相等
-#                 if are_equal_with_tolerance(k_1, k_2) or (math.fabs(dx_1) <0.025 and math.fabs(dx_2) <0.025):
-#                     if refs[-1].start_point==segment.end_point:
-#                         new_segment = DSegment(
-#                             refs[-1].end_point,     # 保留原本的起点
-#                             segment.start_point,        # 当前segment的终点
-#                             refs[-1].ref              # 保留原本的ref
-#                         )
-#                     elif refs[-1].start_point==segment.start_point:
-#                         new_segment = DSegment(
-#                             refs[-1].end_point,     # 保留原本的起点
-#                             segment.end_point,        # 当前segment的终点
-#                             refs[-1].ref              # 保留原本的ref
-#                         )
-#                     elif refs[-1].end_point==segment.end_point:
-#                         new_segment = DSegment(
-#                             refs[-1].start_point,     # 保留原本的起点
-#                             segment.start_point,        # 当前segment的终点
-#                             refs[-1].ref              # 保留原本的ref
-#                         )
-#                     else:
-                            
-#                         new_segment = DSegment(
-#                             refs[-1].start_point,     # 保留原本的起点
-#                             segment.end_point,        # 当前segment的终点
-#                             refs[-1].ref              # 保留原本的ref
-#                         )
-                
-#                     # 替换refs中的最后一个Segment
-#                     refs[-1] = new_segment
-#                     continue
-#             refs.append(segment)
-#     # 末尾和首个seg的合并判断
-#     if isinstance(refs[0].ref, DArc)  and isinstance(refs[-1].ref, DArc):
-#         if(refs[0].ref.start_angle, refs[0].ref.end_angle, refs[0].ref.center, refs[0].ref.radius) == (refs[-1].ref.start_angle, refs[-1].ref.end_angle, refs[-1].ref.center, refs[-1].ref.radius):
-#             del refs[-1]
-#     elif isinstance(refs[0].ref, DArc):
-#         pass
-#     else:
-        
-#         if len(refs) != 0:
-#             dx_1 = segment.end_point.x - segment.start_point.x
-#             dy_1 = segment.end_point.y - segment.start_point.y
-#             k_1 = math.pi/2 if dx_1 == 0 else math.atan(dy_1 / dx_1)
-#             dx_2 = refs[-1].end_point.x - refs[-1].start_point.x
-#             dy_2 = refs[-1].end_point.y - refs[-1].start_point.y
-#             k_2 = math.pi/2 if dx_2 == 0 else math.atan(dy_2 / dx_2)
-
-#             # 判断斜率是否相等
-#             if are_equal_with_tolerance(k_1, k_2) or (math.fabs(dx_1) <0.025 and math.fabs(dx_2) <0.025):
-#                 if refs[-1].start_point==refs[0].end_point:
-#                     new_segment = DSegment(
-#                         refs[-1].end_point,     # 保留原本的起点
-#                         refs[0].start_point,        # 当前segment的终点
-#                         refs[-1].ref              # 保留原本的ref
-#                     )
-#                 elif refs[-1].start_point==refs[0].start_point:
-#                     new_segment = DSegment(
-#                         refs[-1].end_point,     # 保留原本的起点
-#                         refs[0].end_point,        # 当前segment的终点
-#                         refs[-1].ref              # 保留原本的ref
-#                     )
-#                 elif refs[-1].end_point==refs[0].end_point:
-#                     new_segment = DSegment(
-#                         refs[-1].start_point,     # 保留原本的起点
-#                         refs[0].start_point,        # 当前segment的终点
-#                         refs[-1].ref              # 保留原本的ref
-#                     )
-#                 else:
-                        
-#                     new_segment = DSegment(
-#                         refs[-1].start_point,     # 保留原本的起点
-#                         refs[0].end_point,        # 当前segment的终点
-#                         refs[-1].ref              # 保留原本的ref
-#                     )
-                
-#                 # 替换refs中的第一个Segment
-#                 refs[0] = new_segment
-#                 del refs[-1]
-#     return refs
 
 def textsInPoly(text_pos_map,poly):
     x_min,x_max,y_min,y_max=computeBoundingBox(poly)
@@ -448,44 +349,6 @@ def outputPolyInfo(poly, segments, segmentation_config, point_map, index,star_po
                         segment.isConstraint = True
                         poly_refs[i].isConstraint = True
                         break
-
-    # for i, segment in enumerate(poly_refs):
-    #     # 颜色确定
-    #     if segment.ref.color == 3:
-    #         segment.isConstraint = True
-    #         poly_refs[i].isConstraint = True
-    #     # 角隅孔确定
-    #     elif poly_refs[(i - 1) % len(poly_refs)].isCornerhole or poly_refs[(i + 1) % len(poly_refs)].isCornerhole:
-    #         segment.isConstraint = True
-    #         poly_refs[i].isConstraint = True
-    #     # 平行线确定
-    #     else:
-    #         dx_1 = segment.end_point.x - segment.start_point.x
-    #         dy_1 = segment.end_point.y - segment.start_point.y
-    #         l=(dx_1**2+dy_1**2)**0.5
-    #         v_1=(dy_1/l*50.0,-dx_1/l*50.0)
-    #         for j,other in  enumerate(segments):
-    #             if segment==other:
-    #                 continue
-    #             dx_2 = other.end_point.x - other.start_point.x
-    #             dy_2 = other.end_point.y - other.start_point.y
-                
-    #             # 计算斜率
-    #             k_1 = math.pi/2 if dx_1 == 0 else math.atan(dy_1 / dx_1)
-    #             k_2 = math.pi/2 if dx_2 == 0 else math.atan(dy_2 / dx_2)
-    #             if (math.fabs(dx_1) <=0.025 and math.fabs(dx_2) <=0.025) or (math.fabs(k_1-k_2)<=0.1):
-    #                 s1=DSegment(DPoint(segment.start_point.x+v_1[0],segment.start_point.y+v_1[1]),DPoint(segment.start_point.x-v_1[0],segment.start_point.y-v_1[1]))
-    #                 s2=DSegment(DPoint(segment.end_point.x+v_1[0],segment.end_point.y+v_1[1]),DPoint(segment.end_point.x-v_1[0],segment.end_point.y-v_1[1]))                                
-    #                 i1=segment_intersection(s1.start_point,s1.end_point,other.start_point,other.end_point)
-    #                 if i1==other.end_point or i1==other.start_point:
-    #                     i1=None
-    #                 i2=segment_intersection(s2.start_point,s2.end_point,other.start_point,other.end_point)
-    #                 if i2==other.end_point or i2==other.start_point:
-    #                     i2=None
-    #                 if (i1 is not None) or (i2 is not None):
-    #                     segment.isConstraint = True
-    #                     poly_refs[i].isConstraint = True
-    #                     break
                        
 
     # 属于同一参考线的边只要有一个是固定边，则所有都是固定边

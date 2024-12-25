@@ -43,3 +43,5 @@ class SegmentationConfig:
         self.timeout=2
 
         self.type_path = "./type.json"
+
+        self.dxf_output_folder = "./output/"
