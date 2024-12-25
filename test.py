@@ -5,7 +5,7 @@ from infoextraction import *
 import numpy as np
 import os
 from plot_geo import *
-
+from draw_dxf import *
 from config import *
 
 
@@ -74,6 +74,7 @@ def process_json_data(json_path, output_path, training_data_output_folder, train
     segmentation_config.poly_image_dir = os.path.join(output_path, "poly_image")
     segmentation_config.poly_info_dir = os.path.join(output_path, "poly_info")
     segmentation_config.res_image_path = os.path.join(output_path, "res.png")
+    segmentation_config.dxf_output_folder = os.path.join("./output/dxf")
 
     try:
         os.makedirs(segmentation_config.poly_image_dir, exist_ok=True)
@@ -115,6 +116,31 @@ def process_json_data(json_path, output_path, training_data_output_folder, train
     print("结构化信息输出完毕，保存于:", segmentation_config.poly_info_dir)
 
     outputRes(new_segments, point_map, polys_info, segmentation_config.res_image_path,segmentation_config.draw_intersections,segmentation_config.draw_segments,segmentation_config.line_image_drawPolys)
+
+    #将检测到的肘板标注在原本的dxf文件中
+    bboxs = []
+    for poly_refs in polys_info:
+        max_x = float('-inf')
+        min_x = float('inf')
+        max_y = float('-inf')
+        min_y = float('inf')
+        for seg in poly_refs:
+            # 提取起点和终点的横纵坐标
+            x_coords = [seg.start_point[0], seg.end_point[0]]
+            y_coords = [seg.start_point[1], seg.end_point[1]]
+
+            # 更新最大最小值
+            max_x = max(max_x, *x_coords)
+            min_x = min(min_x, *x_coords)
+            max_y = max(max_y, *y_coords)
+            min_y = min(min_y, *y_coords)
+
+        bbox = [[min_x, min_y], [max_x, max_y]]
+        bboxs.append(bbox)
+    
+    dxf_path = os.path.splitext(json_path)[0] + '.dxf'
+    dxf_output_folder = segmentation_config.dxf_output_folder
+    draw_rectangle_in_dxf(dxf_path, dxf_output_folder, bboxs)
 
 
 if __name__ == '__main__':
