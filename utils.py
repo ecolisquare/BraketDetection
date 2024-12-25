@@ -138,6 +138,7 @@ def readJson(path):
     color = [3, 7, 8, 4,2,140]
     linetype = ["BYLAYER", "Continuous","Bylayer","CONTINUOUS","ByBlock","BYBLOCK"]
     elementtype=["line","arc","lwpolyline","polyline","spline"]
+    layname=["Stiffener_Invisible"]
     try:  
         with open(path, 'r', encoding='utf-8') as file:  
             data_list = json.load(file)
@@ -150,6 +151,8 @@ def readJson(path):
                 # 虚线过滤
                 if ele.get("linetype") is None or ele["linetype"] not in linetype:
                     continue
+                if ele.get("layerName") is not None and ele["layerName"] in layname:
+                    continue
                 e=DLine(DPoint(ele["start"][0],ele["start"][1]),DPoint(ele["end"][0],ele["end"][1]),ele["color"],ele["handle"])
         
                 elements.append(e)
@@ -160,6 +163,8 @@ def readJson(path):
                     continue
                 # 虚线过滤
                 if ele.get("linetype") is None or ele["linetype"] not in linetype:
+                    continue
+                if ele.get("layerName") is not None and ele["layerName"] in layname:
                     continue
                 # 创建DArc对象
                 e = DArc(DPoint(ele["center"][0], ele["center"][1]), ele["radius"], ele["startAngle"], ele["endAngle"],ele["color"],ele["handle"])
@@ -205,6 +210,8 @@ def readJson(path):
                 # 虚线过滤
                 if ele.get("linetype") is None or ele["linetype"] not in linetype:
                     continue
+                if ele.get("layerName") is not None and ele["layerName"] in layname:
+                    continue
                 vs = ele["vertices"]
                 ps = [DPoint(v[0], v[1]) for v in vs]
 
@@ -224,6 +231,8 @@ def readJson(path):
                     continue
                 # 虚线过滤
                 if ele.get("linetype") is None or ele["linetype"] not in linetype:
+                    continue
+                if ele.get("layerName") is not None and ele["layerName"] in layname:
                     continue
                 vs = ele["vertices"]
                 ps = [DPoint(v[0], v[1]) for v in vs]
@@ -264,6 +273,8 @@ def readJson(path):
                     if sube["type"]=="line":
                         if sube["color"] not in color  or sube.get("linetype") is None or sube["linetype"] not in linetype:
                             continue
+                        if sube.get("layerName") is not None and sube["layerName"] in layname:
+                            continue
                         e=DLine(coordinatesmap(DPoint(sube["start"][0],sube["start"][1]),insert,scales,rotation),
                         coordinatesmap(DPoint(sube["end"][0],sube["end"][1]),insert,scales,rotation)
                         ,sube["color"],sube["handle"])
@@ -271,6 +282,8 @@ def readJson(path):
                         segments.append(DSegment(e.start_point,e.end_point,e))
                     elif sube["type"] == "arc":
                         if sube["color"] not in color  or sube.get("linetype") is None or sube["linetype"] not in linetype:
+                            continue
+                        if sube.get("layerName") is not None and sube["layerName"] in layname:
                             continue
                         # 创建DArc对象
                         e = DArc(coordinatesmap(DPoint(sube["center"][0], sube["center"][1]),insert,scales,rotation),
@@ -312,6 +325,8 @@ def readJson(path):
                     elif sube["type"]=="lwpolyline" or sube["type"]=="polyline" :
                         if sube["color"] not in color  or sube.get("linetype") is None or sube["linetype"] not in linetype:
                             continue
+                        if sube.get("layerName") is not None and sube["layerName"] in layname:
+                            continue
                         vs = sube["vertices"]
                         ps = [coordinatesmap(DPoint(v[0], v[1]),insert,scales,rotation) for v in vs]
 
@@ -326,6 +341,8 @@ def readJson(path):
                             segments.append(DSegment(simplified_ps[-1], simplified_ps[0], e))
                     elif sube["type"]=="spline":
                         if sube["color"] not in color  or sube.get("linetype") is None or sube["linetype"] not in linetype:
+                            continue
+                        if sube.get("layerName") is not None and sube["layerName"] in layname:
                             continue
                         vs = sube["vertices"]
                         ps = [coordinatesmap(DPoint(v[0], v[1]),insert,scales,rotation) for v in vs]
