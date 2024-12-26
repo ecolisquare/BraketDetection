@@ -70,6 +70,7 @@ def process_json_files(folder_path, output_foler, training_data_output_folder, t
 
 def process_json_data(json_path, output_path, training_data_output_folder, training_img_output_folder, name):
     segmentation_config=SegmentationConfig()
+    segmentation_config.json_path = json_path
     segmentation_config.line_image_path = os.path.join(output_path, "line.png")
     segmentation_config.poly_image_dir = os.path.join(output_path, "poly_image")
     segmentation_config.poly_info_dir = os.path.join(output_path, "poly_info")
@@ -85,7 +86,7 @@ def process_json_data(json_path, output_path, training_data_output_folder, train
     if segmentation_config.verbose:
         print("读取json文件")
     #文件中线段元素的读取和根据颜色过滤
-    elements,ori_segments,arcs=readJson(json_path)
+    elements,ori_segments,arcs=readJson(segmentation_config.json_path)
     #将线进行适当扩张
     
     ori_segments=expandFixedLength(ori_segments,segmentation_config.line_expand_length)
@@ -138,13 +139,13 @@ def process_json_data(json_path, output_path, training_data_output_folder, train
         bbox = [[min_x, min_y], [max_x, max_y]]
         bboxs.append(bbox)
     
-    dxf_path = os.path.splitext(json_path)[0] + '.dxf'
+    dxf_path = os.path.splitext(segmentation_config.json_path)[0] + '.dxf'
     dxf_output_folder = segmentation_config.dxf_output_folder
     draw_rectangle_in_dxf(dxf_path, dxf_output_folder, bboxs)
 
 
 if __name__ == '__main__':
-    folder_path = "/home/user10/code/BraketDetection/newdata"
+    folder_path = "../jndata"
     output_folder = "./output"
     training_data_output_folder = "./DGCNN/data_folder"
     training_img_output_folder = "./training_img"

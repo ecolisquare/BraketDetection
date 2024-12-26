@@ -15,10 +15,11 @@ if __name__ == '__main__':
     segmentation_config=SegmentationConfig()
 
     json_path = input("请输入路径: ")
+    segmentation_config.json_path = json_path
     if segmentation_config.verbose:
         print("读取json文件")
     #文件中线段元素的读取和根据颜色过滤
-    elements,ori_segments,arcs=readJson(json_path)
+    elements,ori_segments,arcs=readJson(segmentation_config.json_path)
     #将线进行适当扩张
     
     ori_segments=expandFixedLength(ori_segments,segmentation_config.line_expand_length)
@@ -77,6 +78,6 @@ if __name__ == '__main__':
         bbox = [[min_x, min_y], [max_x, max_y]]
         bboxs.append(bbox)
     
-    dxf_path = os.path.splitext(json_path)[0] + '.dxf'
+    dxf_path = os.path.splitext(segmentation_config.json_path)[0] + '.dxf'
     dxf_output_folder = segmentation_config.dxf_output_folder
     draw_rectangle_in_dxf(dxf_path, dxf_output_folder, bboxs)
