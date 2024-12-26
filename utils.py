@@ -67,6 +67,29 @@ def computeAreaOfPoly(poly):
     area+=(p1.x*p2.y-p1.y*p2.x)/2
     return math.fabs(area)
     
+def are_equal_with_tolerance(a, b, tolerance=1e-6):
+    return abs(a - b) < tolerance
+
+def is_parallel(seg1, seg2, tolerance=0.022):
+    """判断两条线段是否平行"""
+    dx1 = seg1.end_point.x - seg1.start_point.x
+    dy1 = seg1.end_point.y - seg1.start_point.y
+    dx2 = seg2.end_point.x - seg2.start_point.x
+    dy2 = seg2.end_point.y - seg2.start_point.y
+
+    # 计算两个方向向量的模长
+    length1 = math.sqrt(dx1**2 + dy1**2)
+    length2 = math.sqrt(dx2**2 + dy2**2)
+    
+    # 防止长度为0的线段
+    if length1 == 0 or length2 == 0:
+        raise ValueError("线段长度不能为0")
+    
+    # 归一化叉积
+    cross_product = (dx1 * dy2 - dy1 * dx2) / (length1 * length2)
+    
+    # 返回是否接近0
+    return are_equal_with_tolerance(cross_product, 0, tolerance)
 
 
 def angleOfTwoVectors(A,B):
@@ -90,38 +113,67 @@ def isParallel(a,b,eps=1.0):
     return math.fabs(dx1*dy2-dx2*dy1)<eps
 # Ramer-Douglas-Peucker algorithm for line simplification
 def rdp(points, epsilon):
-    return points
-    if len(points) < 3:
-        return points
-    # Find the point with the maximum distance from the line segment (first to last point)
-    start = points[0]
-    end = points[-1]
-    line_vec = np.array([end.x - start.x, end.y - start.y])
-    line_len = np.linalg.norm(line_vec)
+    p_set=set()
+    ps=[]
+    for p in points:
+        if p not in p_set:
+            p_set.add(p)
+            ps.append(p)
+    return ps
+    # if len(points) < 3:
+    #     return points
+    # # Find the point with the maximum distance from the line segment (first to last point)
+    # start = points[0]
+    # end = points[-1]
+    # line_vec = np.array([end.x - start.x, end.y - start.y])
+    # line_len = np.linalg.norm(line_vec)
 
-    max_dist = 0
-    index = 0
+    # max_dist = 0
+    # index = 0
 
-    for i in range(1, len(points) - 1):
-        p = points[i]
-        vec = np.array([p.x - start.x, p.y - start.y])
-        proj_len = np.dot(vec, line_vec) / line_len
-        proj_point = np.array([start.x, start.y]) + proj_len * (line_vec / line_len)
-        dist = np.linalg.norm([p.x, p.y] - proj_point)
+    # for i in range(1, len(points) - 1):
+    #     p = points[i]
+    #     vec = np.array([p.x - start.x, p.y - start.y])
+    #     proj_len = np.dot(vec, line_vec) / line_len
+    #     proj_point = np.array([start.x, start.y]) + proj_len * (line_vec / line_len)
+    #     dist = np.linalg.norm([p.x, p.y] - proj_point)
 
-        if dist > max_dist:
-            max_dist = dist
-            index = i
+    #     if dist > max_dist:
+    #         max_dist = dist
+    #         index = i
 
-    # If the max distance is greater than epsilon, recursively simplify
-    if max_dist > epsilon:
-        left = rdp(points[:index + 1], epsilon)
-        right = rdp(points[index:], epsilon)
-        return left[:-1] + right
-    else:
-        return [start, end]  
+    # # If the max distance is greater than epsilon, recursively simplify
+    # if max_dist > epsilon:
+    #     left = rdp(points[:index + 1], epsilon)
+    #     right = rdp(points[index:], epsilon)
+    #     return left[:-1] + right
+    # else:
+    #     return [start, end]  
 
-
+def process_lwpoline(vs,vs_type):
+    new_vs=[]
+    for i,v in enumerate(vs):
+        if len(v)==2:
+            new_vs.append(v)
+        elif len(v)==5:
+            x,y,s_a,e_a,r=v[0],v[1],v[2],v[3],v[4]
+            s_a=s_a/math.pi*180
+            e_a=e_a/math.pi*180
+            if s_a>e_a:
+                e_a+=360
+            
+            total_angle = e_a - s_a
+            num_segments = max(2, int(total_angle / 45))  # 每45度一个分段
+            if r>10000 or total_angle<20:
+                num_segments=1
+            angle_step = total_angle / num_segments
+            for j in range(num_segments+1):
+                angle = s_a + j * angle_step
+                x_new = x + r * math.cos(angle * math.pi / 180)
+                y_new = y + r * math.sin(angle * math.pi / 180)
+                new_vs.append([x_new,y_new])
+    return new_vs
+            
 def coordinatesmap(p:DPoint,insert,scales,rotation):
     rr=rotation/180*math.pi
     cosine=math.cos(rr)
@@ -130,271 +182,8 @@ def coordinatesmap(p:DPoint,insert,scales,rotation):
     # x,y=(p[0]*scales[0]+100)/200,(p[1]*scales[1]+100)/200
     x,y=((cosine*p[0]-sine*p[1])*scales[0])+insert[0],((sine*p[0]+cosine*p[1])*scales[1])+insert[1]
     return DPoint(x,y)
-#json --> elements
-def readJson(path):
-    elements=[]
-    arcs=[]
-    segments=[]
-    color = [3, 7, 8, 4,2,140]
-    linetype = ["BYLAYER", "Continuous","Bylayer","CONTINUOUS","ByBlock","BYBLOCK"]
-    elementtype=["line","arc","lwpolyline","polyline","spline"]
-    layname=["Stiffener_Invisible"]
-    try:  
-        with open(path, 'r', encoding='utf-8') as file:  
-            data_list = json.load(file)
-        
-        for ele in data_list[0]:
-            if ele["type"]=="line":
-                # 颜色过滤
-                if ele["color"] not in color:
-                    continue
-                # 虚线过滤
-                if ele.get("linetype") is None or ele["linetype"] not in linetype:
-                    continue
-                if ele.get("layerName") is not None and ele["layerName"] in layname:
-                    continue
-                e=DLine(DPoint(ele["start"][0],ele["start"][1]),DPoint(ele["end"][0],ele["end"][1]),ele["color"],ele["handle"])
-        
-                elements.append(e)
-                segments.append(DSegment(e.start_point,e.end_point,e))
-            elif ele["type"] == "arc":
-                # 颜色过滤
-                if ele["color"] not in color:
-                    continue
-                # 虚线过滤
-                if ele.get("linetype") is None or ele["linetype"] not in linetype:
-                    continue
-                if ele.get("layerName") is not None and ele["layerName"] in layname:
-                    continue
-                # 创建DArc对象
-                e = DArc(DPoint(ele["center"][0], ele["center"][1]), ele["radius"], ele["startAngle"], ele["endAngle"],ele["color"],ele["handle"])
-                elements.append(e)
-                arcs.append(e)
-                continue
-                A = e.start_point.as_tuple()
-                B = e.end_point.as_tuple()
-                O = e.center.as_tuple()
-                
-                # 计算角度差
-                start_angle = ele["startAngle"]
-                end_angle = ele["endAngle"]
-                if end_angle<start_angle:
-                    end_angle=end_angle+360
-                total_angle = end_angle - start_angle
-                
-                # 定义分段数量，可以根据角度总长动态决定（这里的分段数可以自行调整）
-                num_segments = max(2, int(total_angle / 45))  # 每45度一个分段
-                step_angle = total_angle / num_segments  # 每个分段的角度
-
-                # 生成多段线段
-                for i in range(num_segments):
-                    # 计算起点和终点的角度
-                    angle1 = start_angle + i * step_angle
-                    angle2 = start_angle + (i + 1) * step_angle
-
-                    # 计算每个角度对应的点
-                    x1 = O[0] + e.radius * math.cos(math.radians(angle1))
-                    y1 = O[1] + e.radius * math.sin(math.radians(angle1))
-                    x2 = O[0] + e.radius * math.cos(math.radians(angle2))
-                    y2 = O[1] + e.radius * math.sin(math.radians(angle2))
-
-                    # 创建线段并加入segments列表
-                    start_point = DPoint(x1, y1)
-                    end_point = DPoint(x2, y2)
-                    # if start_point.y>-48500 or end_point.y>-48500:
-                    segments.append(DSegment(start_point, end_point, e))
-            elif ele["type"]=="spline":
-                # 颜色过滤
-                if ele["color"] not in color:
-                    continue
-                # 虚线过滤
-                if ele.get("linetype") is None or ele["linetype"] not in linetype:
-                    continue
-                if ele.get("layerName") is not None and ele["layerName"] in layname:
-                    continue
-                vs = ele["vertices"]
-                ps = [DPoint(v[0], v[1]) for v in vs]
-
-                # Apply line simplification
-                simplified_ps = rdp(ps, epsilon=5.0)  # Adjust epsilon for simplification level
-
-                e = DLwpolyline(simplified_ps, ele["color"], False,ele["handle"])
-                elements.append(e)
-                l = len(simplified_ps)
-                for i in range(l - 1):
-                    # if simplified_ps[i].y>-48500 or simplified_ps[i+1].y>-48500:
-                    segments.append(DSegment(simplified_ps[i], simplified_ps[i + 1], e))
-                
-            elif ele["type"]=="lwpolyline" or ele["type"]=="polyline":
-                # 颜色过滤
-                if ele["color"] not in color:
-                    continue
-                # 虚线过滤
-                if ele.get("linetype") is None or ele["linetype"] not in linetype:
-                    continue
-                if ele.get("layerName") is not None and ele["layerName"] in layname:
-                    continue
-                vs = ele["vertices"]
-                ps = [DPoint(v[0], v[1]) for v in vs]
-
-                # Apply line simplification
-                simplified_ps = rdp(ps, epsilon=5.0)  # Adjust epsilon for simplification level
-
-                e = DLwpolyline(simplified_ps, ele["color"], ele["isClosed"],ele["handle"])
-                elements.append(e)
-                l = len(simplified_ps)
-                for i in range(l - 1):
-                    # if simplified_ps[i].y>-48500 or simplified_ps[i+1].y>-48500:
-                    segments.append(DSegment(simplified_ps[i], simplified_ps[i + 1], e))
-                if ele["isClosed"]:
-                    # if simplified_ps[-1].y>-48500 or simplified_ps[0].y>-48500:
-                    segments.append(DSegment(simplified_ps[-1], simplified_ps[0], e))
-            elif ele["type"]=="insert":
-                # 颜色过滤
-                if ele["color"] not in color:
-                    continue
-                blockName=ele["blockName"]
-                # x1,x2,y1,y2=ele["bound"]["x1"],ele["bound"]["x2"],ele["bound"]["y1"],ele["bound"]["y2"]
-                scales=ele["scales"]
-                rotation=ele["rotation"]
-                insert=ele["insert"]
-                block_data=data_list[1][blockName]
-                #pre-check
-                T_is_contained=False
-                for sube in block_data:
-                    if sube.get("layerName") is not None and sube["layerName"]=="T":
-                        T_is_contained=True
-                        break
-
-                for sube in block_data:
-                    #or sube["type"] not in elementtype or sube["color"] not in color  or sube.get("linetype") is None or sube["linetype"] not in linetype
-                    if  (T_is_contained and sube.get("layerName") is not None and sube["layerName"]!="T") or (T_is_contained and sube.get("layerName") is None) :
-                        continue
-                    if sube["type"]=="line":
-                        if sube["color"] not in color  or sube.get("linetype") is None or sube["linetype"] not in linetype:
-                            continue
-                        if sube.get("layerName") is not None and sube["layerName"] in layname:
-                            continue
-                        e=DLine(coordinatesmap(DPoint(sube["start"][0],sube["start"][1]),insert,scales,rotation),
-                        coordinatesmap(DPoint(sube["end"][0],sube["end"][1]),insert,scales,rotation)
-                        ,sube["color"],sube["handle"])
-                        elements.append(e)
-                        segments.append(DSegment(e.start_point,e.end_point,e))
-                    elif sube["type"] == "arc":
-                        if sube["color"] not in color  or sube.get("linetype") is None or sube["linetype"] not in linetype:
-                            continue
-                        if sube.get("layerName") is not None and sube["layerName"] in layname:
-                            continue
-                        # 创建DArc对象
-                        e = DArc(coordinatesmap(DPoint(sube["center"][0], sube["center"][1]),insert,scales,rotation),
-                         sube["radius"], sube["startAngle"], sube["endAngle"],sube["color"],sube["handle"])
-                        elements.append(e)
-                        arcs.append(e)
-                        continue
-                        A = e.start_point.as_tuple()
-                        B = e.end_point.as_tuple()
-                        O = e.center.as_tuple()
-                        
-                        # 计算角度差
-                        start_angle = sube["startAngle"]
-                        end_angle = sube["endAngle"]
-                        if end_angle<start_angle:
-                            end_angle=end_angle+360
-                        total_angle = end_angle - start_angle
-                        
-                        # 定义分段数量，可以根据角度总长动态决定（这里的分段数可以自行调整）
-                        num_segments = max(2, int(total_angle / 45))  # 每45度一个分段
-                        step_angle = total_angle / num_segments  # 每个分段的角度
-
-                        # 生成多段线段
-                        for i in range(num_segments):
-                            # 计算起点和终点的角度
-                            angle1 = start_angle + i * step_angle
-                            angle2 = start_angle + (i + 1) * step_angle
-
-                            # 计算每个角度对应的点
-                            x1 = O[0] + e.radius * math.cos(math.radians(angle1))
-                            y1 = O[1] + e.radius * math.sin(math.radians(angle1))
-                            x2 = O[0] + e.radius * math.cos(math.radians(angle2))
-                            y2 = O[1] + e.radius * math.sin(math.radians(angle2))
-
-                            # 创建线段并加入segments列表
-                            start_point = DPoint(x1, y1)
-                            end_point = DPoint(x2, y2)
-                            segments.append(DSegment(start_point, end_point, e))
-                    elif sube["type"]=="lwpolyline" or sube["type"]=="polyline" :
-                        if sube["color"] not in color  or sube.get("linetype") is None or sube["linetype"] not in linetype:
-                            continue
-                        if sube.get("layerName") is not None and sube["layerName"] in layname:
-                            continue
-                        vs = sube["vertices"]
-                        ps = [coordinatesmap(DPoint(v[0], v[1]),insert,scales,rotation) for v in vs]
-
-                        # Apply line simplification
-                        simplified_ps = rdp(ps, epsilon=5.0)  # Adjust epsilon for simplification level
-                        e = DLwpolyline(simplified_ps, sube["color"], sube["isClosed"],sube["handle"])
-                        elements.append(e)
-                        l = len(simplified_ps)
-                        for i in range(l - 1):
-                            segments.append(DSegment(simplified_ps[i], simplified_ps[i + 1], e))
-                        if sube["isClosed"]:
-                            segments.append(DSegment(simplified_ps[-1], simplified_ps[0], e))
-                    elif sube["type"]=="spline":
-                        if sube["color"] not in color  or sube.get("linetype") is None or sube["linetype"] not in linetype:
-                            continue
-                        if sube.get("layerName") is not None and sube["layerName"] in layname:
-                            continue
-                        vs = sube["vertices"]
-                        ps = [coordinatesmap(DPoint(v[0], v[1]),insert,scales,rotation) for v in vs]
-
-                        # Apply line simplification
-                        simplified_ps = rdp(ps, epsilon=5.0)  # Adjust epsilon for simplification level
-                        e = DLwpolyline(simplified_ps, sube["color"], False,sube["handle"])
-                        elements.append(e)
-                        l = len(simplified_ps)
-                        for i in range(l - 1):
-                            segments.append(DSegment(simplified_ps[i], simplified_ps[i + 1], e))
-                    # elif sube["type"]=="text" or sube["type"]=="mtext":
-                    #     e=DText(sube["bound"],sube["insert"], sube["color"],sube["content"].strip(),sube["height"],sube["handle"])
-                    #     elements.append(e)
-                    # elif sube["type"]=="dimension":
-                    #     textpos=sube["textpos"]
-                    #     defpoints=[]
-                    #     for i in range(5):
-                    #         k="defpoint"+str(i+1)
-                    #         if k in sube:
-                    #             defpoint=sube[k]
-                    #             defpoints.append(DPoint(defpoint[0],defpoint[1]))
-                    #         else:
-                    #             break
-                    #     e=DDimension(DPoint(textpos[0],textpos[1]),sube["color"],sube["text"].strip(),sube["measurement"],defpoints,sube["dimtype"],sube["handle"])
-                    #     elements.append(e)
-            elif ele["type"]=="text":
-                e=DText(ele["bound"],ele["insert"], ele["color"],ele["content"].strip(),ele["height"],ele["handle"])
-                elements.append(e)
-            elif  ele["type"]=="mtext":
-                e=DText(ele["bound"],ele["insert"], ele["color"],ele["text"].strip(),ele["width"],ele["handle"])
-                elements.append(e)
-            elif ele["type"]=="dimension":
-                textpos=ele["textpos"]
-                defpoints=[]
-                for i in range(5):
-                    k="defpoint"+str(i+1)
-                    if k in ele:
-                        defpoint=ele[k]
-                        defpoints.append(DPoint(defpoint[0],defpoint[1]))
-                    else:
-                        break
-                e=DDimension(DPoint(textpos[0],textpos[1]),ele["color"],ele["text"].strip(),ele["measurement"],defpoints,ele["dimtype"],ele["handle"])
-                elements.append(e)
-            else:
-                pass
-        return elements,segments,arcs
-    except FileNotFoundError:  
-        print("The file does not exist.")
-    except json.JSONDecodeError:  
-        print("Error decoding JSON.")
-
+def transform_point(point,meta):
+    return coordinatesmap(point,meta.insert,meta.scales,meta.rotation)
 def segment_arc_intersection(segment: DSegment, arc: DArc):
     # Parametrize the segment
     p1 = segment.start_point
@@ -540,6 +329,213 @@ def split_arcs(arcs, segments):
         
     return split_segments
 
+def transform_segments(segments,scales,rotation,insert):
+    new_segments=[]
+    for segment in segments:
+        vs,ve=segment.start_point,segment.end_point
+        vs=coordinatesmap(vs,insert,scales,rotation)
+        ve=coordinatesmap(ve,insert,scales,rotation)
+        segment=DSegment(vs,ve,segment.ref)
+        new_segments.append(segment)
+    return new_segments
+#json --> elements
+def process_block(blockName,scales,rotation,insert,attribs,bound,block_elements,segmentation_config):
+    block_meta_data=DInsert(blockName,scales,rotation,insert,attribs,bound)
+    #print(blockName,scales,rotation,insert,attribs,block_elements)
+    elements=[]
+    arcs=[]
+    segments=[]
+    for attrib in attribs:
+        text=attrib["attribText"]
+        if text.strip()!="":
+            elements.append(DText(bound,block_meta_data.mid_point(),7,text,100,attrib["attribHandle"],meta=DInsert("TOP",[1.0,1.0],0,[0,0],[],None)))
+    color = [3, 7, 8, 4,2,140,254]
+    linetype = ["BYLAYER", "Continuous","Bylayer","CONTINUOUS","ByBlock","BYBLOCK"]
+    elementtype=["line","arc","lwpolyline","polyline","spline"]
+    layname=["Stiffener_Invisible"]
+    for ele in block_elements:
+        if ele["type"]=="line":
+            # 颜色过滤
+            if ele["color"] not in color:
+                continue
+            # 虚线过滤
+            if ele.get("linetype") is None or ele["linetype"] not in linetype:
+                continue
+            if ele.get("layerName") is not None and ele["layerName"] in layname:
+                continue
+            e=DLine(DPoint(ele["start"][0],ele["start"][1]),DPoint(ele["end"][0],ele["end"][1]),ele["color"],ele["handle"],meta=block_meta_data)
+    
+            elements.append(e)
+            segments.append(DSegment(e.start_point,e.end_point,e))
+        elif ele["type"] == "arc":
+            # 颜色过滤
+            if ele["color"] not in color:
+                continue
+            # 虚线过滤
+            if ele.get("linetype") is None or ele["linetype"] not in linetype:
+                continue
+            if ele.get("layerName") is not None and ele["layerName"] in layname:
+                continue
+            # 创建DArc对象
+            e = DArc(DPoint(ele["center"][0], ele["center"][1]), ele["radius"], ele["startAngle"], ele["endAngle"],ele["color"],ele["handle"],meta=block_meta_data)
+            elements.append(e)
+            arcs.append(e)
+            continue
+        elif ele["type"]=="spline":
+            # 颜色过滤
+            if ele["color"] not in color:
+                continue
+            # 虚线过滤
+            if ele.get("linetype") is None or ele["linetype"] not in linetype:
+                continue
+            if ele.get("layerName") is not None and ele["layerName"] in layname:
+                continue
+            vs = ele["vertices"]
+            ps = [DPoint(v[0], v[1]) for v in vs]
+
+            # Apply line simplification
+            simplified_ps = rdp(ps, epsilon=5.0)  # Adjust epsilon for simplification level
+
+            e = DLwpolyline(simplified_ps, ele["color"], False,ele["handle"],meta=block_meta_data)
+            elements.append(e)
+            l = len(simplified_ps)
+            for i in range(l - 1):
+                # if simplified_ps[i].y>-48500 or simplified_ps[i+1].y>-48500:
+                segments.append(DSegment(simplified_ps[i], simplified_ps[i + 1], e))
+        elif ele["type"]=="lwpolyline" :
+                # 颜色过滤
+            if ele["color"] not in color:
+                continue
+            # 虚线过滤
+            if ele.get("linetype") is None or ele["linetype"] not in linetype:
+                continue
+            if ele.get("layerName") is not None and ele["layerName"] in layname:
+                continue
+            vs = ele["vertices"]
+            vs_type=ele["verticesType"]
+            vs=process_lwpoline(vs,vs_type)
+            ps = [DPoint(v[0], v[1]) for v in vs]
+
+            # Apply line simplification
+            simplified_ps = rdp(ps, epsilon=5.0)  # Adjust epsilon for simplification level
+
+            e = DLwpolyline(simplified_ps, ele["color"], ele["isClosed"],ele["handle"],True,ele["verticesType"],ele["vertices"],ele["hasArc"],meta=block_meta_data)
+            elements.append(e)
+            l = len(simplified_ps)
+            for i in range(l - 1):
+                # if simplified_ps[i].y>-48500 or simplified_ps[i+1].y>-48500:
+                segments.append(DSegment(simplified_ps[i], simplified_ps[i + 1], e))
+            if ele["isClosed"]:
+                # if simplified_ps[-1].y>-48500 or simplified_ps[0].y>-48500:
+                segments.append(DSegment(simplified_ps[-1], simplified_ps[0], e))
+        elif  ele["type"]=="polyline":
+
+            # 颜色过滤
+            if ele["color"] not in color:
+                continue
+            # 虚线过滤
+            if ele.get("linetype") is None or ele["linetype"] not in linetype:
+                continue
+            if ele.get("layerName") is not None and ele["layerName"] in layname:
+                continue
+            vs = ele["vertices"]
+            ps = [DPoint(v[0], v[1]) for v in vs]
+
+            # Apply line simplification
+            simplified_ps = rdp(ps, epsilon=5.0)  # Adjust epsilon for simplification level
+            print(simplified_ps)
+            e = DLwpolyline(simplified_ps, ele["color"], ele["isClosed"],ele["handle"],meta=block_meta_data)
+            elements.append(e)
+            l = len(simplified_ps)
+            for i in range(l - 1):
+                # if simplified_ps[i].y>-48500 or simplified_ps[i+1].y>-48500:
+                segments.append(DSegment(simplified_ps[i], simplified_ps[i + 1], e))
+            if ele["isClosed"]:
+                # if simplified_ps[-1].y>-48500 or simplified_ps[0].y>-48500:
+                segments.append(DSegment(simplified_ps[-1], simplified_ps[0], e))
+        elif ele["type"]=="text" and blockName=="TOP":
+                e=DText(ele["bound"],ele["insert"], ele["color"],ele["content"].strip(),ele["height"],ele["handle"],meta=block_meta_data)
+                elements.append(e)
+        elif  ele["type"]=="mtext" and blockName=="TOP":
+            e=DText(ele["bound"],ele["insert"], ele["color"],ele["text"].strip(),ele["width"],ele["handle"],meta=block_meta_data)
+            elements.append(e)
+        elif ele["type"]=="dimension" and blockName=="TOP":
+            textpos=ele["textpos"]
+            defpoints=[]
+            for i in range(5):
+                k="defpoint"+str(i+1)
+                if k in ele:
+                    defpoint=ele[k]
+                    defpoints.append(DPoint(defpoint[0],defpoint[1]))
+                else:
+                    break
+            e=DDimension(DPoint(textpos[0],textpos[1]),ele["color"],ele["text"].strip(),ele["measurement"],defpoints,ele["dimtype"],ele["handle"],meta=block_meta_data)
+            elements.append(e)
+        else:
+            pass
+    
+    segments=expandFixedLength(segments,segmentation_config.line_expand_length)
+    arc_splits=split_arcs(arcs,segments)
+    arc_splits=expandFixedLength(arc_splits,segmentation_config.arc_expand_length)
+    segments=segments+arc_splits
+
+    segments=transform_segments(segments,scales,rotation,insert)
+    return elements,segments
+def process_blocks(block_sub_datas,segmentation_config):
+    elements=[]
+    segments=[]
+    for block_sub_data in block_sub_datas:
+        blockName,scales,rotation,insert,attribs,bound,block_elements=block_sub_data[0],block_sub_data[1],block_sub_data[2],block_sub_data[3],block_sub_data[4],block_sub_data[5],block_sub_data[6]
+        block_e,block_s=process_block(blockName,scales,rotation,insert,attribs,bound,block_elements,segmentation_config)
+        elements.extend(block_e)
+        segments.extend(block_s)
+    return elements,segments
+def readJson(path,segmentation_config):
+    # elements=[]
+    block_sub_datas=[]
+    # arcs=[]
+    # segments=[]
+    # color = [3, 7, 8, 4,2,140]
+    # linetype = ["BYLAYER", "Continuous","Bylayer","CONTINUOUS","ByBlock","BYBLOCK"]
+    # elementtype=["line","arc","lwpolyline","polyline","spline"]
+    # layname=["Stiffener_Invisible"]
+    try:  
+        with open(path, 'r', encoding='utf-8') as file:  
+            data_list = json.load(file)
+        block_sub_datas.append(["TOP",[1.0,1.0],0,[0,0],[],None,data_list[0]])
+        for ele in data_list[0]:
+            if ele["type"]=="insert":
+                blockName=ele["blockName"]
+                # x1,x2,y1,y2=ele["bound"]["x1"],ele["bound"]["x2"],ele["bound"]["y1"],ele["bound"]["y2"]
+                scales=ele["scales"]
+                rotation=ele["rotation"]
+                insert=ele["insert"]
+                attribs=ele['attribs']
+                block_data=data_list[1][blockName]
+                bound=ele["bound"]
+                #pre-check
+                T_is_contained=False
+                for sube in block_data:
+                    if sube.get("layerName") is not None and sube["layerName"]=="T":
+                        T_is_contained=True
+                        break
+                block_elements=[]
+                for sube in block_data:
+                    #or sube["type"] not in elementtype or sube["color"] not in color  or sube.get("linetype") is None or sube["linetype"] not in linetype
+                    if  (T_is_contained and sube.get("layerName") is not None and sube["layerName"]!="T") or (T_is_contained and sube.get("layerName") is None) :
+                        continue
+                    block_elements.append(sube)
+                  
+                block_sub_data=[blockName,scales,rotation,insert,attribs,bound,block_elements]
+                block_sub_datas.append(block_sub_data)
+           
+        elements,segments=process_blocks(block_sub_datas,segmentation_config)
+        return elements,segments
+    except FileNotFoundError:  
+        print("The file does not exist.")
+    except json.JSONDecodeError:  
+        print("Error decoding JSON.")
+
 #remove duplicate points on the same edge
 def remove_duplicates(input_list):  
     seen = set()  
@@ -581,7 +577,7 @@ def find_all_intersections(segments, epsilon=1e-9):
     pbar=tqdm(total=n*(n-1)/2,desc="计算交点")
     for i, seg1 in enumerate(segments):
         for j, seg2 in enumerate(segments):
-            if i >= j or (isinstance(seg1.ref,DArc) and isinstance(seg2.ref,DArc)):
+            if i >= j :
                 continue  # Avoid duplicate checks and self-intersections
 
             p1, p2 = seg1.start_point, seg1.end_point
@@ -605,7 +601,7 @@ def find_all_intersections(segments, epsilon=1e-9):
     pbar.close()
     return intersection_dict
 
-# # Function to compute intersections for two subsets of segments
+# Function to compute intersections for two subsets of segments
 def compute_intersections(chunk1, chunk2, epsilon=1e-9):
     intersection_dict = {}
     n=len(chunk1)*(len(chunk2))
@@ -634,8 +630,11 @@ def compute_intersections(chunk1, chunk2, epsilon=1e-9):
     return intersection_dict
 
 # Function to merge results from multiple processes
-def merge_intersections(results):
+def merge_intersections(results,segments):
     merged = {}
+    for s in segments:
+        if s not in merged:
+            merged[s]=[s.start_point,s.end_point]
     for result in results:
         for seg, intersections in result.items():
             if seg not in merged:
@@ -662,35 +661,39 @@ def find_all_intersections(segments, epsilon=1e-9):
         results = list(executor.map(partial_intersections, segment_chunks))
 
     # Merge results from all processes
-    intersection_dict = merge_intersections(results)
+    intersection_dict = merge_intersections(results,segments)
     return intersection_dict
 from collections import deque
 
-def split_segments(segments, intersections,epsilon=0.25): 
-    """根据交点将线段分割并构建 edge_map"""
-    new_segments = []
+def split_segments(segments, intersections,epsilon=0.25,expansion_param=0): 
+    new_segments=[]
     edge_map = {}
-    point_map={}
-
+    new_point_map={}
     for seg, inter_points in intersections.items():
         # 按照坐标顺序排序交点
         inter_points = sorted([seg.start_point] + inter_points + [seg.end_point], key=lambda p: (seg.start_point.x-p.x)*(seg.start_point.x-p.x)+(seg.start_point.y-p.y)*(seg.start_point.y-p.y))
         points=inter_points
+        if math.fabs(seg.end_point.y+37810)<1 and math.fabs(seg.start_point.y+37810)<1:
+            print(points)
         segList=[]
-        
         # 将线段分割为多个部分
         for i in range(len(points) - 1):
             # 比较两个点的大小，确保起点较小
             start_point, end_point = points[i], points[i+1]
             if (end_point.x, end_point.y) < (start_point.x, start_point.y):
                 start_point, end_point = end_point, start_point
-            if ((start_point.x-end_point.x)*(start_point.x-end_point.x)+(start_point.y-end_point.y)*(start_point.y-end_point.y)) < epsilon:
+            if start_point == end_point:
                 continue
-            # 创建新线段:
+            if ((start_point.x-end_point.x)*(start_point.x-end_point.x)+(start_point.y-end_point.y)*(start_point.y-end_point.y)) < expansion_param*expansion_param:
+                continue
+            
+
             new_seg = DSegment(start_point, end_point, seg.ref)
             segList.append(new_seg)
+            
 
-
+        # #filter lines
+        # if len(segList)>1:
         for s in segList:
             new_segments.append(s)
             # 添加到 edge_map 中，包含正向和反向的线段
@@ -698,17 +701,39 @@ def split_segments(segments, intersections,epsilon=0.25):
                 edge_map[DSegment(s.start_point, s.end_point)] = s
             if DSegment(s.end_point, s.start_point) not in edge_map:
                 edge_map[DSegment(s.end_point, s.start_point)] = s  # 反向线段
+        # elif len(segList)==1:
+        #     if isinstance(segList[0].ref, DArc):
+        #         #arc
+        #         new_segments.append(segList[0])
+        #         s=segList[0]
+        #         if DSegment(s.start_point, s.end_point) not in edge_map:
+        #             edge_map[DSegment(s.start_point, s.end_point)] = s
+        #         if DSegment(s.end_point, s.start_point) not in edge_map:
+        #             edge_map[DSegment(s.end_point, s.start_point)] = s  # 反向线段
+        #     else:
+        #         vs,ve=segList[0].start_point,segList[0].end_point
+        #         s_deg,e_deg=len(point_map[vs]),len(point_map[ve])
+        #         if s_deg==1 or e_deg==1:
+        #             continue
+        #         else:
+        #             new_segments.append(segList[0])
+        #             s=segList[0]
+        #             if DSegment(s.start_point, s.end_point) not in edge_map:
+        #                 edge_map[DSegment(s.start_point, s.end_point)] = s
+        #             if DSegment(s.end_point, s.start_point) not in edge_map:
+        #                 edge_map[DSegment(s.end_point, s.start_point)] = s  # 反向线段
+
 
     for s in new_segments:
         vs,ve=s.start_point,s.end_point
-        if vs not in point_map:
-            point_map[vs]=set()
-        if ve not in point_map:
-            point_map[ve]=set()
-        point_map[vs].add(s)
-        point_map[ve].add(s)
+        if vs not in new_point_map:
+            new_point_map[vs]=set()
+        if ve not in new_point_map:
+            new_point_map[ve]=set()
+        new_point_map[vs].add(s)
+        new_point_map[ve].add(s)
 
-    return new_segments, edge_map,point_map
+    return new_segments, edge_map,new_point_map
 
 
 def filter_segments(segments,intersections,point_map,expansion_param=12,iters=3):
@@ -859,31 +884,31 @@ def bfs_paths(graph, start_point, end_point,max_length,timeout=5):
 
     return all_paths
 
-def compute_arc_replines(new_segments,point_map):
-    """
-    计算arc_replines，筛选出ref是弧线且半径在20~160之间的线段。
-    :param new_segments: 分割后的线段列表
-    :return: arc_replines 列表
-    """
-    arc_replines_map={}
-    arc_replines = []
+# def compute_arc_replines(new_segments,point_map):
+#     """
+#     计算arc_replines，筛选出ref是弧线且半径在20~160之间的线段。
+#     :param new_segments: 分割后的线段列表
+#     :return: arc_replines 列表
+#     """
+#     arc_replines_map={}
+#     arc_replines = []
 
-    for segment in new_segments:
-        # 检查线段的ref是否是弧线，且半径在 20 到 160 之间
-        if isinstance(segment.ref, DArc):
-            radius = segment.ref.radius
-            if 20 <= radius and radius <= 160:
-                arc_tuple=(segment.ref.center.x,segment.ref.center.y,segment.ref.radius,segment.ref.start_angle,segment.ref.end_angle)
-                if  arc_tuple not in arc_replines_map:
-                    arc_replines_map[arc_tuple]=[]
-                arc_replines_map[arc_tuple].append(segment)
-    for arc_tuple,segments in arc_replines_map.items():
-        # arc_replines_map[arc_tuple]=sorted(segments,key= lambda s: DSegment(s.ref.center,s.mid_point()).slope())
-        for s in segments:
-            if len(point_map[s.start_point])>2 or len(point_map[s.end_point])>2:
-                arc_replines.append(s)
+#     for segment in new_segments:
+#         # 检查线段的ref是否是弧线，且半径在 20 到 160 之间
+#         if isinstance(segment.ref, DArc):
+#             radius = segment.ref.radius
+#             if 20 <= radius and radius <= 160:
+#                 arc_tuple=(segment.ref.center.x,segment.ref.center.y,segment.ref.radius,segment.ref.start_angle,segment.ref.end_angle)
+#                 if  arc_tuple not in arc_replines_map:
+#                     arc_replines_map[arc_tuple]=[]
+#                 arc_replines_map[arc_tuple].append(segment)
+#     for arc_tuple,segments in arc_replines_map.items():
+#         # arc_replines_map[arc_tuple]=sorted(segments,key= lambda s: DSegment(s.ref.center,s.mid_point()).slope())
+#         for s in segments:
+#             if len(point_map[s.start_point])>2 or len(point_map[s.end_point])>2:
+#                 arc_replines.append(s)
         
-    return arc_replines
+#     return arc_replines
 
 def compute_star_replines(new_segments,elements):
     vertical_lines=[]
@@ -952,7 +977,8 @@ def compute_line_replines(new_segments,point_map):
     return line_replines
 
 def is_repline(s):
-    if isinstance(s.ref,DArc) and s.ref.radius<=200 and s.ref.radius>=20:
+    #print( s.ref.meta.scales[0])
+    if isinstance(s.ref,DArc) and s.ref.radius<=200* s.ref.meta.scales[0] and s.ref.radius*s.ref.meta.scales[0]>=20:
         return True
     elif(not isinstance(s.ref,DArc)) and s.length()>=20 and s.length()<=70:
         return True
@@ -960,17 +986,15 @@ def is_repline(s):
 
 
 def checkRefAndSlope(segments):
-    dxs=[math.fabs(segment.end_point.x - segment.start_point.x) for segment in segments ]
-    dys=[math.fabs(segment.end_point.y - segment.start_point.y) for segment in segments ]
-    slopes=[ math.pi/2 if (segment.end_point.x - segment.start_point.x) == 0 else math.atan((segment.end_point.y - segment.start_point.y) / (segment.end_point.x - segment.start_point.x)) for segment in segments ]
+   
     #print(slopes)
     flag=False
     idx=None
-    for i,k1 in enumerate(slopes):
-        for j,k2 in enumerate(slopes):
+    for i,s1 in enumerate(segments):
+        for j,s2 in enumerate(segments):
             if i>=j:
                 continue
-            if (math.fabs(k1 - k2) <= 0.1 or (dxs[i] <=0.1 and dxs[j] <=0.1)) and segments[i].ref==segments[j].ref:
+            if is_parallel(s1,s2) and segments[i].ref==segments[j].ref:
                 flag=True
                 l1,l2=segments[i].length(),segments[j].length()
                 if l1<l2:
@@ -983,16 +1007,9 @@ def checkRefAndSlope(segments):
     return [flag,segments[idx] if idx is not None else None]
 
 def checkValid(repline,segments):
-    dxs=[math.fabs(segment.end_point.x - segment.start_point.x) for segment in segments ]
-    dys=[math.fabs(segment.end_point.y - segment.start_point.y) for segment in segments ]
-    slopes=[ math.pi/2 if (segment.end_point.x - segment.start_point.x) == 0 else math.atan((segment.end_point.y - segment.start_point.y) / (segment.end_point.x - segment.start_point.x)) for segment in segments ]
-    #print(slopes)
-    dx_r= math.fabs(repline.end_point.x - repline.start_point.x)
-    dy_r= math.fabs(repline.end_point.y - repline.start_point.y)
-    k2=math.pi/2 if (repline.end_point.x - repline.start_point.x) == 0 else math.atan((repline.end_point.y - repline.start_point.y) / (repline.end_point.x - repline.start_point.x))
     flag=True
-    for i,k1 in enumerate(slopes):
-        if (math.fabs(k1 - k2) <= 0.1 or (dxs[i] <=0.1 and dx_r <=0.1)) and segments[i].ref==repline.ref:
+    for i,segment in enumerate(segments):
+        if is_parallel(segment,repline) and segment.ref==repline.ref:
             flag=False
             break
         
@@ -1038,20 +1055,19 @@ def compute_cornor_holes(filtered_segments,filtered_point_map):
                     cs=[ss for ss in filtered_point_map[other] if ss!=current]
                     if  len(cs)!=1:
                         flag=False
-                        # print("？？？")
+                    
                         break
                     else:
                         current=cs[0]
-                        # if isinstance(current.ref,DArc):
-                        #     print(current)
+               
                     os=[p for p in [current.start_point,current.end_point] if p!=other]
                     if len(os)!=1 :
                         flag=False
-                        # print("？？？")
+                     
                         break
                     else:
                         other=os[0]
-                        # print(other)
+                 
                     dego=len(filtered_point_map[other])
                     if  current not in segment_is_visited and is_repline(current):
                             segments.append(current)
@@ -1063,14 +1079,6 @@ def compute_cornor_holes(filtered_segments,filtered_point_map):
                     ne=[ss for ss in filtered_point_map[other] if ss!=current]
                     #print(111)
                     if checkRefAndSlope(ns)[0] and checkRefAndSlope(ne)[0] and checkValid(s,ns) and checkValid(current,ne):
-                        # a,b=checkRefAndSlope(ns)[1],checkRefAndSlope(ne)[1]
-                        # pa=a.start_point if a.start_point!=start else a.end_point
-                        # pb=b.start_point if b.start_point!=other else b.end_point
-                        # sss=expandFixedLength([DSegment(start,pa),DSegment(other,pb)],150,False)
-                        # if len(sss) <2:
-                        #     break
-                        # inter=segment_intersection(sss[0].start_point,sss[0].end_point,sss[1].start_point,sss[1].end_point)
-                        # if inter is not None:
                         for ss in segments:
                             segment_is_visited.add(ss)
                         cornor_holes.append(DCornorHole(segments))
@@ -1083,22 +1091,6 @@ def compute_cornor_holes(filtered_segments,filtered_point_map):
 def filter_cornor_holes(cornor_holes,filtered_point_map):
     filtered_cornor_holes=[]
     for cornor_hole in cornor_holes:
-        # if len(cornor_hole.segments)==1:
-        #     vs,ve=cornor_hole.segments[0].start_point,cornor_hole.segments[0].end_point
-        #     ss,se=cornor_hole.segments[0],cornor_hole.segments[0]
-        # else:
-        #     ss,se=cornor_hole.segments[0],cornor_hole.segments[-1]
-        #     ps=[ p for p in [ss.start_point,ss.end_point,se.start_point,se.end_point] if len(filtered_point_map[p])>2]
-        #     vs,ve=ps[0],ps[1]
-        # sn=sorted([neighbor for neighbor in filtered_point_map[vs] if neighbor!=ss],key=lambda s :s.length())
-        # a=sn[0]
-        # en=sorted([neighbor for neighbor in filtered_point_map[ve] if neighbor!=se],key=lambda s :s.length())
-        # b=en[0]
-        # if a.start_point==vs:
-        #     p=a.end_point
-        # else:
-        #     p=a.start_point
-        # if p in [b.start_point,b.end_point]:
         total=0
         n=0
         for s in cornor_hole.segments:
@@ -1312,19 +1304,19 @@ def removeReferenceLines(elements,texts,initial_segments,all_segments,point_map)
            
             
     
-def convert_ref_to_tuple(ref):
-    """
-    Convert different ref objects (Line, Arc, etc.) to a unified tuple format for comparison.
-    """
-    if isinstance(ref, DLine):
-        # Convert Line to a tuple of its start and end points
-        return ('Line', (ref.start_point.x, ref.start_point.y), (ref.end_point.x, ref.end_point.y))
-    elif isinstance(ref, DArc):
-        # Convert Arc to a tuple of its defining properties: center, radius, start_angle, end_angle
-        return ('Arc', (ref.center.x, ref.center.y), ref.radius, ref.start_angle, ref.end_angle)
-    else:
-        # Handle other types or return a generic string for unknown types
-        return ('Unknown', str(ref))
+# def convert_ref_to_tuple(ref):
+#     """
+#     Convert different ref objects (Line, Arc, etc.) to a unified tuple format for comparison.
+#     """
+#     if isinstance(ref, DLine):
+#         # Convert Line to a tuple of its start and end points
+#         return ('Line', (ref.start_point.x, ref.start_point.y), (ref.end_point.x, ref.end_point.y))
+#     elif isinstance(ref, DArc):
+#         # Convert Arc to a tuple of its defining properties: center, radius, start_angle, end_angle
+#         return ('Arc', (ref.center.x, ref.center.y), ref.radius, ref.start_angle, ref.end_angle)
+#     else:
+#         # Handle other types or return a generic string for unknown types
+#         return ('Unknown', str(ref))
 
 
 def computeCenterCoordinates(poly):
@@ -1776,14 +1768,14 @@ def outputLines(segments,point_map,polys,cornor_holes,star_pos,texts,texts_pos_m
 def outputPolysAndGeometry(point_map,polys,path,draw_polys=False,draw_geometry=False,n=10):
     t=len(polys) if len(polys)<n else n
     
-    if draw_geometry:
-        pbar=tqdm(total=t,desc="输出几何")
-        for i,poly in enumerate(polys):
-            if i>=n:
-                break
-            plot_geometry(poly,os.path.join(path,f"geometry{i}.png"))
-            pbar.update()
-        pbar.close()
+    # if draw_geometry:
+    #     pbar=tqdm(total=t,desc="输出几何")
+    #     for i,poly in enumerate(polys):
+    #         if i>=n:
+    #             break
+    #         plot_geometry(poly,os.path.join(path,f"geometry{i}.png"))
+    #         pbar.update()
+    #     pbar.close()
    
     if draw_polys:
         pbar=tqdm(total=t,desc="输出多边形")
@@ -1984,7 +1976,7 @@ def findClosedPolys_via_BFS(elements,texts,dimensions,segments,segmentation_conf
         print(f"封闭多边形个数:{len(polys)}")
     outputPolysAndGeometry(filtered_point_map,polys,segmentation_config.poly_image_dir,segmentation_config.draw_polys,segmentation_config.draw_geometry,segmentation_config.draw_poly_nums)
     outputLines(filtered_segments,filtered_point_map,polys,cornor_holes,star_pos ,texts,text_pos_map,dimensions,replines,segmentation_config.line_image_path,segmentation_config.draw_intersections,segmentation_config.draw_segments,segmentation_config.line_image_drawPolys)
-    return polys, new_segments, point_map,star_pos_map,cornor_holes,text_pos_map
+    return polys, segments, point_map,star_pos_map,cornor_holes,text_pos_map
 
 
  

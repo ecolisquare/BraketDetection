@@ -2,7 +2,6 @@ import matplotlib.pyplot as plt
 import numpy as np
 from element import *
 import os
-
 def p_minus(a,b):
     return DPoint(a.x-b.x,a.y-b.y)
 def p_add(a,b):
@@ -40,6 +39,16 @@ def plot_geometry(segments, path):
     plt.savefig(path)
     plt.close()
 
+def coordinatesmap_(p:DPoint,insert,scales,rotation):
+    rr=rotation/180*math.pi
+    cosine=math.cos(rr)
+    sine=math.sin(rr)
+
+    # x,y=(p[0]*scales[0]+100)/200,(p[1]*scales[1]+100)/200
+    x,y=((cosine*p[0]-sine*p[1])*scales[0])+insert[0],((sine*p[0]+cosine*p[1])*scales[1])+insert[1]
+    return DPoint(x,y)
+def transform_point_(point,meta):
+    return coordinatesmap_(point,meta.insert,meta.scales,meta.rotation)
 
 #输出封闭多边形
 def plot_polys(point_map,segments,path):
@@ -198,7 +207,8 @@ def plot_info_poly(segments, path,texts,dimensions):
             theta = np.linspace(np.radians(segment.ref.start_angle), np.radians(end_angle), 100)
             x_arc = segment.ref.center.x + segment.ref.radius * np.cos(theta)
             y_arc = segment.ref.center.y + segment.ref.radius * np.sin(theta)
-            ax.plot(x_arc, y_arc, color, lw=2)
+            p=transform_point_(DPoint(x_arc,y_arc),segment.ref.meta)
+            ax.plot(p.x, p.y, color, lw=2)
         else:
             x_values = [segment.start_point.x, segment.end_point.x]
             y_values = [segment.start_point.y, segment.end_point.y]
@@ -235,7 +245,8 @@ def outputRes(segments,point_map,polys,resPNGPath,drawIntersections=False,drawLi
                     theta = np.linspace(np.radians(segment.ref.start_angle), np.radians(end_angle), 100)
                     x_arc = segment.ref.center.x + segment.ref.radius * np.cos(theta)
                     y_arc = segment.ref.center.y + segment.ref.radius * np.sin(theta)
-                    ax.plot(x_arc, y_arc, color, lw=2)
+                    p=transform_point_(DPoint(x_arc,y_arc),segment.ref.meta)
+                    ax.plot(p.x, p.y, color, lw=2)
                 else:
                     x_values = [segment.start_point.x, segment.end_point.x]
                     y_values = [segment.start_point.y, segment.end_point.y]

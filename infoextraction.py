@@ -1,7 +1,7 @@
 from  element import *
 from plot_geo import plot_geometry,plot_polys, plot_info_poly
 import os
-from utils import segment_intersection,computeBoundingBox
+from utils import segment_intersection,computeBoundingBox,is_parallel
 from classifier import poly_classifier
 from scipy.spatial import ConvexHull
 import matplotlib.pyplot as plt
@@ -106,29 +106,6 @@ def calculate_poly_centroid(poly):
         y = sum(point.y for point in points) / len(points)
     return (x, y)
 
-def are_equal_with_tolerance(a, b, tolerance=1e-6):
-    return abs(a - b) < tolerance
-
-def is_parallel(seg1, seg2, tolerance=0.022):
-    """判断两条线段是否平行"""
-    dx1 = seg1.end_point.x - seg1.start_point.x
-    dy1 = seg1.end_point.y - seg1.start_point.y
-    dx2 = seg2.end_point.x - seg2.start_point.x
-    dy2 = seg2.end_point.y - seg2.start_point.y
-
-    # 计算两个方向向量的模长
-    length1 = math.sqrt(dx1**2 + dy1**2)
-    length2 = math.sqrt(dx2**2 + dy2**2)
-    
-    # 防止长度为0的线段
-    if length1 == 0 or length2 == 0:
-        raise ValueError("线段长度不能为0")
-    
-    # 归一化叉积
-    cross_product = (dx1 * dy2 - dy1 * dx2) / (length1 * length2)
-    
-    # 返回是否接近0
-    return are_equal_with_tolerance(cross_product, 0, tolerance)
 
 def calculate_poly_refs(poly):
     refs = []
