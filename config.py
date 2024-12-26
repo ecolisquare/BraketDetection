@@ -45,3 +45,5 @@ class SegmentationConfig:
         self.type_path = "./type.json"
 
         self.dxf_output_folder = "./output/"
+
+        self.json_output_path = "./output/bracket.json"   #输出解析后的肘板轮廓，便于调整匹配算法

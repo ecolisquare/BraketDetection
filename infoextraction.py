@@ -565,7 +565,7 @@ def outputPolyInfo(poly, segments, segmentation_config, point_map, index,star_po
             log_to_file(file_path, f"坐标：{seg.StarCornerhole}（星形角隅孔）")
             cornerhole_index += 1
 
-    # step10: TODO：输出周围标注信息
+    # step10:输出周围标注信息
     k=0
     for i,t_t in enumerate(ts):
         t=t_t[0]
@@ -607,7 +607,13 @@ def outputPolyInfo(poly, segments, segmentation_config, point_map, index,star_po
             cornerhole_index += 1
 
     # step12 对肘板进行分类：
-    classification_res = poly_classifier(poly_refs, cornerhole_index - 1, free_edges, edges, segmentation_config.type_path)
+    classification_res = poly_classifier(poly_refs, cornerhole_index - 1, free_edges, edges, 
+                                         segmentation_config.type_path, segmentation_config.json_output_path, 
+                                         f"{os.path.splitext(os.path.basename(segmentation_config.json_path))[0]}_infopoly{index}",
+                                         is_output_json=False)
+    
     log_to_file(file_path, f"肘板类别为{classification_res}")
-
+    if classification_res == "Unclassified":
+        return None
+    
     return poly_refs
