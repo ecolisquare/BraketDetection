@@ -184,6 +184,11 @@ def coordinatesmap(p:DPoint,insert,scales,rotation):
     return DPoint(x,y)
 def transform_point(point,meta):
     return coordinatesmap(point,meta.insert,meta.scales,meta.rotation)
+def transform_elements(elements):
+    for e in elements:
+        if e.meta.blockName!="TOP":
+            e.transform()
+
 def segment_arc_intersection(segment: DSegment, arc: DArc):
     # Parametrize the segment
     p1 = segment.start_point
@@ -530,6 +535,7 @@ def readJson(path,segmentation_config):
                 block_sub_datas.append(block_sub_data)
            
         elements,segments=process_blocks(block_sub_datas,segmentation_config)
+        transform_elements(elements)
         return elements,segments
     except FileNotFoundError:  
         print("The file does not exist.")
@@ -1064,7 +1070,7 @@ def compute_line_replines(new_segments,point_map):
 
 def is_repline(s):
     #print( s.ref.meta.scales[0])
-    if isinstance(s.ref,DArc) and s.ref.radius<=200* s.ref.meta.scales[0] and s.ref.radius*s.ref.meta.scales[0]>=20:
+    if isinstance(s.ref,DArc) and s.ref.radius<=200 and s.ref.radius>=20:
         return True
     elif(not isinstance(s.ref,DArc)) and s.length()>=20 and s.length()<=70:
         return True
@@ -1854,14 +1860,14 @@ def outputLines(segments,point_map,polys,cornor_holes,star_pos,texts,texts_pos_m
 def outputPolysAndGeometry(point_map,polys,path,draw_polys=False,draw_geometry=False,n=10):
     t=len(polys) if len(polys)<n else n
     
-    # if draw_geometry:
-    #     pbar=tqdm(total=t,desc="输出几何")
-    #     for i,poly in enumerate(polys):
-    #         if i>=n:
-    #             break
-    #         plot_geometry(poly,os.path.join(path,f"geometry{i}.png"))
-    #         pbar.update()
-    #     pbar.close()
+    if draw_geometry:
+        pbar=tqdm(total=t,desc="输出几何")
+        for i,poly in enumerate(polys):
+            if i>=n:
+                break
+            plot_geometry(poly,os.path.join(path,f"geometry{i}.png"))
+            pbar.update()
+        pbar.close()
    
     if draw_polys:
         pbar=tqdm(total=t,desc="输出多边形")

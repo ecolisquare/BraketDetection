@@ -13,8 +13,8 @@ class SegmentationConfig:
 
         self.draw_poly_nums=1000
         self.poly_image_dir="./output"
-        self.draw_polys=False
-        self.draw_geometry=False
+        self.draw_polys=True
+        self.draw_geometry=True
 
         self.segment_filter_length=0.25
         self.segment_filter_iters=100
