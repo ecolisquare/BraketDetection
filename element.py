@@ -255,6 +255,13 @@ class DText(DElement):
   
     def __repr__(self):  
         return f"Text({self.insert}, color:{self.color},content:{self.content},height:{self.height},handle:{self.handle})"  
+    def  __eq__(self,other):
+        if not isinstance(other,DText):
+            return False
+        else:
+            return (self.content,self.height,self.handle)==(other.content,other.height,other.handle)
+    def __hash__(self):
+        return hash((self.content,self.height,self.handle))
     def transform(self):
         pass
 
