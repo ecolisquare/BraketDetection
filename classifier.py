@@ -50,18 +50,13 @@ def strict_classifier(classification_table, conerhole_num, free_edges_sequence, 
             matched_type = key  # Use the key like 'type_1' as matched type
             break
     
-    if matched_type is not None:
-        result = matched_type
-    else:
-        result = "Unclassified"
-    
-    return result
+    return matched_type if matched_type is not None else "Unclassified"
 
 # 宽松的匹配算法（不考虑角隅孔个数，自由边和固定边与模板的匹配设置一定容错）
 def unrestricted_classifier(classification_table, conerhole_num, free_edges_sequence, reversed_free_edges_sequence, edges_sequence, reversed_edges_sequence):
     matched_type = None
-    free_edges_tolerance = 0
-    non_free_edges_tolerance = 0
+    free_edges_tolerance = 1
+    non_free_edges_tolerance = 2
     for key, row in classification_table.items():
         # 计数自由边不匹配数量
         free_edges_set = set(row["free_edges"])
@@ -104,6 +99,37 @@ def unrestricted_classifier(classification_table, conerhole_num, free_edges_sequ
         break
 
     return matched_type if matched_type is not None else "Unclassified"
+
+def conerhole_free_classifier(classification_table, conerhole_num, free_edges_sequence, reversed_free_edges_sequence, edges_sequence, reversed_edges_sequence):
+    matched_type = None
+    non_conerhole_edges = []
+    reversed_non_conerhole_edges = []
+    # 去掉非自由边轮廓中的角隅孔，只保留固定边
+    for i in range(len(edges_sequence)):
+        if(edges_sequence[i][0] != "cornerhole"):
+            non_conerhole_edges.append(edges_sequence[i][1])
+        if(reversed_edges_sequence[i][0] != "conerhole"):
+            reversed_non_conerhole_edges.append(reversed_edges_sequence[i][1])
+    for key, row in classification_table.items():
+        # step1: 自由边轮廓严格匹配
+        if row["free_edges"] != free_edges_sequence and row["free_edges"] != reversed_free_edges_sequence:
+            continue
+
+        # step2: 非自由边轮廓去除角隅孔后严格匹配
+        temp_sequence = []
+        for i, non_free in enumerate(row["non_free_edges"]):
+            # Check if the type and edges of the current non-free match in sequence
+            if non_free["type"] == "constraint":
+                temp_sequence.append(non_free["edges"])
+
+        if temp_sequence != non_conerhole_edges and temp_sequence != reversed_non_conerhole_edges:
+            continue
+        else:
+            matched_type = key
+            break
+
+    return matched_type if matched_type is not None else "Unclassified"
+
 
 
 def poly_classifier(poly_refs, conerhole_num, poly_free_edges, edges, classification_file_path, info_json_path, keyname, is_output_json = False):

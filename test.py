@@ -145,7 +145,7 @@ def process_json_data(json_path, output_path, training_data_output_folder, train
 
 
 if __name__ == '__main__':
-    folder_path = "/home/user10/code/BraketDetection/newdata"
+    folder_path = "../jndata/"
     output_folder = "./output"
     training_data_output_folder = "./DGCNN/data_folder"
     training_img_output_folder = "./training_img"
