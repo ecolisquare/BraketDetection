@@ -42,7 +42,11 @@ if __name__ == '__main__':
     polys_info = []
     pbar=tqdm(total=len(polys),desc="正在输出结构化信息")
     for i, poly in enumerate(polys):
-        res = outputPolyInfo(poly, new_segments, segmentation_config, point_map, i, star_pos_map, cornor_holes,texts,dimensions,text_pos_map)
+        try:
+            res = outputPolyInfo(poly, new_segments, segmentation_config, point_map, i, star_pos_map, cornor_holes,texts,dimensions,text_pos_map)
+        except Exception as e:
+            res=None
+            print(e)
         pbar.update()
         if res is not None:
             polys_info.append(res)

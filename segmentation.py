@@ -13,7 +13,7 @@ from draw_dxf import *
 
 if __name__ == '__main__':
     segmentation_config=SegmentationConfig()
-
+    verbose=segmentation_config.verbose
     json_path = input("请输入路径: ")
     segmentation_config.json_path = json_path
     if segmentation_config.verbose:
@@ -43,7 +43,11 @@ if __name__ == '__main__':
     polys_info = []
     pbar=tqdm(total=len(polys),desc="正在输出结构化信息")
     for i, poly in enumerate(polys):
-        res = outputPolyInfo(poly, new_segments, segmentation_config, point_map, i, star_pos_map, cornor_holes,texts,dimensions,text_pos_map)
+        try:
+            res = outputPolyInfo(poly, new_segments, segmentation_config, point_map, i, star_pos_map, cornor_holes,texts,dimensions,text_pos_map)
+        except Exception as e:
+            res=None
+            print(e)
         pbar.update()
         if res is not None:
             # print(res)
