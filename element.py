@@ -85,8 +85,22 @@ class DSegment:
     #         self.isConstraint=2
 
 #color=7 white color=3 green
-class DLine:  
+class DElement:  
+    def __init__(self):  
+        pass
+    def coordinatesmap(self,p:DPoint,insert,scales,rotation):
+        rr=rotation/180*math.pi
+        cosine=math.cos(rr)
+        sine=math.sin(rr)
+
+        # x,y=(p[0]*scales[0]+100)/200,(p[1]*scales[1]+100)/200
+        x,y=((cosine*p[0]-sine*p[1])*scales[0])+insert[0],((sine*p[0]+cosine*p[1])*scales[1])+insert[1]
+        return DPoint(x,y)
+    def transform_point(self,point,meta):
+        return self.coordinatesmap(point,meta.insert,meta.scales,meta.rotation)
+class DLine(DElement):  
     def __init__(self, start_point: DPoint=DPoint(0,0), end_point: DPoint=DPoint(1,0),color=7,handle="",meta=None):  
+        super().__init__()
         self.start_point = start_point  
         self.end_point = end_point  
         self.color=color
@@ -107,9 +121,14 @@ class DLine:
     #     s=DSegment(self.start_point,self.end_point,None)
     #     self.weight=s.length()
     #     self.bc=DPoint((s.start_point.x+s.end_point.x)/2,(s.start_point.y+s.end_point.y)/2)
+   
+    def transform(self):
+        self.start_point=self.transform_point(self.start_point,self.meta)
+        self.end_point=self.transform_point(self.end_point,self.meta)
 
-class DLwpolyline:  
+class DLwpolyline(DElement):  
     def __init__(self, points: list[DPoint],color=7,isClosed=False,handle="",isLwPolyline=False,verticesType=[],ori_vertices=[],hasArc=False,meta=None):  
+        super().__init__()
         self.points = points
         self.color=color  
         self.isClosed=isClosed
@@ -137,7 +156,11 @@ class DLwpolyline:
                         return False
                 
                 return (self.isClosed,self.color,self.handle)==(other.isClosed,other.color,other.handle)
-
+    def transform(self):
+        newpoints=[]
+        for p in self.points:
+            newpoints.append(self.transform_point(p,self.meta))
+        self.points=newpoints
     # def computeCenterCoordinateAndWeight(self):
     #     w=0
     #     x=0
@@ -160,8 +183,9 @@ class DLwpolyline:
     #     self.bc=DPoint(x/w,y/w)
 
 
-class DArc:  
+class DArc(DElement):  
     def __init__(self, center: DPoint, radius: float, start_angle: float, end_angle: float,color=7,handle="",meta=None):  
+        super().__init__()
         self.center = center  
         self.radius = radius  
         self.start_angle = start_angle  # in degrees  
@@ -202,11 +226,24 @@ class DArc:
                            self.center.y + self.radius * math.sin(ea))
 
         return start_point, end_point
-        
+    def transform(self):
+        self.center=self.transform_point(self.center,self.meta)
+        self.radius=self.meta.scales[0]*self.radius
+        self.start_angle = self.start_angle+self.meta.rotation  # in degrees  
+        self.end_angle = self.end_angle+self.meta.rotation     # in degrees  
+        sa=self.start_angle/180*math.pi
+        ea=self.end_angle/180*math.pi
+        c1=math.cos(sa)
+        s1=math.sin(sa)
+        c2=math.cos(ea)
+        s2=math.sin(ea)
+        self.start_point=DPoint(self.center[0]+self.radius*c1,self.center[1]+self.radius*s1)
+        self.end_point=DPoint(self.center[0]+self.radius*c2,self.center[1]+self.radius*s2)
   
 
-class DText:  
+class DText(DElement):  
     def __init__(self,bound,insert: DPoint=DPoint(0,0),color=7,content="",height=100,handle="",meta=None):  
+        super().__init__()
         self.bound=bound
         self.insert=insert
         self.color=color
@@ -218,10 +255,19 @@ class DText:
   
     def __repr__(self):  
         return f"Text({self.insert}, color:{self.color},content:{self.content},height:{self.height},handle:{self.handle})"  
-  
+    def  __eq__(self,other):
+        if not isinstance(other,DText):
+            return False
+        else:
+            return (self.content,self.height,self.handle)==(other.content,other.height,other.handle)
+    def __hash__(self):
+        return hash((self.content,self.height,self.handle))
+    def transform(self):
+        pass
 
-class DDimension:
+class DDimension(DElement):
     def __init__(self,textpos: DPoint=DPoint(0,0),color=7,text="",measurement=100,defpoints=[],dimtype=32,handle="",meta=None):  
+        super().__init__()
         self.textpos=textpos
         self.text=text
         self.color=color
@@ -242,6 +288,8 @@ class DDimension:
     def __repr__(self):  
         return f"Dimension(pos:{self.textpos}, text:{self.text},color:{self.color},measurement:{self.measurement},defpoints:{self.defpoints},dimtype:{self.dimtype},handle:{self.handle})"  
 
+    def transform(self):
+        pass
 class DCornorHole:
     cornor_hole_id=0
     def __init__(self,segments=[]):

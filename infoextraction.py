@@ -225,7 +225,7 @@ def outputPolyInfo(poly, segments, segmentation_config, point_map, index,star_po
     for seg in poly_refs:
         if seg in cornor_holes_map:
             seg.isCornerhole=True
-            # print(seg)
+            #print(seg)
             
 
     
@@ -293,6 +293,7 @@ def outputPolyInfo(poly, segments, segmentation_config, point_map, index,star_po
                     continue
                 
                 if is_parallel(segment, other):
+                    #print(segment,other)
                     s1 = DSegment(
                         DPoint(segment.start_point.x + v_1[0], segment.start_point.y + v_1[1]),
                         DPoint(segment.start_point.x - v_1[0], segment.start_point.y - v_1[1])
@@ -325,6 +326,8 @@ def outputPolyInfo(poly, segments, segmentation_config, point_map, index,star_po
                     if i1 is not None or i2 is not None or i3 is not None:
                         segment.isConstraint = True
                         poly_refs[i].isConstraint = True
+                        
+                        #print(segment,other)
                         break
                        
 
@@ -467,7 +470,7 @@ def outputPolyInfo(poly, segments, segmentation_config, point_map, index,star_po
     # print(free_edges)
     # print("=============")
     # print(cornerhole_edges)
-    #plot_info_poly(poly_refs, os.path.join(segmentation_config.poly_info_dir, f'infopoly{index}.png'),ts,bs,bps)
+    #plot_info_poly(poly_refs, os.path.join(segmentation_config.poly_info_dir, f'infopoly{index}.png'),ts,ds)
     if len(free_edges) > 1:
         print(f"回路{index}超过两条自由边！")
         #return poly_refs
@@ -486,7 +489,7 @@ def outputPolyInfo(poly, segments, segmentation_config, point_map, index,star_po
 
     for constarint_edge in constraint_edges:
         for seg in constarint_edge:
-            if not isinstance(seg.ref, DArc):
+            if not (isinstance(seg.ref, DArc) and seg.ref.radius<200):
                 constraint_edge_poly.append(seg.start_point)
                 constraint_edge_poly.append(seg.end_point)
 

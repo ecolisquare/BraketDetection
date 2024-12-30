@@ -207,8 +207,8 @@ def plot_info_poly(segments, path,texts,dimensions):
             theta = np.linspace(np.radians(segment.ref.start_angle), np.radians(end_angle), 100)
             x_arc = segment.ref.center.x + segment.ref.radius * np.cos(theta)
             y_arc = segment.ref.center.y + segment.ref.radius * np.sin(theta)
-            p=transform_point_(DPoint(x_arc,y_arc),segment.ref.meta)
-            ax.plot(p.x, p.y, color, lw=2)
+            # p=transform_point_(DPoint(x_arc,y_arc),segment.ref.meta)
+            ax.plot(x_arc, y_arc, color, lw=2)
         else:
             x_values = [segment.start_point.x, segment.end_point.x]
             y_values = [segment.start_point.y, segment.end_point.y]
@@ -245,8 +245,8 @@ def outputRes(segments,point_map,polys,resPNGPath,drawIntersections=False,drawLi
                     theta = np.linspace(np.radians(segment.ref.start_angle), np.radians(end_angle), 100)
                     x_arc = segment.ref.center.x + segment.ref.radius * np.cos(theta)
                     y_arc = segment.ref.center.y + segment.ref.radius * np.sin(theta)
-                    p=transform_point_(DPoint(x_arc,y_arc),segment.ref.meta)
-                    ax.plot(p.x, p.y, color, lw=2)
+                    # p=transform_point_(DPoint(x_arc,y_arc),segment.ref.meta)
+                    ax.plot(x_arc, y_arc, color, lw=2)
                 else:
                     x_values = [segment.start_point.x, segment.end_point.x]
                     y_values = [segment.start_point.y, segment.end_point.y]

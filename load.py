@@ -438,19 +438,19 @@ def dxf2json(dxfpath,dxfname,output_folder):
 
 if __name__ == "__main__":
     
-    # dxfpath = '/home/user10/code/BraketDetection/data'
-    # dxfname = 'A-1-block.dxf'
-    # dxf2json(dxfpath,dxfname, dxfpath)
-    folder_path = '../jndata2/newdata'
-    output_foler='../jndata2/newdata'
-    for filename in os.listdir(folder_path):
-        # 检查文件是否是JSON文件
-        if filename.endswith('.json'):
-            file_path = os.path.join(folder_path, filename)
-            name = os.path.splitext(filename)[0]
-            output_path = os.path.join(output_foler, name)
-            # training_data_output_path = os.path.join(training_data_output_folder, name)
-            print(f"正在处理文件: {file_path}")
+    dxfpath = '/home/user10/code/BraketDetection/data'
+    dxfname = 'FR22te.dxf'
+    dxf2json(dxfpath,dxfname, dxfpath)
+    # folder_path = '/home/user10/code/BraketDetection/data'
+    # output_foler='/home/user10/code/BraketDetection/data'
+    # for filename in os.listdir(folder_path):
+    #     # 检查文件是否是JSON文件
+    #     if filename.endswith('.json'):
+    #         file_path = os.path.join(folder_path, filename)
+    #         name = os.path.splitext(filename)[0]
+    #         output_path = os.path.join(output_foler, name)
+    #         # training_data_output_path = os.path.join(training_data_output_folder, name)
+    #         print(f"正在处理文件: {file_path}")
             
             # 打开并读取JSON文件内容
             try:

@@ -46,6 +46,7 @@ if __name__ == '__main__':
         res = outputPolyInfo(poly, new_segments, segmentation_config, point_map, i, star_pos_map, cornor_holes,texts,dimensions,text_pos_map)
         pbar.update()
         if res is not None:
+            # print(res)
             polys_info.append(res)
     pbar.close()
     print("结构化信息输出完毕，保存于:", segmentation_config.poly_info_dir)
