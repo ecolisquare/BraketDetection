@@ -100,9 +100,9 @@ def plot_info_poly(segments, path,texts,dimensions):
         content=t.content
         if pos not in t_map:
             t_map[pos]=[]
-            t_map[pos].append(content)
+            t_map[pos].append([content,t_t[2],t_t[3]])
         else:
-            t_map[pos].append(content)
+            t_map[pos].append([content,t_t[2],t_t[3]])
     for pos,cs in t_map.items():
         ax.text(pos.x, pos.y, cs, fontsize=12, color='blue', rotation=0)
     for d_t in dimensions:

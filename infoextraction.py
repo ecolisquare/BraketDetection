@@ -107,7 +107,7 @@ def calculate_poly_centroid(poly):
     return (x, y)
 
 
-def calculate_poly_refs(poly):
+def calculate_poly_refs(poly,segmentation_config):
     refs = []
     
     for segment in poly:
@@ -121,7 +121,7 @@ def calculate_poly_refs(poly):
             if len(refs) != 0:
                 last_segment = refs[-1]
                 # 判断是否平行
-                if is_parallel(last_segment, segment):
+                if is_parallel(last_segment, segment,segmentation_config.is_parallel_tolerance):
                     new_segment = DSegment(
                         start_point=last_segment.start_point,
                         end_point=segment.end_point,
@@ -141,7 +141,7 @@ def calculate_poly_refs(poly):
                 last_segment.ref.start_angle, last_segment.ref.end_angle, last_segment.ref.center, last_segment.ref.radius):
                 refs.pop()
         elif not isinstance(first_segment.ref, DArc) and not isinstance(last_segment.ref, DArc):
-            if is_parallel(first_segment, last_segment):
+            if is_parallel(first_segment, last_segment,segmentation_config.is_parallel_tolerance):
                 new_segment = DSegment(
                     start_point=last_segment.start_point,
                     end_point=first_segment.end_point,
@@ -152,7 +152,7 @@ def calculate_poly_refs(poly):
 
     return refs
 
-def textsInPoly(text_pos_map,poly,segmentation_config):
+def textsInPoly(text_map,poly,segmentation_config):
     x_min,x_max,y_min,y_max=computeBoundingBox(poly)
     if segmentation_config.bracket_bbox_expand_is_ratio:
         xx=(x_max-x_min)*segmentation_config.bracket_bbox_expand_ratio
@@ -165,10 +165,10 @@ def textsInPoly(text_pos_map,poly,segmentation_config):
     y_max=y_max+yy
     y_min=y_min-yy
     ts=[]
-    for pos,texts in text_pos_map.items():
+    for pos,texts in text_map.items():
         for t in texts:
             if x_min <= pos.x and pos.x <=x_max and y_min <=pos.y and y_max>=pos.y:
-                ts.append([t,pos])
+                ts.append([t[0],pos,t[1],t[2]])
     return ts
 
 def braketTextInPoly(braket_texts,braket_pos,poly,segmentation_config):
@@ -212,12 +212,12 @@ def dimensionsInPoly(dimensions,poly,segmentation_config):
         if x_min <= pos.x and pos.x <=x_max and y_min <=pos.y and y_max>=pos.y:
             ds.append([d,pos])
     return ds
-def outputPolyInfo(poly, segments, segmentation_config, point_map, index,star_pos_map,cornor_holes,texts,dimensions,text_pos_map):
+def outputPolyInfo(poly, segments, segmentation_config, point_map, index,star_pos_map,cornor_holes,texts,dimensions,text_map):
     # step1: 计算几何中心坐标
     poly_centroid = calculate_poly_centroid(poly)
 
     # step2: 合并边界线
-    poly_refs = calculate_poly_refs(poly)
+    poly_refs = calculate_poly_refs(poly,segmentation_config)
 
 
 
@@ -304,7 +304,7 @@ def outputPolyInfo(poly, segments, segmentation_config, point_map, index,star_po
                 if segment == other:
                     continue
                 
-                if is_parallel(segment, other):
+                if is_parallel(segment, other,segmentation_config.is_parallel_tolerance):
                     #print(segment,other)
                     s1 = DSegment(
                         DPoint(segment.start_point.x + v_1[0], segment.start_point.y + v_1[1]),
@@ -338,7 +338,10 @@ def outputPolyInfo(poly, segments, segmentation_config, point_map, index,star_po
                     if i1 is not None or i2 is not None or i3 is not None:
                         segment.isConstraint = True
                         poly_refs[i].isConstraint = True
-                        
+                        # if poly_refs[i].length()<=27 and poly_refs[i].length()>=25:
+                        #     print(poly_refs[i])
+                        #     print(other)
+                        #     print(i1,i2,i3)
                         #print(segment,other)
                         break
                        
@@ -458,7 +461,7 @@ def outputPolyInfo(poly, segments, segmentation_config, point_map, index,star_po
 
   
     # step 5.5：找到所有的标注
-    ts=textsInPoly(text_pos_map,poly,segmentation_config)
+    tis=textsInPoly(text_map,poly,segmentation_config)
     ds=dimensionsInPoly(dimensions,poly,segmentation_config)
     # print(free_edges)
     # print(cornor_holes[0].segments)
@@ -482,7 +485,7 @@ def outputPolyInfo(poly, segments, segmentation_config, point_map, index,star_po
     # print(free_edges)
     # print("=============")
     # print(cornerhole_edges)
-    #plot_info_poly(poly_refs, os.path.join(segmentation_config.poly_info_dir, f'infopoly{index}.png'),ts,ds)
+    #plot_info_poly(poly_refs, os.path.join(segmentation_config.poly_info_dir, f'infopoly{index}.png'),tis,ds)
     if len(free_edges) > 1:
         print(f"回路{index}超过两条自由边！")
         #return poly_refs
@@ -505,8 +508,8 @@ def outputPolyInfo(poly, segments, segmentation_config, point_map, index,star_po
                 constraint_edge_poly.append(seg.start_point)
                 constraint_edge_poly.append(seg.end_point)
 
-    if not is_near_convex(constraint_edge_poly, index):
-        print("去圆弧外固定边多边形不是凸多边形")
+    if not is_near_convex(constraint_edge_poly, index,segmentation_config.near_convex_tolerance):
+        print(f"回路{index}去圆弧外固定边多边形不是凸多边形")
         return None
     
     # 如果自由边轮廓中出现了夹角小于45°的折线则不进行输出
@@ -516,8 +519,8 @@ def outputPolyInfo(poly, segments, segmentation_config, point_map, index,star_po
         if isinstance(seg1.ref, DArc) or isinstance(seg2.ref, DArc):
             continue
         angle = calculate_angle(seg1.start_point, seg1.end_point, seg2.end_point)
-        if angle < 45:
-            print("自由边轮廓中出现了夹角小于45°的折线")
+        if angle < segmentation_config.min_angle_in_free_edge:
+            print(f"回路{index}自由边轮廓中出现了夹角小于45°的折线")
             return None
 
     # 如果自由边长度在总轮廓长度中占比不超过25%则不进行输出
@@ -532,12 +535,12 @@ def outputPolyInfo(poly, segments, segmentation_config, point_map, index,star_po
         if not seg.isConstraint and not seg.isCornerhole:
             free_len += l
         all_len += l
-    if free_len / all_len < 0.25:
-        print("自由边长度在总轮廓长度中占比不超过25%")
+    if free_len / all_len < segmentation_config.free_edge_ratio:
+        print(f"回路{index}自由边长度在总轮廓长度中占比不超过{segmentation_config.free_edge_ratio*100}%")
         return None
     
     # step6: 绘制对边分类后的几何图像
-    plot_info_poly(poly_refs, os.path.join(segmentation_config.poly_info_dir, f'infopoly{index}.png'),ts,ds)
+    plot_info_poly(poly_refs, os.path.join(segmentation_config.poly_info_dir, f'infopoly{index}.png'),tis,ds)
 
     # step7: 输出几何中心和边界信息
     file_path = os.path.join(segmentation_config.poly_info_dir, f'info{index}.txt')
@@ -582,12 +585,14 @@ def outputPolyInfo(poly, segments, segmentation_config, point_map, index,star_po
 
     # step10:输出周围标注信息
     k=0
-    for i,t_t in enumerate(ts):
+    for i,t_t in enumerate(tis):
         t=t_t[0]
         pos=t_t[1]
         content=t.content
         log_to_file(file_path,f"标注{i+1}:")
         log_to_file(file_path,f"位置: {pos}、内容: {content}、颜色: {t.color}、句柄: {t.handle}")
+        log_to_file(file_path,str(t_t[2]))
+        log_to_file(file_path,t_t[3])
         k+=1
     for i,d_t in enumerate(ds):
         d=d_t[0]

@@ -228,7 +228,7 @@ class DArc(DElement):
         return start_point, end_point
     def transform(self):
         self.center=self.transform_point(self.center,self.meta)
-        self.radius=self.meta.scales[0]*self.radius
+        self.radius=math.fabs(self.meta.scales[0])*self.radius
         self.start_angle = self.start_angle+self.meta.rotation  # in degrees  
         self.end_angle = self.end_angle+self.meta.rotation     # in degrees  
         sa=self.start_angle/180*math.pi
@@ -282,7 +282,7 @@ class DDimension(DElement):
             elif self.dimtype==163:
                 self.text="Φ"+str(round(self.measurement))
             else:
-                self.text=str(round(round(self.measurement/2)*2))
+                self.text=str(round(round(self.measurement/5)*5))
 
   
     def __repr__(self):  

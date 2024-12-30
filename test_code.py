@@ -40,6 +40,20 @@
 # print(f"Optimal N: {N_opt}")
 # print(f"Minimum value: {objective((p_opt, N_opt))}")
 
-s=set()
-s.add(("1",120,"123"))
-print(("1",120,"2123") in s)
+# s=set()
+# s.add(("1",120,"123"))
+# print(("1",120,"2123") in s)
+
+from bracket_parameter_extraction import *
+
+# Example usage
+if __name__ == "__main__":
+    labels = [
+        # (" 45 ", "no annotation line"), (" text 120", "no annotation line"), ("120DH ", "top"), ("other 45DH", "bottom"),
+        # ("  B150X10A ", "top"), ("  FB120X10   ", "bottom"), ("FL150", "bottom"),
+        # (" BK01 extra ", "top"), ("R300", "no annotation line")
+        ("100X12","bottom"),("   100X12","bottom"),(" B150  ~DH  ","top"),(" B150  ~DH  ","bottom")
+    ]
+    for label, position in labels:
+        result = parse_elbow_plate(label, annotation_position=position)
+        print(f"Parse Result ({position}):", result)

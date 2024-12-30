@@ -438,14 +438,14 @@ def dxf2json(dxfpath,dxfname,output_folder):
 
 if __name__ == "__main__":
     
-    dxfpath = '/home/user10/code/BraketDetection/data'
-    dxfname = 'FR22te.dxf'
-    dxf2json(dxfpath,dxfname, dxfpath)
-    folder_path = '/home/user10/code/BraketDetection/data'
-    output_foler='/home/user10/code/BraketDetection/data'
+    # dxfpath = '/home/user10/code/BraketDetection/data/text_data'
+    # dxfname = 'Text2.dxf'
+    # dxf2json(dxfpath,dxfname, dxfpath)
+    folder_path = '/home/user10/code/BraketDetection/text_data'
+    output_foler='/home/user10/code/BraketDetection/text_data'
     for filename in os.listdir(folder_path):
         # 检查文件是否是JSON文件
-        if filename.endswith('.json'):
+        if filename.endswith('.dxf'):
             file_path = os.path.join(folder_path, filename)
             name = os.path.splitext(filename)[0]
             output_path = os.path.join(output_foler, name)

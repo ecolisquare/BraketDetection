@@ -10,6 +10,7 @@ class SegmentationConfig:
         self.draw_intersections=False
         self.draw_segments=True
         self.line_image_drawPolys=True
+        self.draw_texts=True
 
         self.draw_poly_nums=1000
         self.poly_image_dir="./output"
@@ -22,19 +23,19 @@ class SegmentationConfig:
         self.segment_split_epsilon=0.25
 
         self.intersection_epsilon=1e-9
-
-        self.bbox_area=3000
+        #包围盒
+        self.bbox_min_area=5000
+        self.bbox_max_area=1000*1500
         self.bbox_ratio=6
 
 
         self.remove_tolerance=1e-5
 
-
+        #聚类算法合并重复路径
         self.eps=20
         self.min_samples=1
 
-        self.path_max_length = 20
-        self.path_min_length = 3
+      
 
         self.poly_info_dir = "./output"
         self.res_image_path = "./output/res.png"
@@ -48,6 +49,14 @@ class SegmentationConfig:
 
         self.json_output_path = "./output/bracket.json"   #输出解析后的肘板轮廓，便于调整匹配算法
 
+        #肘板边数
+        self.path_max_length = 20
+        self.path_min_length = 3
+        #compute cornor_hole
+        self.repline_neighbor_min_length=14
+
+        #repline邻域边最小长度
+        self.check_valid_min_length=20
         #is_repline
         self.arc_repline_min_length=20
         self.arc_repline_max_length=200
@@ -64,7 +73,7 @@ class SegmentationConfig:
         self.reference_text_max_distance=180
 
         #dfs
-        self.dfs_optional=False
+        self.dfs_optional=True
 
         #constraint determine--parallel
         self.parallel_max_distance= 50
@@ -74,3 +83,21 @@ class SegmentationConfig:
         self.bracket_bbox_expand_length=50
         self.bracket_bbox_expand_ratio=0.25
         self.bracket_bbox_expand_is_ratio=True
+
+
+        #is_parallel_tolerance
+        self.is_parallel_tolerance_neighobor=0.16
+        self.is_parallel_tolerance=0.1
+        #readJson
+        self.line_type=["BYLAYER", "Continuous","Bylayer","CONTINUOUS","ByBlock","BYBLOCK"]
+        self.color=[3, 7, 8, 4,2,140,254]
+        self.element_type=["line","arc","lwpolyline","polyline","spline"]
+        self.remove_layername=["Stiffener_Invisible"]
+
+        #check is bracket
+        #偏离凸多边形的程度
+        self.near_convex_tolerance=0.1
+        #自由边角度下限
+        self.min_angle_in_free_edge=45
+        #自由边占比
+        self.free_edge_ratio=0.15
