@@ -1,72 +1,106 @@
+import sys
+import os
+import json
+from PySide6.QtWidgets import (
+    QApplication, QMainWindow, QFileDialog, QLineEdit, QPushButton, QVBoxLayout, QWidget, QLabel, QMessageBox
+)
+from PySide6.QtCore import Qt
+
+# 假设您已有的所有import保留，例如 element, utils 等
 from element import *
-import matplotlib.pyplot as plt
 from utils import *
 from infoextraction import *
-import numpy as np
-import os
 from plot_geo import *
 from draw_dxf import *
 from config import *
 
 
-def output_training_data(polys, training_data_output_folder, name):
-    # 如果输出文件夹不存在，则创建
-    os.makedirs(training_data_output_folder, exist_ok=True)
-    
-    for i, poly in enumerate(polys):
-        # 计算多边形中心坐标
-        num_points = 0
-        center_x, center_y = 0.0, 0.0
-        
-        for seg in poly:
-            (start_x, start_y), (end_x, end_y), length = seg.start_point, seg.end_point, seg.length()
-            center_x += start_x + end_x
-            center_y += start_y + end_y
-            num_points += 2  # 每个seg有两个点
-        
-        # 计算中心坐标
-        center_x /= num_points
-        center_y /= num_points
+class MainWindow(QMainWindow):
+    def __init__(self):
+        super().__init__()
+        self.setWindowTitle("JSON 文件处理工具")
+        self.setGeometry(300, 300, 600, 200)
 
-        # 创建文件并输出每个线段信息
-        output_file = os.path.join(training_data_output_folder, f"{name}_{i}.txt")
-        with open(output_file, "w") as f:
-            for seg in poly:
-                (start_x, start_y), (end_x, end_y), length = seg.start_point, seg.end_point, seg.length()
-                
-                # 平移线段的起点和终点
-                shifted_start_x = start_x - center_x
-                shifted_start_y = start_y - center_y
-                shifted_end_x = end_x - center_x
-                shifted_end_y = end_y - center_y
-                
-                # 将平移后的线段信息写入文件，保留两位小数
-                f.write(f"{shifted_start_x:.2f} {shifted_start_y:.2f} {shifted_end_x:.2f} {shifted_end_y:.2f} {length:.2f}\n")
-            
+        # 创建界面组件
+        self.folder_path_input = QLineEdit(self)
+        self.folder_path_input.setPlaceholderText("输入 JSON 文件夹路径")
+        self.folder_path_browse_button = QPushButton("浏览")
+        self.folder_path_browse_button.clicked.connect(self.browse_folder)
 
-def process_json_files(folder_path, output_foler, training_data_output_folder, training_img_output_folder):
-    # 检查文件夹是否存在
+        self.output_folder_input = QLineEdit(self)
+        self.output_folder_input.setPlaceholderText("输入输出文件夹路径")
+        self.output_folder_browse_button = QPushButton("浏览")
+        self.output_folder_browse_button.clicked.connect(self.browse_output_folder)
+
+        self.start_button = QPushButton("开始处理")
+        self.start_button.clicked.connect(self.start_processing)
+
+        # 布局
+        layout = QVBoxLayout()
+        layout.addWidget(QLabel("JSON 文件夹路径:"))
+        layout.addWidget(self.folder_path_input)
+        layout.addWidget(self.folder_path_browse_button)
+
+        layout.addWidget(QLabel("输出文件夹路径:"))
+        layout.addWidget(self.output_folder_input)
+        layout.addWidget(self.output_folder_browse_button)
+
+        layout.addWidget(self.start_button)
+
+        container = QWidget()
+        container.setLayout(layout)
+        self.setCentralWidget(container)
+
+    def browse_folder(self):
+        folder = QFileDialog.getExistingDirectory(self, "选择 JSON 文件夹")
+        if folder:
+            self.folder_path_input.setText(folder)
+
+    def browse_output_folder(self):
+        folder = QFileDialog.getExistingDirectory(self, "选择输出文件夹")
+        if folder:
+            self.output_folder_input.setText(folder)
+
+    def start_processing(self):
+        folder_path = self.folder_path_input.text().strip()
+        output_folder = self.output_folder_input.text().strip()
+
+        if not folder_path or not os.path.isdir(folder_path):
+            QMessageBox.critical(self, "错误", "请输入有效的 JSON 文件夹路径")
+            return
+
+        if not output_folder:
+            QMessageBox.critical(self, "错误", "请输入有效的输出文件夹路径")
+            return
+
+        training_data_output_folder = os.path.join(output_folder, "DGCNN/data_folder")
+        training_img_output_folder = os.path.join(output_folder, "training_img")
+
+        try:
+            process_json_files(folder_path, output_folder, training_data_output_folder, training_img_output_folder)
+            QMessageBox.information(self, "完成", "处理完成！")
+        except Exception as e:
+            QMessageBox.critical(self, "错误", f"处理文件时出错: {e}")
+
+
+def process_json_files(folder_path, output_folder, training_data_output_folder, training_img_output_folder):
+    # 保留您原有的逻辑
     if not os.path.isdir(folder_path):
         print(f"路径 {folder_path} 不存在或不是一个文件夹。")
         return
-    
-    # 遍历文件夹中的每个文件
+
     for filename in os.listdir(folder_path):
-        # 检查文件是否是JSON文件
         if filename.endswith('.json'):
             file_path = os.path.join(folder_path, filename)
             name = os.path.splitext(filename)[0]
-            output_path = os.path.join(output_foler, name)
-            # training_data_output_path = os.path.join(training_data_output_folder, name)
-            print(f"正在处理文件: {file_path}")
-            
-            # 打开并读取JSON文件内容
+            output_path = os.path.join(output_folder, name)
             try:
-                process_json_data(file_path, output_path, training_data_output_folder, training_img_output_folder, name)  # 对数据进行操作
+                process_json_data(file_path, output_path, training_data_output_folder, training_img_output_folder, name)
             except json.JSONDecodeError as e:
                 print(f"解析JSON文件 {file_path} 时出错: {e}")
             except Exception as e:
                 print(f"处理文件 {file_path} 时出错: {e}")
+
 
 def process_json_data(json_path, output_path, training_data_output_folder, training_img_output_folder, name):
     segmentation_config=SegmentationConfig()
@@ -140,9 +174,10 @@ def process_json_data(json_path, output_path, training_data_output_folder, train
     draw_rectangle_in_dxf(dxf_path, dxf_output_folder, bboxs)
 
 
-if __name__ == '__main__':
-    folder_path = "../jndata/"
-    output_folder = "./output"
-    training_data_output_folder = "./DGCNN/data_folder"
-    training_img_output_folder = "./training_img"
-    process_json_files(folder_path, output_folder, training_data_output_folder, training_img_output_folder)
+if __name__ == "__main__":
+    app = QApplication(sys.argv)
+
+    main_window = MainWindow()
+    main_window.show()
+
+    sys.exit(app.exec())
