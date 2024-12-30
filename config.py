@@ -86,7 +86,9 @@ class SegmentationConfig:
 
 
         #is_parallel_tolerance
+        #筛选角隅孔时的平行判断
         self.is_parallel_tolerance_neighobor=0.16
+        #固定边平行判断
         self.is_parallel_tolerance=0.1
         #readJson
         self.line_type=["BYLAYER", "Continuous","Bylayer","CONTINUOUS","ByBlock","BYBLOCK"]

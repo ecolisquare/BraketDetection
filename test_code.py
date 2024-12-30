@@ -52,7 +52,7 @@ if __name__ == "__main__":
         # (" 45 ", "no annotation line"), (" text 120", "no annotation line"), ("120DH ", "top"), ("other 45DH", "bottom"),
         # ("  B150X10A ", "top"), ("  FB120X10   ", "bottom"), ("FL150", "bottom"),
         # (" BK01 extra ", "top"), ("R300", "no annotation line")
-        ("100X12","bottom"),("   100X12","bottom"),(" B150  ~DH  ","top"),(" B150  ~DH  ","bottom")
+        ("100X12","bottom"),("   100X12","bottom"),(" B150  ~DH  ","top"),(" B150  ~DH  ","bottom"),(" B150  % DH  ","top"),("%DH","top")
     ]
     for label, position in labels:
         result = parse_elbow_plate(label, annotation_position=position)
