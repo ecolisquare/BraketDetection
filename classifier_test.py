@@ -1,5 +1,5 @@
 import json
-from classifier import strict_classifier, unrestricted_classifier
+from classifier import strict_classifier, unrestricted_classifier, conerhole_free_classifier
 
 def load_classification_table(file_path):
     """
@@ -50,6 +50,11 @@ def poly_classifier(classification_file_path, polygons_file_path, output_file_pa
                 classification_table, cornerhole_num, free_edges_sequence,
                 reversed_free_edges_sequence, edges_sequence, reversed_edges_sequence
             )
+        elif strategy == "conerhole_free":
+            matched_type = conerhole_free_classifier(
+                classification_table, cornerhole_num, free_edges_sequence,
+                reversed_free_edges_sequence, edges_sequence, reversed_edges_sequence
+            )
         else:
             raise ValueError(f"Unknown classification strategy: {strategy}")
 
@@ -66,4 +71,4 @@ if __name__ == '__main__':
     classification_file_path = "./type.json"
     polygons_file_path = "./output/bracket.json"
     output_file_path = "./output/classifier_res1.txt"
-    poly_classifier(classification_file_path, polygons_file_path, output_file_path, strategy="strict")
+    poly_classifier(classification_file_path, polygons_file_path, output_file_path, strategy="unrestricted")
