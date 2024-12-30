@@ -106,7 +106,11 @@ def process_json_data(json_path, output_path, training_data_output_folder, train
     polys_info = []
     print("正在输出结构化信息...")
     for i, poly in enumerate(ppolys):
-        res = outputPolyInfo(poly, new_segments, segmentation_config, point_map, i, star_pos_map, cornor_holes,texts,dimensions,text_pos_map)
+        try:
+            res = outputPolyInfo(poly, new_segments, segmentation_config, point_map, i, star_pos_map, cornor_holes,texts,dimensions,text_pos_map)
+        except Exception as e:
+            res=None
+            print(e)
         if res is not None:
             polys_info.append(res)
 

@@ -152,10 +152,14 @@ def calculate_poly_refs(poly):
 
     return refs
 
-def textsInPoly(text_pos_map,poly):
+def textsInPoly(text_pos_map,poly,segmentation_config):
     x_min,x_max,y_min,y_max=computeBoundingBox(poly)
-    xx=(x_max-x_min)*0.25
-    yy=(y_max-y_min)*0.25
+    if segmentation_config.bracket_bbox_expand_is_ratio:
+        xx=(x_max-x_min)*segmentation_config.bracket_bbox_expand_ratio
+        yy=(y_max-y_min)*segmentation_config.bracket_bbox_expand_ratio
+    else:
+        xx=segmentation_config.bracket_bbox_expand_length
+        yy=segmentation_config.bracket_bbox_expand_length
     x_min=x_min-xx
     x_max=x_max+xx
     y_max=y_max+yy
@@ -167,10 +171,14 @@ def textsInPoly(text_pos_map,poly):
                 ts.append([t,pos])
     return ts
 
-def braketTextInPoly(braket_texts,braket_pos,poly):
+def braketTextInPoly(braket_texts,braket_pos,poly,segmentation_config):
     x_min,x_max,y_min,y_max=computeBoundingBox(poly)
-    xx=(x_max-x_min)*0.25
-    yy=(y_max-y_min)*0.25
+    if segmentation_config.bracket_bbox_expand_is_ratio:
+        xx=(x_max-x_min)*segmentation_config.bracket_bbox_expand_ratio
+        yy=(y_max-y_min)*segmentation_config.bracket_bbox_expand_ratio
+    else:
+        xx=segmentation_config.bracket_bbox_expand_length
+        yy=segmentation_config.bracket_bbox_expand_length
     x_min=x_min-xx
     x_max=x_max+xx
     y_max=y_max+yy
@@ -185,10 +193,14 @@ def braketTextInPoly(braket_texts,braket_pos,poly):
     return ts,bps
 
 
-def dimensionsInPoly(dimensions,poly):
+def dimensionsInPoly(dimensions,poly,segmentation_config):
     x_min,x_max,y_min,y_max=computeBoundingBox(poly)
-    xx=(x_max-x_min)*0.25
-    yy=(y_max-y_min)*0.25
+    if segmentation_config.bracket_bbox_expand_is_ratio:
+        xx=(x_max-x_min)*segmentation_config.bracket_bbox_expand_ratio
+        yy=(y_max-y_min)*segmentation_config.bracket_bbox_expand_ratio
+    else:
+        xx=segmentation_config.bracket_bbox_expand_length
+        yy=segmentation_config.bracket_bbox_expand_length
     x_min=x_min-xx
     x_max=x_max+xx
     y_max=y_max+yy
@@ -286,7 +298,7 @@ def outputPolyInfo(poly, segments, segmentation_config, point_map, index,star_po
             dy_1 = segment.end_point.y - segment.start_point.y
             mid_point=DPoint((segment.end_point.x+segment.start_point.x)/2,(segment.end_point.y+segment.start_point.y)/2)
             l = (dx_1**2 + dy_1**2)**0.5
-            v_1 = (dy_1 / l * 50.0, -dx_1 / l * 50.0)
+            v_1 = (dy_1 / l * segmentation_config.parallel_max_distance, -dx_1 / l * segmentation_config.parallel_max_distance)
             point1,point2,point3=segment.start_point,segment.end_point,mid_point
             for j, other in enumerate(segments):
                 if segment == other:
@@ -317,11 +329,11 @@ def outputPolyInfo(poly, segments, segmentation_config, point_map, index,star_po
                     i3 = segment_intersection(s3.start_point, s3.end_point, other.start_point, other.end_point)
                     if i3 == other.end_point or i3 == other.start_point:
                         i3 = None
-                    if i1 is not None and DSegment(i1,point1).length()<15:
+                    if i1 is not None and DSegment(i1,point1).length()<segmentation_config.parallel_min_distance:
                         i1=None
-                    if i2 is not None and DSegment(i2,point2).length()<15:
+                    if i2 is not None and DSegment(i2,point2).length()<segmentation_config.parallel_min_distance:
                         i2=None
-                    if i3 is not None and DSegment(i3,point3).length()<15:
+                    if i3 is not None and DSegment(i3,point3).length()<segmentation_config.parallel_min_distance:
                         i3=None
                     if i1 is not None or i2 is not None or i3 is not None:
                         segment.isConstraint = True
@@ -446,8 +458,8 @@ def outputPolyInfo(poly, segments, segmentation_config, point_map, index,star_po
 
   
     # step 5.5：找到所有的标注
-    ts=textsInPoly(text_pos_map,poly)
-    ds=dimensionsInPoly(dimensions,poly)
+    ts=textsInPoly(text_pos_map,poly,segmentation_config)
+    ds=dimensionsInPoly(dimensions,poly,segmentation_config)
     # print(free_edges)
     # print(cornor_holes[0].segments)
     # for s in poly_refs:

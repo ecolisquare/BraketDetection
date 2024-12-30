@@ -647,35 +647,35 @@ def segment_intersection(p1, p2, q1, q2, epsilon=1e-9):
     return None
 
 # Function to find all intersections
-def find_all_intersections(segments, epsilon=1e-9):
-    intersection_dict = {}
-    n=len(segments)
-    pbar=tqdm(total=n*(n-1)/2,desc="计算交点")
-    for i, seg1 in enumerate(segments):
-        for j, seg2 in enumerate(segments):
-            if i >= j :
-                continue  # Avoid duplicate checks and self-intersections
+# def find_all_intersections(segments, epsilon=1e-9):
+#     intersection_dict = {}
+#     n=len(segments)
+#     pbar=tqdm(total=n*(n-1)/2,desc="计算交点")
+#     for i, seg1 in enumerate(segments):
+#         for j, seg2 in enumerate(segments):
+#             if i >= j :
+#                 continue  # Avoid duplicate checks and self-intersections
 
-            p1, p2 = seg1.start_point, seg1.end_point
-            q1, q2 = seg2.start_point, seg2.end_point
-            intersection = segment_intersection(p1, p2, q1, q2, epsilon)
-            if intersection:
-                if seg1 not in intersection_dict:
-                    intersection_dict[seg1] = []
-                if seg2 not in intersection_dict:
-                    intersection_dict[seg2] = []
+#             p1, p2 = seg1.start_point, seg1.end_point
+#             q1, q2 = seg2.start_point, seg2.end_point
+#             intersection = segment_intersection(p1, p2, q1, q2, epsilon)
+#             if intersection:
+#                 if seg1 not in intersection_dict:
+#                     intersection_dict[seg1] = []
+#                 if seg2 not in intersection_dict:
+#                     intersection_dict[seg2] = []
                 
-                # Append the intersection for both segments
-                intersection_dict[seg1].append(intersection)
-                intersection_dict[seg2].append(intersection)
-            pbar.update()
-    # Sort intersections along each segment by their distance from the start point
-    for seg, isects in intersection_dict.items():
+#                 # Append the intersection for both segments
+#                 intersection_dict[seg1].append(intersection)
+#                 intersection_dict[seg2].append(intersection)
+#             pbar.update()
+#     # Sort intersections along each segment by their distance from the start point
+#     for seg, isects in intersection_dict.items():
         
-        isects.sort(key=lambda p: (p.x - seg.start_point.x)**2 + (p.y - seg.start_point.y)**2)
-        intersection_dict[seg]=isects
-    pbar.close()
-    return intersection_dict
+#         isects.sort(key=lambda p: (p.x - seg.start_point.x)**2 + (p.y - seg.start_point.y)**2)
+#         intersection_dict[seg]=isects
+#     pbar.close()
+#     return intersection_dict
 
 # Function to compute intersections for two subsets of segments
 def compute_intersections(chunk1, chunk2, epsilon=1e-9):
@@ -1052,7 +1052,7 @@ def compute_star_replines(new_segments,elements):
     star_pos_map={}
     star_pos_set=set()
     for e in elements:
-        if isinstance(e,DText) and e.content=="*":
+        if isinstance(e,DText) and (e.content).strip()=="*":
             x,y=(e.bound["x1"]+e.bound["x2"])/2,(e.bound["y1"]+e.bound["y2"])/2
             vertical_lines.append(DSegment(DPoint(x,y),DPoint(x,y+5000)))
     for i, seg1 in enumerate(vertical_lines):
@@ -1112,11 +1112,11 @@ def compute_line_replines(new_segments,point_map):
                 line_replines.append(s)
     return line_replines
 
-def is_repline(s):
+def is_repline(s,segmentation_config):
     #print( s.ref.meta.scales[0])
-    if isinstance(s.ref,DArc) and s.ref.radius<=200 and s.ref.radius>=20:
+    if isinstance(s.ref,DArc) and s.ref.radius<=segmentation_config.arc_repline_max_length and s.ref.radius>=segmentation_config.arc_repline_min_length:
         return True
-    elif(not isinstance(s.ref,DArc)) and s.length()>=20 and s.length()<=70:
+    elif(not isinstance(s.ref,DArc)) and s.length()>=segmentation_config.line_repline_min_length and s.length()<=segmentation_config.line_repline_max_length:
         return True
     return False
 
@@ -1151,13 +1151,13 @@ def checkValid(repline,segments):
         
     return flag
                     
-def compute_cornor_holes(filtered_segments,filtered_point_map):
+def compute_cornor_holes(filtered_segments,filtered_point_map,segmentation_config):
     cornor_holes=[]
     segment_is_visited=set()
     for s in filtered_segments:
         vs,ve=s.start_point,s.end_point
         degs,dege=len(filtered_point_map[vs]),len(filtered_point_map[ve])
-        if s not in segment_is_visited and (degs>2 or dege>2) and is_repline(s):
+        if s not in segment_is_visited and (degs>2 or dege>2) and is_repline(s,segmentation_config):
             if degs>2 and dege>2:
                 ns=[ss for ss in filtered_point_map[vs] if ss!=s]
                 ne=[ss for ss in filtered_point_map[ve] if ss!=s]
@@ -1205,7 +1205,7 @@ def compute_cornor_holes(filtered_segments,filtered_point_map):
                         other=os[0]
                  
                     dego=len(filtered_point_map[other])
-                    if  current not in segment_is_visited and is_repline(current):
+                    if  current not in segment_is_visited and is_repline(current,segmentation_config):
                             segments.append(current)
                     else:
                         flag=False
@@ -1224,7 +1224,7 @@ def compute_cornor_holes(filtered_segments,filtered_point_map):
     return cornor_holes
 
 
-def filter_cornor_holes(cornor_holes,filtered_point_map):
+def filter_cornor_holes(cornor_holes,filtered_point_map,segmentation_config):
     filtered_cornor_holes=[]
     for cornor_hole in cornor_holes:
         total=0
@@ -1233,7 +1233,7 @@ def filter_cornor_holes(cornor_holes,filtered_point_map):
             total+=s.length()
             n+=1
 
-        if n>0 and total>=10 and total/n>=10:
+        if n>0 and total>=segmentation_config.cornor_hole_total_length and total/n>=segmentation_config.cornor_hole_average_length:
             filtered_cornor_holes.append(cornor_hole)
     return filtered_cornor_holes
 
@@ -1298,7 +1298,7 @@ def findBracketByPoints(pos,filtered_segments):
             braket_start_lines.append(s)
     return braket_start_lines
 
-def removeReferenceLines(elements,texts,initial_segments,all_segments,point_map):
+def removeReferenceLines(elements,texts,initial_segments,all_segments,point_map,segmentation_config):
     vertical_lines=[]
     vl2=[]
     v1e=[]
@@ -1346,7 +1346,7 @@ def removeReferenceLines(elements,texts,initial_segments,all_segments,point_map)
                         s=seg2
         if s is not None:
             text_pos=seg1.start_point
-            if (text_pos.y-y_max)<=180 and s.ref.color==7 and (len(point_map[s.start_point])==1 or len(point_map[s.end_point])==1):
+            if (text_pos.y-y_max)<=segmentation_config.reference_text_max_distance and s.ref.color==7 and (len(point_map[s.start_point])==1 or len(point_map[s.end_point])==1):
                 horizontal_line.append(s)
                 h1e.append(v1e[i])
     for i, seg1 in enumerate(vl2):
@@ -1366,7 +1366,7 @@ def removeReferenceLines(elements,texts,initial_segments,all_segments,point_map)
                         s=seg2
         if s is not None:
             text_pos=seg1.start_point
-            if (y_min-text_pos.y)<=180 and s.ref.color==7 and (len(point_map[s.start_point])==1 or len(point_map[s.end_point])==1):
+            if (y_min-text_pos.y)<=segmentation_config.reference_text_max_distance and s.ref.color==7 and (len(point_map[s.start_point])==1 or len(point_map[s.end_point])==1):
                 hl2.append(s)
                 h2e.append(v2e[i])
     # print(len(horizontal_line))
@@ -1378,8 +1378,8 @@ def removeReferenceLines(elements,texts,initial_segments,all_segments,point_map)
             p=line.end_point
         else:
             p=line.start_point
-        sr=[s.ref for s in point_map[p] if s.length()>30  and (isinstance(s.ref, DLine) or isinstance(s.ref,DLwpolyline)) and s!=line and angleOfTwoSegmentsWithCommonStarter(p,s,line)>90]
-        ss=[s for s in point_map[p] if s.length()>30  and (isinstance(s.ref, DLine) or isinstance(s.ref,DLwpolyline)) and s!=line and angleOfTwoSegmentsWithCommonStarter(p,s,line)>90]
+        sr=[s.ref for s in point_map[p] if s.length()>segmentation_config.reference_line_min_length  and (isinstance(s.ref, DLine) or isinstance(s.ref,DLwpolyline)) and s!=line and angleOfTwoSegmentsWithCommonStarter(p,s,line)>90]
+        ss=[s for s in point_map[p] if s.length()>segmentation_config.reference_line_min_length  and (isinstance(s.ref, DLine) or isinstance(s.ref,DLwpolyline)) and s!=line and angleOfTwoSegmentsWithCommonStarter(p,s,line)>90]
         for j,s in enumerate(ss):
             reference_lines.append(sr[j])
             start_point=p
@@ -1412,8 +1412,8 @@ def removeReferenceLines(elements,texts,initial_segments,all_segments,point_map)
             p=line.end_point
         else:
             p=line.start_point
-        sr=[s.ref for s in point_map[p] if s.length()>30  and (isinstance(s.ref, DLine) or isinstance(s.ref,DLwpolyline)) and s!=line and angleOfTwoSegmentsWithCommonStarter(p,s,line)>90]
-        ss=[s for s in point_map[p] if s.length()>30  and (isinstance(s.ref, DLine) or isinstance(s.ref,DLwpolyline)) and s!=line and angleOfTwoSegmentsWithCommonStarter(p,s,line)>90]
+        sr=[s.ref for s in point_map[p] if s.length()>segmentation_config.reference_line_min_length  and (isinstance(s.ref, DLine) or isinstance(s.ref,DLwpolyline)) and s!=line and angleOfTwoSegmentsWithCommonStarter(p,s,line)>segmentation_config.reference_min_angle]
+        ss=[s for s in point_map[p] if s.length()>segmentation_config.reference_line_min_length  and (isinstance(s.ref, DLine) or isinstance(s.ref,DLwpolyline)) and s!=line and angleOfTwoSegmentsWithCommonStarter(p,s,line)>segmentation_config.reference_min_angle]
         for j,s in enumerate(ss):
             reference_lines.append(sr[j])
             start_point=p
@@ -1450,7 +1450,7 @@ def removeReferenceLines(elements,texts,initial_segments,all_segments,point_map)
 
 import itertools
 
-def process_intersections(chunck,segments,point_map):
+def process_intersections(chunck,segments,point_map,segmentation_config):
     """Compute the intersection for a single vertical line and all segments."""
     vertical_lines=chunck[0]
     v1e=chunck[1]
@@ -1475,13 +1475,13 @@ def process_intersections(chunck,segments,point_map):
                         s=seg2
         if s is not None:
             text_pos=seg1.start_point
-            if (text_pos.y-y_max)<=180 and s.ref.color==7 and (len(point_map[s.start_point])==1 or len(point_map[s.end_point])==1):
+            if (text_pos.y-y_max)<=segmentation_config.reference_text_max_distance and s.ref.color==7 and (len(point_map[s.start_point])==1 or len(point_map[s.end_point])==1):
                 horizontal_line.append(s)
                 h1e.append(v1e[i])
     pbar.close()
     return [horizontal_line,h1e]
 
-def process_intersections2(chunck,segments,point_map):
+def process_intersections2(chunck,segments,point_map,segmentation_config):
     vl2=chunck[0]
     v2e=chunck[1]
     hl2=[]
@@ -1505,13 +1505,13 @@ def process_intersections2(chunck,segments,point_map):
                         s=seg2
         if s is not None:
             text_pos=seg1.start_point
-            if (y_min-text_pos.y)<=180 and s.ref.color==7 and (len(point_map[s.start_point])==1 or len(point_map[s.end_point])==1):
+            if (y_min-text_pos.y)<=segmentation_config.reference_text_max_distance and s.ref.color==7 and (len(point_map[s.start_point])==1 or len(point_map[s.end_point])==1):
                 hl2.append(s)
                 h2e.append(v2e[i])
     pbar.close()
     return [hl2,h2e]
 
-def removeReferenceLines(elements,texts,initial_segments,all_segments,point_map):
+def removeReferenceLines(elements,texts,initial_segments,all_segments,point_map,segmentation_config):
     vertical_lines=[]
     vl2=[]
     v1e=[]
@@ -1554,7 +1554,7 @@ def removeReferenceLines(elements,texts,initial_segments,all_segments,point_map)
     print(s_l)
     # Use ProcessPoolExecutor for parallel computation
     with ProcessPoolExecutor(max_workers=32) as executor:
-        partial_intersections = partial(process_intersections, segments=all_segments,point_map=point_map)
+        partial_intersections = partial(process_intersections, segments=all_segments,point_map=point_map,segmentation_config=segmentation_config)
         results = list(executor.map(partial_intersections, chuncks))
     for result in results:
         horizontal_line.extend(result[0])
@@ -1572,52 +1572,12 @@ def removeReferenceLines(elements,texts,initial_segments,all_segments,point_map)
     print(s_l)
     # Use ProcessPoolExecutor for parallel computation
     with ProcessPoolExecutor(max_workers=32) as executor:
-        partial_intersections = partial(process_intersections2, segments=all_segments,point_map=point_map)
+        partial_intersections = partial(process_intersections2, segments=all_segments,point_map=point_map,segmentation_config=segmentation_config)
         results = list(executor.map(partial_intersections, chuncks))
     for result in results:
         hl2.extend(result[0])
         h2e.extend(result[1])
-    # for i, seg1 in enumerate(vertical_lines):
-    #     y_max=None
-    #     s=None
-    #     for j, seg2 in enumerate(all_segments):
-    #         p1, p2 = seg1.start_point, seg1.end_point
-    #         q1, q2 = seg2.start_point, seg2.end_point
-    #         intersection = segment_intersection(p1, p2, q1, q2)
-    #         if intersection:
-    #             if y_max is None:
-    #                 y_max=intersection[1]
-    #                 s=seg2
-    #             else:
-    #                 if y_max<intersection[1]:
-    #                     y_max=intersection[1]
-    #                     s=seg2
-    #     if s is not None:
-    #         text_pos=seg1.start_point
-    #         if (text_pos.y-y_max)<=180 and s.ref.color==7 and (len(point_map[s.start_point])==1 or len(point_map[s.end_point])==1):
-    #             horizontal_line.append(s)
-    #             h1e.append(v1e[i])
-    # for i, seg1 in enumerate(vl2):
-    #     y_min=None
-    #     s=None
-    #     for j, seg2 in enumerate(all_segments):
-    #         p1, p2 = seg1.start_point, seg1.end_point
-    #         q1, q2 = seg2.start_point, seg2.end_point
-    #         intersection = segment_intersection(p1, p2, q1, q2)
-    #         if intersection:
-    #             if y_min is None:
-    #                 y_min=intersection[1]
-    #                 s=seg2
-    #             else:
-    #                 if y_min>intersection[1]:
-    #                     y_min=intersection[1]
-    #                     s=seg2
-    #     if s is not None:
-    #         text_pos=seg1.start_point
-    #         if (y_min-text_pos.y)<=180 and s.ref.color==7 and (len(point_map[s.start_point])==1 or len(point_map[s.end_point])==1):
-    #             hl2.append(s)
-    #             h2e.append(v2e[i])
-    # print(len(horizontal_line))
+  
     reference_lines=[]
     text_pos_map={}
     text_set=set()
@@ -1626,8 +1586,8 @@ def removeReferenceLines(elements,texts,initial_segments,all_segments,point_map)
             p=line.end_point
         else:
             p=line.start_point
-        sr=[s.ref for s in point_map[p] if s.length()>30  and (isinstance(s.ref, DLine) or isinstance(s.ref,DLwpolyline)) and s!=line and angleOfTwoSegmentsWithCommonStarter(p,s,line)>90]
-        ss=[s for s in point_map[p] if s.length()>30  and (isinstance(s.ref, DLine) or isinstance(s.ref,DLwpolyline)) and s!=line and angleOfTwoSegmentsWithCommonStarter(p,s,line)>90]
+        sr=[s.ref for s in point_map[p] if s.length()>segmentation_config.reference_line_min_length  and (isinstance(s.ref, DLine) or isinstance(s.ref,DLwpolyline)) and s!=line and angleOfTwoSegmentsWithCommonStarter(p,s,line)>segmentation_config.reference_min_angle]
+        ss=[s for s in point_map[p] if s.length()>segmentation_config.reference_line_min_length  and (isinstance(s.ref, DLine) or isinstance(s.ref,DLwpolyline)) and s!=line and angleOfTwoSegmentsWithCommonStarter(p,s,line)>segmentation_config.reference_min_angle]
         for j,s in enumerate(ss):
             reference_lines.append(sr[j])
             start_point=p
@@ -1660,8 +1620,8 @@ def removeReferenceLines(elements,texts,initial_segments,all_segments,point_map)
             p=line.end_point
         else:
             p=line.start_point
-        sr=[s.ref for s in point_map[p] if s.length()>30  and (isinstance(s.ref, DLine) or isinstance(s.ref,DLwpolyline)) and s!=line and angleOfTwoSegmentsWithCommonStarter(p,s,line)>90]
-        ss=[s for s in point_map[p] if s.length()>30  and (isinstance(s.ref, DLine) or isinstance(s.ref,DLwpolyline)) and s!=line and angleOfTwoSegmentsWithCommonStarter(p,s,line)>90]
+        sr=[s.ref for s in point_map[p] if s.length()>segmentation_config.reference_line_min_length  and (isinstance(s.ref, DLine) or isinstance(s.ref,DLwpolyline)) and s!=line and angleOfTwoSegmentsWithCommonStarter(p,s,line)>segmentation_config.reference_min_angle]
+        ss=[s for s in point_map[p] if s.length()>segmentation_config.reference_line_min_length  and (isinstance(s.ref, DLine) or isinstance(s.ref,DLwpolyline)) and s!=line and angleOfTwoSegmentsWithCommonStarter(p,s,line)>segmentation_config.reference_min_angle]
         for j,s in enumerate(ss):
             reference_lines.append(sr[j])
             start_point=p
@@ -2237,7 +2197,7 @@ def findClosedPolys_via_BFS(elements,texts,dimensions,segments,segmentation_conf
     
     
     #remove rfernce lines
-    initial_segments,reference_lines,text_pos_map,text_set=removeReferenceLines(elements,texts,segments,new_segments,point_map)
+    initial_segments,reference_lines,text_pos_map,text_set=removeReferenceLines(elements,texts,segments,new_segments,point_map,segmentation_config)
 
     for t in texts:
         if t not in text_set:
@@ -2273,8 +2233,8 @@ def findClosedPolys_via_BFS(elements,texts,dimensions,segments,segmentation_conf
     #arc_replines = compute_arc_replines(filtered_segments,point_map)
     star_replines,star_pos_map,star_pos=compute_star_replines(filtered_segments,elements)
     #line_replines=compute_line_replines(filtered_segments,filtered_point_map)
-    cornor_holes=compute_cornor_holes(filtered_segments,filtered_point_map)
-    cornor_holes=filter_cornor_holes(cornor_holes,filtered_point_map)
+    cornor_holes=compute_cornor_holes(filtered_segments,filtered_point_map,segmentation_config)
+    cornor_holes=filter_cornor_holes(cornor_holes,filtered_point_map,segmentation_config)
     # for cornor_hole in cornor_holes:
     #     for s in cornor_hole.segments:
     #         s.isCornerhole=True
@@ -2335,20 +2295,7 @@ def findClosedPolys_via_BFS(elements,texts,dimensions,segments,segmentation_conf
                 errors.append(f"处理 {repline} 时发生错误: {exc}")
             if verbose:
                 pbar.update()
-    #HIDDENs
-    # sampled_lines=[]
-    # for s in filtered_segments:
-    #     sampled_lines.append(DSegment(s.start_point,s.end_point,s.ref))
-    #     sampled_lines.append(DSegment(s.end_point,s.start_point,s.ref))
-    # visited_edges=set()
-    # pbar=tqdm(desc="sampled_lines",total=len(sampled_lines))
-    # for sampled_line in sampled_lines:
-    #     pbar.update()
-    #     visited_edges.add((sampled_line[0],sampled_line[1]))
-    #     path=process_repline_with_repline_dfs(visited_edges,sampled_line,graph,segmentation_config)
-    #     if(len(path)>=segmentation_config.path_min_length):
-    #         closed_polys.append(path)
-    # pbar.close()
+    
     # print("============")
     
     # print("=========")
@@ -2366,7 +2313,24 @@ def findClosedPolys_via_BFS(elements,texts,dimensions,segments,segmentation_conf
         print("查找完毕")
     # for closed_poly in closed_polys:
     #     print(closed_poly)
-    
+    #HIDDENs
+    if segmentation_config.dfs_optional:
+        sampled_lines=[]
+        for s in filtered_segments:
+            sampled_lines.append(DSegment(s.start_point,s.end_point,s.ref))
+            sampled_lines.append(DSegment(s.end_point,s.start_point,s.ref))
+        visited_edges=set()
+        if verbose:
+            pbar=tqdm(desc="sampled_lines",total=len(sampled_lines))
+        for sampled_line in sampled_lines:
+            if verbose:
+                pbar.update()
+            visited_edges.add((sampled_line[0],sampled_line[1]))
+            path=process_repline_with_repline_dfs(visited_edges,sampled_line,graph,segmentation_config)
+            if(len(path)>=segmentation_config.path_min_length):
+                closed_polys.append(path)
+        if verbose:
+            pbar.close()
     #poly simplify
     print(len(closed_polys))
 

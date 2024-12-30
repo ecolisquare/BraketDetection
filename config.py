@@ -47,3 +47,30 @@ class SegmentationConfig:
         self.dxf_output_folder = "./output/"
 
         self.json_output_path = "./output/bracket.json"   #输出解析后的肘板轮廓，便于调整匹配算法
+
+        #is_repline
+        self.arc_repline_min_length=20
+        self.arc_repline_max_length=200
+        self.line_repline_min_length=20
+        self.line_repline_max_length=70
+
+        #filter cornor_hole
+        self.cornor_hole_total_length=10
+        self.cornor_hole_average_length=10
+
+        #remove reference line
+        self.reference_line_min_length=30
+        self.reference_min_angle=90
+        self.reference_text_max_distance=180
+
+        #dfs
+        self.dfs_optional=False
+
+        #constraint determine--parallel
+        self.parallel_max_distance= 50
+        self.parallel_min_distance=15
+
+        #bracket bounding box
+        self.bracket_bbox_expand_length=50
+        self.bracket_bbox_expand_ratio=0.25
+        self.bracket_bbox_expand_is_ratio=True
