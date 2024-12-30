@@ -29,7 +29,7 @@ if __name__ == '__main__':
     if segmentation_config.verbose:
         print("json文件读取完毕")
     #找出所有包含角隅孔圆弧的基本环
-    polys, new_segments, point_map,star_pos_map,cornor_holes,text_pos_map=findClosedPolys_via_BFS(elements,texts,dimensions,segments,segmentation_config)
+    polys, new_segments, point_map,star_pos_map,cornor_holes,text_map=findClosedPolys_via_BFS(elements,texts,dimensions,segments,segmentation_config)
 
     # #预训练的几何分类模型筛选肘板
     # model_path = "/home/user4/BraketDetection/DGCNN/cpkt/geometry_classifier.pth"
@@ -43,7 +43,7 @@ if __name__ == '__main__':
     pbar=tqdm(total=len(polys),desc="正在输出结构化信息")
     for i, poly in enumerate(polys):
         try:
-            res = outputPolyInfo(poly, ori_segments, segmentation_config, point_map, i, star_pos_map, cornor_holes,texts,dimensions,text_pos_map)
+            res = outputPolyInfo(poly, ori_segments, segmentation_config, point_map, i, star_pos_map, cornor_holes,texts,dimensions,text_map)
         except Exception as e:
             res=None
             print(e)

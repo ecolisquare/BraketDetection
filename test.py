@@ -75,10 +75,10 @@ def process_json_data(json_path, output_path, training_data_output_folder, train
     segmentation_config.poly_image_dir = os.path.join(output_path, "poly_image")
     segmentation_config.poly_info_dir = os.path.join(output_path, "poly_info")
     segmentation_config.res_image_path = os.path.join(output_path, "res.png")
-    segmentation_config.dxf_output_folder = os.path.join("./output/dxf")
+    segmentation_config.dxf_output_folder = os.path.join(output_path)
 
     try:
-        os.makedirs(segmentation_config.poly_image_dir, exist_ok=True)
+        # os.makedirs(segmentation_config.poly_image_dir, exist_ok=True)
         os.makedirs(segmentation_config.poly_info_dir, exist_ok=True)
     except Exception as e:
         print(f"创建文件夹时出错: {e}")
@@ -98,7 +98,7 @@ def process_json_data(json_path, output_path, training_data_output_folder, train
     
 
     #找出所有包含角隅孔圆弧的基本环
-    ppolys, new_segments, point_map,star_pos_map,cornor_holes,text_pos_map=findClosedPolys_via_BFS(elements,texts,dimensions,segments,segmentation_config)
+    ppolys, new_segments, point_map,star_pos_map,cornor_holes,text_map=findClosedPolys_via_BFS(elements,texts,dimensions,segments,segmentation_config)
     # output_training_data(ppolys, training_data_output_folder, name)
 
     # output_training_img(ppolys, new_segments, training_img_output_folder, name)
@@ -107,7 +107,7 @@ def process_json_data(json_path, output_path, training_data_output_folder, train
     print("正在输出结构化信息...")
     for i, poly in enumerate(ppolys):
         try:
-            res = outputPolyInfo(poly, ori_segments, segmentation_config, point_map, i, star_pos_map, cornor_holes,texts,dimensions,text_pos_map)
+            res = outputPolyInfo(poly, ori_segments, segmentation_config, point_map, i, star_pos_map, cornor_holes,texts,dimensions,text_map)
         except Exception as e:
             res=None
             print(e)
