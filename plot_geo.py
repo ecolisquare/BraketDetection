@@ -91,9 +91,17 @@ def expandFixedLengthGeo(segList,dist,both=True):
         new_seglist.append(DSegment(vs,ve,seg.ref))
     return new_seglist
 
-def plot_info_poly(segments, path,texts,dimensions):
+def plot_info_poly(segments, path,texts,dimensions,stifferners,others=[]):
     fig, ax = plt.subplots()
     t_map={}
+    for segment in stifferners:
+        x_values = [segment.start_point.x, segment.end_point.x]
+        y_values = [segment.start_point.y, segment.end_point.y]
+        ax.plot(x_values, y_values, color='green', linestyle='--', linewidth=2)
+    # for segment in others:
+    #     x_values = [segment.start_point.x, segment.end_point.x]
+    #     y_values = [segment.start_point.y, segment.end_point.y]
+    #     ax.plot(x_values, y_values, color='blue', linestyle='--', linewidth=2)
     for t_t in texts:
         t=t_t[0]
         pos=t_t[1]
@@ -194,11 +202,13 @@ def plot_info_poly(segments, path,texts,dimensions):
             
     for i, segment in enumerate(segments):
         if segment.isCornerhole:
-            color = "red"
+            color = "#FF0000"
         elif segment.isConstraint:
-            color = "green"
+            color = "#00FF00"
+            if segment.isPart:
+                color="#00AA00"
         else:
-            color = "blue"
+            color = "#0000FF"
         if isinstance(segment.ref, DArc):
             if segment.ref.end_angle < segment.ref.start_angle:
                 end_angle = segment.ref.end_angle + 360

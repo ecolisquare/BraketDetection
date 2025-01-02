@@ -5,7 +5,26 @@ from utils import segment_intersection,computeBoundingBox,is_parallel
 from classifier import poly_classifier
 from scipy.spatial import ConvexHull
 import matplotlib.pyplot as plt
+from shapely.geometry import Point, Polygon
+from bracket_parameter_extraction import parse_elbow_plate
+def is_point_in_polygon(point, polygon_edges):
+    
+    polygon_points = set()  # Concave polygon example
+    for edge in polygon_edges:
+        vs,ve=edge.start_point,edge.end_point
+        polygon_points.add((vs.x,vs.y))
+        polygon_points.add((ve.x,ve.y))
 
+    polygon_points = list(polygon_points)
+
+    polygon = Polygon(polygon_points)
+
+    point = Point(point.x, point.y)
+
+    # Check if the point is inside the polygon
+    is_inside = polygon.contains(point)
+
+    return is_inside
 def log_to_file(filename, content):
     """将内容写入指定的文件。"""
     with open(filename, 'a', encoding='utf-8') as file:  # 以追加模式打开文件
@@ -152,7 +171,39 @@ def calculate_poly_refs(poly,segmentation_config):
 
     return refs
 
-def textsInPoly(text_map,poly,segmentation_config):
+def stiffenersInPoly(stiffeners,poly,segmentation_config):
+    # Define your polygon (list of vertices)
+    sf=[]
+    x_min,x_max,y_min,y_max=computeBoundingBox(poly)
+    if segmentation_config.bracket_bbox_expand_is_ratio:
+        xx=(x_max-x_min)*segmentation_config.bracket_bbox_expand_ratio
+        yy=(y_max-y_min)*segmentation_config.bracket_bbox_expand_ratio
+    else:
+        xx=segmentation_config.bracket_bbox_expand_length
+        yy=segmentation_config.bracket_bbox_expand_length
+    x_min=x_min-xx
+    x_max=x_max+xx
+    y_max=y_max+yy
+    y_min=y_min-yy
+    # polygon_points = set()  # Concave polygon example
+    # for edge in poly:
+    #     vs,ve=edge.start_point,edge.end_point
+    #     polygon_points.add((vs.x,vs.y))
+    #     polygon_points.add((ve.x,ve.y))
+    # polygon_points = list(polygon_points)
+    # polygon = Polygon(polygon_points)
+    # tolerance = 0.1 # 误差值
+    # polygon_with_tolerance = polygon.buffer(tolerance)
+    for stiffener in stiffeners:
+        mid=stiffener.mid_point()
+        # point = Point(mid.x,mid.y)
+        
+        # if polygon_with_tolerance.contains(point):
+        #     sf.append(stiffener)
+        if x_min <= mid.x and mid.x <=x_max and y_min <=mid.y and y_max>=mid.y:
+            sf.append(stiffener)
+    return sf
+def textsInPoly(text_map,poly,segmentation_config,is_fb):
     x_min,x_max,y_min,y_max=computeBoundingBox(poly)
     if segmentation_config.bracket_bbox_expand_is_ratio:
         xx=(x_max-x_min)*segmentation_config.bracket_bbox_expand_ratio
@@ -168,7 +219,11 @@ def textsInPoly(text_map,poly,segmentation_config):
     for pos,texts in text_map.items():
         for t in texts:
             if x_min <= pos.x and pos.x <=x_max and y_min <=pos.y and y_max>=pos.y:
-                ts.append([t[0],pos,t[1],t[2]])
+                if t[1]["Type"]=="FB" or t[1]["Type"]=="FL":
+                    result=parse_elbow_plate(t[0].content, "bottom",is_fb)
+                else:
+                    result=t[1]
+                ts.append([t[0],pos,result,t[2]])#element,position,result,anotation
     return ts
 
 def braketTextInPoly(braket_texts,braket_pos,poly,segmentation_config):
@@ -212,7 +267,7 @@ def dimensionsInPoly(dimensions,poly,segmentation_config):
         if x_min <= pos.x and pos.x <=x_max and y_min <=pos.y and y_max>=pos.y:
             ds.append([d,pos])
     return ds
-def outputPolyInfo(poly, segments, segmentation_config, point_map, index,star_pos_map,cornor_holes,texts,dimensions,text_map):
+def outputPolyInfo(poly, segments, segmentation_config, point_map, index,star_pos_map,cornor_holes,texts,dimensions,text_map,stiffeners):
     # step1: 计算几何中心坐标
     poly_centroid = calculate_poly_centroid(poly)
 
@@ -282,10 +337,12 @@ def outputPolyInfo(poly, segments, segmentation_config, point_map, index,star_po
             cornor[1][1].isCornerhole=False
             cornor[1][1].StarCornerhole=cornor[1][2]
     
+
+   
     # step4: 标记固定边
     for i, segment in enumerate(poly_refs):
         # 颜色确定
-        if segment.ref.color == 3:
+        if segment.ref.color in segmentation_config.constraint_color:
             segment.isConstraint = True
             poly_refs[i].isConstraint = True
         # 角隅孔确定
@@ -344,8 +401,8 @@ def outputPolyInfo(poly, segments, segmentation_config, point_map, index,star_po
                         #     print(i1,i2,i3)
                         #print(segment,other)
                         break
-                       
-
+    
+            
     # 属于同一参考线的边只要有一个是固定边，则所有都是固定边
     for a in range(len(poly_refs)):
         for b in range(len(poly_refs)):
@@ -358,6 +415,61 @@ def outputPolyInfo(poly, segments, segmentation_config, point_map, index,star_po
                     poly_refs[b].isConstraint = poly_refs[a].isConstraint or poly_refs[b].isConstraint
                     poly_refs[a].isConstraint = poly_refs[a].isConstraint or poly_refs[b].isConstraint
 
+
+    others=set()
+    st_segments=set()
+    #查找相邻结构
+    for i,segment in enumerate(poly_refs):
+        if segment.isConstraint:
+            dx_1 = segment.end_point.x - segment.start_point.x
+            dy_1 = segment.end_point.y - segment.start_point.y
+            mid_point=DPoint((segment.end_point.x+segment.start_point.x)/2,(segment.end_point.y+segment.start_point.y)/2)
+            l = (dx_1**2 + dy_1**2)**0.5
+            v_1 = (dy_1 / l * segmentation_config.parallel_max_distance, -dx_1 / l * segmentation_config.parallel_max_distance)
+            point1,point2,point3=segment.start_point,segment.end_point,mid_point
+            for j, other in enumerate(segments):
+                if segment == other:
+                    continue
+                
+                if is_parallel(segment, other,segmentation_config.is_parallel_tolerance):
+                    #print(segment,other)
+                    s1 = DSegment(
+                        DPoint(segment.start_point.x + v_1[0], segment.start_point.y + v_1[1]),
+                        DPoint(segment.start_point.x - v_1[0], segment.start_point.y - v_1[1])
+                    )
+                    s2 = DSegment(
+                        DPoint(segment.end_point.x + v_1[0], segment.end_point.y + v_1[1]),
+                        DPoint(segment.end_point.x - v_1[0], segment.end_point.y - v_1[1])
+                    )
+                    s3 = DSegment(
+                        DPoint(mid_point.x + v_1[0], mid_point.y + v_1[1]),
+                        DPoint(mid_point.x - v_1[0], mid_point.y - v_1[1])
+                    )
+
+                    i1 = segment_intersection(s1.start_point, s1.end_point, other.start_point, other.end_point)
+                    if i1 == other.end_point or i1 == other.start_point:
+                        i1 = None
+                    
+                    i2 = segment_intersection(s2.start_point, s2.end_point, other.start_point, other.end_point)
+                    if i2 == other.end_point or i2 == other.start_point:
+                        i2 = None
+                    i3 = segment_intersection(s3.start_point, s3.end_point, other.start_point, other.end_point)
+                    if i3 == other.end_point or i3 == other.start_point:
+                        i3 = None
+                    if i1 is not None and DSegment(i1,point1).length()<segmentation_config.parallel_min_distance:
+                        i1=None
+                    if i2 is not None and DSegment(i2,point2).length()<segmentation_config.parallel_min_distance:
+                        i2=None
+                    if i3 is not None and DSegment(i3,point3).length()<segmentation_config.parallel_min_distance:
+                        i3=None
+                    if i1 is not None or i2 is not None or i3 is not None:
+                        others.add(other)
+                        segment.isPart=True
+                        poly_refs[i].isPart=True
+                        st_segments.add(segment)
+                               
+    st_segments=list(st_segments)
+    others=list(others)
     # step:5 确定自由边，合并相邻的固定边
     constraint_edges = []
     free_edges = []
@@ -461,7 +573,17 @@ def outputPolyInfo(poly, segments, segmentation_config, point_map, index,star_po
 
   
     # step 5.5：找到所有的标注
-    tis=textsInPoly(text_map,poly,segmentation_config)
+    sfs=stiffenersInPoly(stiffeners,poly,segmentation_config)
+    # print(len(stiffeners))
+    # print(len(sfs))
+    is_fb=False
+    # if len(sfs)>0:
+    #     is_fb=True
+    #     print(f"回路{index}有加强边！")
+    # else:
+    #     print(f"回路{index}没有加强边！")
+    
+    tis=textsInPoly(text_map,poly,segmentation_config,is_fb)
     ds=dimensionsInPoly(dimensions,poly,segmentation_config)
     # print(free_edges)
     # print(cornor_holes[0].segments)
@@ -485,7 +607,7 @@ def outputPolyInfo(poly, segments, segmentation_config, point_map, index,star_po
     # print(free_edges)
     # print("=============")
     # print(cornerhole_edges)
-    #plot_info_poly(poly_refs, os.path.join(segmentation_config.poly_info_dir, f'infopoly{index}.png'),tis,ds)
+    #plot_info_poly(poly_refs, os.path.join(segmentation_config.poly_info_dir, f'infopoly{index}.png'),tis,ds,sfs,others)
     if len(free_edges) > 1:
         print(f"回路{index}超过两条自由边！")
         #return poly_refs
@@ -539,8 +661,11 @@ def outputPolyInfo(poly, segments, segmentation_config, point_map, index,star_po
         print(f"回路{index}自由边长度在总轮廓长度中占比不超过{segmentation_config.free_edge_ratio*100}%")
         return None
     
+
+    
+
     # step6: 绘制对边分类后的几何图像
-    plot_info_poly(poly_refs, os.path.join(segmentation_config.poly_info_dir, f'infopoly{index}.png'),tis,ds)
+    plot_info_poly(poly_refs, os.path.join(segmentation_config.poly_info_dir, f'infopoly{index}.png'),tis,ds,sfs,others)
 
     # step7: 输出几何中心和边界信息
     file_path = os.path.join(segmentation_config.poly_info_dir, f'info{index}.txt')
@@ -634,6 +759,6 @@ def outputPolyInfo(poly, segments, segmentation_config, point_map, index,star_po
     
     log_to_file(file_path, f"肘板类别为{classification_res}")
     if classification_res == "Unclassified":
-        return None
-    
+        return poly_refs
+
     return poly_refs

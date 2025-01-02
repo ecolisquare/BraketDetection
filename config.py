@@ -32,7 +32,7 @@ class SegmentationConfig:
         self.remove_tolerance=1e-5
 
         #聚类算法合并重复路径
-        self.eps=20
+        self.eps=25
         self.min_samples=1
 
       
@@ -70,10 +70,11 @@ class SegmentationConfig:
         #remove reference line
         self.reference_line_min_length=30
         self.reference_min_angle=90
-        self.reference_text_max_distance=180
+        self.reference_max_angle=170
+        self.reference_text_max_distance=400
 
         #dfs
-        self.dfs_optional=True
+        self.dfs_optional=False
 
         #constraint determine--parallel
         self.parallel_max_distance= 50
@@ -89,12 +90,13 @@ class SegmentationConfig:
         #筛选角隅孔时的平行判断
         self.is_parallel_tolerance_neighobor=0.16
         #固定边平行判断
-        self.is_parallel_tolerance=0.1
+        self.is_parallel_tolerance=0.05
         #readJson
         self.line_type=["BYLAYER", "Continuous","Bylayer","CONTINUOUS","ByBlock","BYBLOCK"]
-        self.color=[3, 7, 8, 4,2,140,254]
+        self.color=[3, 7, 8, 4,2,140,254,1]
+        self.constraint_color=[1,3]
         self.element_type=["line","arc","lwpolyline","polyline","spline"]
-        self.remove_layername=["Stiffener_Invisible"]
+        self.remove_layername=["Stiffener_Invisible","Stiffener_Visible","Plate_Invisible","Plate_Visible"]
 
         #check is bracket
         #偏离凸多边形的程度

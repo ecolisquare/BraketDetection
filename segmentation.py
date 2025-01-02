@@ -19,7 +19,7 @@ if __name__ == '__main__':
     if segmentation_config.verbose:
         print("读取json文件")
     #文件中线段元素的读取和根据颜色过滤
-    elements,segments,ori_segments=readJson(json_path,segmentation_config)
+    elements,segments,ori_segments,stiffeners=readJson(json_path,segmentation_config)
    
     texts ,dimensions=findAllTextsAndDimensions(elements)
     ori_dimensions=dimensions
@@ -49,7 +49,7 @@ if __name__ == '__main__':
         #     res=None
 
         #     print(e)
-        res = outputPolyInfo(poly, ori_segments, segmentation_config, point_map, i, star_pos_map, cornor_holes,texts,dimensions,text_map)
+        res = outputPolyInfo(poly, ori_segments, segmentation_config, point_map, i, star_pos_map, cornor_holes,texts,dimensions,text_map,stiffeners)
         pbar.update()
         if res is not None:
             # print(res)

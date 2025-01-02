@@ -45,6 +45,7 @@ class DSegment:
         self.isConstraint=False
         self.isCornerhole=False
         self.StarCornerhole = None
+        self.isPart=False
     def __len__(self):
         return 2
 
@@ -242,16 +243,22 @@ class DArc(DElement):
   
 
 class DText(DElement):  
-    def __init__(self,bound,insert: DPoint=DPoint(0,0),color=7,content="",height=100,handle="",meta=None):  
+    def __init__(self,bound,insert: DPoint=DPoint(0,0),color=7,content="",height=100,handle="",meta=None,is_mtext=False):  
         super().__init__()
         self.bound=bound
         self.insert=insert
+        
         self.color=color
-        self.content=content
+        self.content=content.strip()
         self.height=height
         self.handle=handle
         self.textpos=False
         self.meta=meta
+        if is_mtext:
+            self.bound["x1"]=self.insert[0]
+            self.bound["x2"]=self.insert[0]
+            self.bound["y1"]=self.insert[1]
+            self.bound["y2"]=self.insert[1]
   
     def __repr__(self):  
         return f"Text({self.insert}, color:{self.color},content:{self.content},height:{self.height},handle:{self.handle})"  
@@ -282,7 +289,7 @@ class DDimension(DElement):
             elif self.dimtype==163:
                 self.text="Φ"+str(round(self.measurement))
             else:
-                self.text=str(round(round(self.measurement/5)*5))
+                self.text=str(round(round(self.measurement)))
 
   
     def __repr__(self):  
