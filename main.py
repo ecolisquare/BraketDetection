@@ -29,7 +29,7 @@ if __name__ == '__main__':
     if segmentation_config.verbose:
         print("json文件读取完毕")
     #找出所有包含角隅孔圆弧的基本环
-    polys, new_segments, point_map,star_pos_map,cornor_holes,text_map,stiffeners=findClosedPolys_via_BFS(elements,texts,dimensions,segments,segmentation_config)
+    polys, new_segments, point_map,star_pos_map,cornor_holes,text_map=findClosedPolys_via_BFS(elements,texts,dimensions,segments,segmentation_config)
 
     # #预训练的几何分类模型筛选肘板
     # model_path = "/home/user4/BraketDetection/DGCNN/cpkt/geometry_classifier.pth"
