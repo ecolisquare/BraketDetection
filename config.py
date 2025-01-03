@@ -26,7 +26,7 @@ class SegmentationConfig:
         #包围盒
         self.bbox_min_area=5000
         self.bbox_max_area=1000*1500
-        self.bbox_ratio=6
+        self.bbox_ratio=10
 
 
         self.remove_tolerance=1e-5
@@ -60,7 +60,7 @@ class SegmentationConfig:
         #is_repline
         self.arc_repline_min_length=20
         self.arc_repline_max_length=200
-        self.line_repline_min_length=20
+        self.line_repline_min_length=13
         self.line_repline_max_length=70
 
         #filter cornor_hole
@@ -78,7 +78,7 @@ class SegmentationConfig:
 
         #constraint determine--parallel
         self.parallel_max_distance= 50
-        self.parallel_min_distance=15
+        self.parallel_min_distance=5
 
         #bracket bounding box
         self.bracket_bbox_expand_length=50
@@ -96,11 +96,15 @@ class SegmentationConfig:
         self.color=[3, 7, 8, 4,2,140,254,1]
         self.constraint_color=[1,3]
         self.element_type=["line","arc","lwpolyline","polyline","spline"]
-        self.remove_layername=["Stiffener_Invisible","Stiffener_Visible","Plate_Invisible","Plate_Visible"]
 
+        self.stiffener_name = ["Stiffener_Invisible"]
+        # self.remove_layername=["Stiffener_Invisible","Stiffener_Visible","Plate_Invisible","Plate_Visible"]
+        self.remove_layername=[]
+        self.remove_layername.extend(self.stiffener_name)
         #check is bracket
         #偏离凸多边形的程度
-        self.near_convex_tolerance=0.1
+        self.near_convex_tolerance=0.05
+        self.near_rectangle_tolerance = 0.05
         #自由边角度下限
         self.min_angle_in_free_edge=45
         #自由边占比

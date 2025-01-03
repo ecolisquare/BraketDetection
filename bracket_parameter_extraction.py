@@ -1,18 +1,24 @@
 import re
+def is_star_text(content=""):
+    label=content.strip()
+    if label==None or label=="":
+        return False
+    star_pattern=r"[*]+"
+    return re.fullmatch(star_pattern, label)
 def is_useful_text(content=""):
     label = content.strip()
-    if label==None:
+    if label==None or label=="":
         return False
     if label=="*" or label.isdigit():
         return True
     patterns=[
-        r"(?:B)?(?P<primary>\d+)(?:X(?P<thickness>\d+))?\s*(?:[~%]*?)\s*(?P<material>A|[A-Z]{2,3})?",
-        r"(?:[~%]*?)\s*(?P<material>A|[A-Z]{2,3})?",
-        r"(?:FB)?(?P<primary>\d+)(?:X(?P<fb_thickness>\d+))?\s*(?:[~%]*?)\s*(?P<material>A|[A-Z]{2,3})?",
-        r"(?:[~%]*?)\s*(?P<material>A|[A-Z]{2,3})?",
-        r"(?:FL)?(?P<section_height>\d+)",
+        r"(?:B)?(?P<primary>\d+([.]\d+)?)(?:X(?P<secondary>\d+([.]\d+)?))?(?:X(?P<thickness>\d+([.]\d+)?))?\s*(?:[~%$&]*?)\s*(?P<material>A|[A-Z]{2,3}|([A-Z]\d+))?",
+        r"(?:[~%]*?)\s*(?P<material>A|[A-Z]{2,3}|([A-Z]\d+))?",
+        r"(?:FB)?(?P<primary>\d+([.]\d+)?)(?:X(?P<fb_thickness>\d+([.]\d+)?))?\s*(?:[~%]*?)\s*(?P<material>A|[A-Z]{2,3}|([A-Z]\d+))?",
+        r"(?:[~%]*?)\s*(?P<material>A|[A-Z]{2,3}|([A-Z]\d+))?",
+        r"(?:FL)?(?P<section_height>\d+([.]\d+)?)",
         r"BK(?P<bk_code>\d{2})",
-        r"R(?P<radius>\d+)",
+        r"R(?P<radius>\d+([.]\d+)?)",
     ]
     flag=False
     for pattern in patterns:
@@ -35,22 +41,25 @@ def parse_elbow_plate(label="", annotation_position="other", is_fb=False):
     if label is None or label=="":
         return None
     # Define regular expressions
-    pattern_b = r"(?:B)?(?P<primary>\d+)(?:X(?P<thickness>\d+))?\s*(?:[~%]*?)\s*(?P<material>A|[A-Z]{2,3})?"
-    pattern_b_op=r"(?:[~%]*?)\s*(?P<material>A|[A-Z]{2,3})?"
-    pattern_fb = r"(?:FB)?(?P<primary>\d+)(?:X(?P<fb_thickness>\d+))?\s*(?:[~%]*?)\s*(?P<material>A|[A-Z]{2,3})?"
-    pattern_fb_op=r"(?:[~%]*?)\s*(?P<material>A|[A-Z]{2,3})?"
-    pattern_fl = r"(?:FL)?(?P<section_height>\d+)"
-    pattern_bk = r"BK(?P<bk_code>\d{2})"
-    pattern_r = r"R(?P<radius>\d+)"
 
+
+    pattern_b=r"(?:B)?(?P<primary>\d+([.]\d+)?)(?:X(?P<secondary>\d+([.]\d+)?))?(?:X(?P<thickness>\d+([.]\d+)?))?\s*(?:[~%$&]*?)\s*(?P<material>A|[A-Z]{2,3}|([A-Z]\d+))?"
+    pattern_b_op=r"(?:[~%$&]*?)\s*(?P<material>A|[A-Z]{2,3}|([A-Z]\d+))?"
+    pattern_fb=r"(?:FB)?(?P<primary>\d+([.]\d+)?)(?:X(?P<fb_thickness>\d+([.]\d+)?))?\s*(?:[~%$&]*?)\s*(?P<material>A|[A-Z]{2,3}|([A-Z]\d+))?"
+    pattern_fb_op=r"(?:[~%$&]*?)\s*(?P<material>A|[A-Z]{2,3}|([A-Z]\d+))?"
+    pattern_fl=r"(?:FL)?(?P<section_height>\d+([.]\d+)?)"
+    pattern_bk=r"BK(?P<bk_code>\d{2})"
+    pattern_r=r"R(?P<radius>\d+([.]\d+)?)"
+    pattern_digit=r"(?P<value>\d+([.]\d+)?)"
     # Check different annotation types
     if annotation_position == "top":
         #print(label)
         # Annotations at the top prioritize parsing as B, BK, or R type
         if match := re.fullmatch(pattern_b, label):
 
-            primary = int(match.group("primary"))
-            thickness = int(match.group("thickness")) if match.group("thickness") else None
+            primary = float(match.group("primary"))
+            secondary=float(match.group("secondary")) if match.group("secondary") else None
+            thickness = float(match.group("thickness")) if match.group("thickness") else None
             material = match.group("material") if match.group("material") else "A"
 
             arm_length = None
@@ -58,15 +67,24 @@ def parse_elbow_plate(label="", annotation_position="other", is_fb=False):
                 arm_length = primary
             else:
                 thickness = primary if thickness is None else thickness
+            arm_length2=None
+            if secondary is not None and secondary >=100:
+                arm_length2=secondary
+            else:
+                thickness = secondary if thickness is None else thickness
+                
 
             if arm_length is not None and arm_length < 100:
+                return None
+            if arm_length2 is not None and arm_length2 < 100:
                 return None
             if thickness is not None and thickness > 50:
                 return None
 
             return {
                 "Type": "B",
-                "Arm Length": arm_length,
+                "Arm Length1": arm_length,
+                "Arm Length2":arm_length2,
                 "Thickness": thickness,
                 "Material": material,
             }
@@ -75,7 +93,8 @@ def parse_elbow_plate(label="", annotation_position="other", is_fb=False):
             if material is not None:
                 return {
                     "Type": "B",
-                    "Arm Length": None,
+                    "Arm Length1": None,
+                    "Arm Length2":None,
                     "Thickness": None,
                     "Material": material,
                 }
@@ -87,7 +106,7 @@ def parse_elbow_plate(label="", annotation_position="other", is_fb=False):
             }
 
         elif match := re.fullmatch(pattern_r, label):
-            radius = int(match.group("radius"))
+            radius = float(match.group("radius"))
             return {
                 "Type": "R",
                 "Radius": radius,
@@ -97,8 +116,8 @@ def parse_elbow_plate(label="", annotation_position="other", is_fb=False):
         # Annotations at the bottom prioritize parsing as FB, FL, or R type
         if is_fb:
             if match := re.fullmatch(pattern_fb, label):
-                primary = int(match.group("primary"))
-                fb_thickness = int(match.group("fb_thickness")) if match.group("fb_thickness") else None
+                primary = float(match.group("primary"))
+                fb_thickness = float(match.group("fb_thickness")) if match.group("fb_thickness") else None
                 material = match.group("material") if match.group("material") else "A"
 
 
@@ -133,7 +152,7 @@ def parse_elbow_plate(label="", annotation_position="other", is_fb=False):
 
         else:
             if match := re.fullmatch(pattern_fl, label):
-                section_height = int(match.group("section_height"))
+                section_height = float(match.group("section_height"))
 
                 if section_height < 100:
                     return None
@@ -144,8 +163,8 @@ def parse_elbow_plate(label="", annotation_position="other", is_fb=False):
                 }
 
             elif match := re.fullmatch(pattern_fb, label):
-                primary = int(match.group("primary"))
-                fb_thickness = int(match.group("fb_thickness")) if match.group("fb_thickness") else None
+                primary = float(match.group("primary"))
+                fb_thickness = float(match.group("fb_thickness")) if match.group("fb_thickness") else None
                 material = match.group("material") if match.group("material") else "A"
 
 
@@ -179,7 +198,7 @@ def parse_elbow_plate(label="", annotation_position="other", is_fb=False):
 
 
         if match := re.fullmatch(pattern_r, label):
-            radius = int(match.group("radius"))
+            radius = float(match.group("radius"))
             return {
                 "Type": "R",
                 "Radius": radius,
@@ -188,14 +207,14 @@ def parse_elbow_plate(label="", annotation_position="other", is_fb=False):
     elif annotation_position == "other":
         # Without an annotation line, parse as R type or a simple numerical value
         if match := re.fullmatch(pattern_r, label):
-            radius = int(match.group("radius"))
+            radius = float(match.group("radius"))
             return {
                 "Type": "R",
                 "Radius": radius,
             }
 
-        elif label.isdigit():
-            value = int(label)
+        elif match := re.fullmatch(pattern_digit, label):
+            value = float(match.group("value"))
             return {
                 "Type": "Numeric",
                 "Value": value,

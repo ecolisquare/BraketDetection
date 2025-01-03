@@ -254,6 +254,7 @@ class DText(DElement):
         self.handle=handle
         self.textpos=False
         self.meta=meta
+        self.is_mtext=is_mtext
         if is_mtext:
             self.bound["x1"]=self.insert[0]
             self.bound["x2"]=self.insert[0]
@@ -270,7 +271,22 @@ class DText(DElement):
     def __hash__(self):
         return hash((self.content,self.height,self.handle))
     def transform(self):
-        pass
+        self.insert=self.transform_point(self.insert,self.meta)
+        self.height=math.fabs(self.meta.scales[0])
+        if self.is_mtext:
+            self.bound["x1"]=self.insert[0]
+            self.bound["x2"]=self.insert[0]
+            self.bound["y1"]=self.insert[1]
+            self.bound["y2"]=self.insert[1]
+        else:
+            lb=DPoint(self.bound["x1"],self.bound["y1"])
+            rt=DPoint(self.bound["x2"],self.bound["y2"])
+            lb=self.transform_point(lb,self.meta)
+            rt=self.transform_point(rt,self.meta)
+            self.bound["x1"]=lb.x
+            self.bound["x2"]=rt.x
+            self.bound["y1"]=lb.y
+            self.bound["y2"]=rt.y
 
 class DDimension(DElement):
     def __init__(self,textpos: DPoint=DPoint(0,0),color=7,text="",measurement=100,defpoints=[],dimtype=32,handle="",meta=None):  

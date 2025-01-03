@@ -74,7 +74,7 @@ def is_parallel(seg1, seg2, tolerance=0.05):
     
     # 防止长度为0的线段
     if length1 == 0 or length2 == 0:
-        raise ValueError("线段长度不能为0")
+        return False
     
     # 归一化叉积
     cross_product = (dx1 * dy2 - dy1 * dx2) / (length1 * length2)
@@ -156,8 +156,9 @@ def process_lwpoline(vs,vs_type,color,handle,meta,isClosed,hasArc):
     segments=[]
     arc_set=set()
     for i,v in enumerate(vs):
-        if len(v)==2:
-            new_vs.append(v)        
+        if len(v)==4:
+            new_vs.append([v[0], v[1]])
+            new_vs.append([v[2], v[3]])        
 
         elif len(v)==5:
             x,y,s_a,e_a,r=v[0],v[1],v[2],v[3],v[4]
@@ -401,7 +402,7 @@ def transform_segments(segments,scales,rotation,insert):
         new_segments.append(segment)
     return new_segments
 #json --> elements
-def process_block(blockName,scales,rotation,insert,attribs,bound,block_elements,segmentation_config):
+def process_block(T_is_contained,block_datas,blockName,scales,rotation,insert,attribs,bound,block_elements,segmentation_config):
     print(f"正在处理块:{blockName}")
     # if blockName!="L125X75X7" or insert[1]>-36900:
     #     return [],[],[]
@@ -412,25 +413,30 @@ def process_block(blockName,scales,rotation,insert,attribs,bound,block_elements,
     arcs=[]
     segments=[]
     stiffeners=[]
+    arc_splits=[]
+    ori_segments=[]
     for attrib in attribs:
         text=attrib["attribText"]
-        if text.strip()!="":
-            elements.append(DText(bound,block_meta_data.mid_point(),7,text,100,attrib["attribHandle"],meta=DInsert("TOP",[1.0,1.0],0,[0,0],[],None)))
+        if is_useful_text(text.strip()):
+            elements.append(DText(bound={"x1":-50,"x2":50,"y1":-50,"y2":50},content=text,handle=attrib["attribHandle"],meta=block_meta_data))
     color = segmentation_config.color
     linetype =segmentation_config.line_type 
     elementtype=segmentation_config.element_type
     layname=segmentation_config.remove_layername
     for ele in block_elements:
+        if  (T_is_contained and ele.get("layerName") is not None and ele["layerName"]!="T") or (T_is_contained and ele.get("layerName") is None) :
+            continue
         if ele["type"]=="line":
            
             # 虚线过滤
             if ele.get("linetype") is None or ele["linetype"] not in linetype:
                 continue
             if ele.get("layerName") is not None and ele["layerName"] in layname:
-                if ele["layerName"]=="Stiffener_Invisible" or  ele["layerName"]=="Stiffener_Visible":
+                if ele["layerName"] in segmentation_config.stiffener_name:
                     e=DLine(DPoint(ele["start"][0],ele["start"][1]),DPoint(ele["end"][0],ele["end"][1]),ele["color"],ele["handle"],meta=block_meta_data)
                     stiffeners.append(DSegment(e.start_point,e.end_point,e))
-                continue
+                if ele["layerName"] in segmentation_config.remove_layername:
+                    continue
              # 颜色过滤
             if ele["color"] not in color:
                 continue
@@ -528,6 +534,29 @@ def process_block(blockName,scales,rotation,insert,attribs,bound,block_elements,
             if ele["isClosed"]:
                 # if simplified_ps[-1].y>-48500 or simplified_ps[0].y>-48500:
                 segments.append(DSegment(simplified_ps[-1], simplified_ps[0], e))
+        elif ele["type"]=="insert":
+                sub_blockName=ele["blockName"]
+                # x1,x2,y1,y2=ele["bound"]["x1"],ele["bound"]["x2"],ele["bound"]["y1"],ele["bound"]["y2"]
+                sub_scales=ele["scales"]
+                sub_rotation=ele["rotation"]
+                sub_insert=ele["insert"]
+                sub_attribs=ele['attribs']
+                sub_block_data=block_datas[sub_blockName]
+                sub_bound=ele["bound"]
+                #pre-check
+                sub_T_is_contained=False
+                for sube in sub_block_data:
+                    if sube.get("layerName") is not None and sube["layerName"]=="T":
+                        sub_T_is_contained=True
+                        break
+                sub_elements,sub_segments,sub_arc_splits,sub_ori_segments,sub_stiffeners=process_block(sub_T_is_contained,block_datas,sub_blockName,sub_scales,sub_rotation,sub_insert,sub_attribs,sub_bound,sub_block_data,segmentation_config)
+                for sube in sub_elements:
+                    sube.meta=block_meta_data
+                elements.extend(sub_elements)
+                segments.extend(sub_segments)
+                arc_splits.extend(sub_arc_splits)
+                ori_segments.extend(sub_ori_segments)
+                stiffeners.extend(sub_stiffeners)
         elif ele["type"]=="text" and blockName=="TOP":
                 e=DText(ele["bound"],ele["insert"], ele["color"],ele["content"].strip(),ele["height"],ele["handle"],meta=block_meta_data)
                 elements.append(e)
@@ -551,41 +580,43 @@ def process_block(blockName,scales,rotation,insert,attribs,bound,block_elements,
         else:
             pass
     
-    ori_segments=[]
+    
     for s in segments:
         if s.length()>0:
             ori_segments.append(DSegment(s.start_point,s.end_point,s.ref))
         else:
             # print(s)
             pass
-    segments=expandFixedLength(segments,segmentation_config.line_expand_length)
-    arc_splits=split_arcs(arcs,segments)
+    expand_segments=expandFixedLength(segments,segmentation_config.line_expand_length)
+    arc_splits.extend(split_arcs(arcs,expand_segments))
     for s in arc_splits:
         if s.length()>0:
             ori_segments.append(DSegment(s.start_point,s.end_point,s.ref))
         else:
             # print(s)
             pass
-    arc_splits=expandFixedLength(arc_splits,segmentation_config.arc_expand_length)
-    segments=segments+arc_splits
+    # arc_splits=expandFixedLength(arc_splits,segmentation_config.arc_expand_length)
+    # segments=segments+arc_splits
 
     segments=transform_segments(segments,scales,rotation,insert)
+    arc_splits=transform_segments(arc_splits,scales,rotation,insert)
     ori_segments=transform_segments(ori_segments,scales,rotation,insert)
     stiffeners=transform_segments(stiffeners,scales,rotation,insert)
-    return elements,segments,ori_segments,stiffeners
-def process_blocks(block_sub_datas,segmentation_config):
-    elements=[]
-    segments=[]
-    stiffeners=[]
-    ori_segments=[]
-    for block_sub_data in block_sub_datas:
-        blockName,scales,rotation,insert,attribs,bound,block_elements=block_sub_data[0],block_sub_data[1],block_sub_data[2],block_sub_data[3],block_sub_data[4],block_sub_data[5],block_sub_data[6]
-        block_e,block_s,block_o,block_sf=process_block(blockName,scales,rotation,insert,attribs,bound,block_elements,segmentation_config)
-        elements.extend(block_e)
-        segments.extend(block_s)
-        ori_segments.extend(block_o)
-        stiffeners.extend(block_sf)
-    return elements,segments,ori_segments,stiffeners
+    transform_elements(elements)
+    return elements,segments,arc_splits,ori_segments,stiffeners
+# def process_blocks(block_sub_datas,segmentation_config):
+#     elements=[]
+#     segments=[]
+#     stiffeners=[]
+#     ori_segments=[]
+#     for block_sub_data in block_sub_datas:
+#         blockName,scales,rotation,insert,attribs,bound,block_elements=block_sub_data[0],block_sub_data[1],block_sub_data[2],block_sub_data[3],block_sub_data[4],block_sub_data[5],block_sub_data[6]
+#         block_e,block_s,block_o,block_sf=process_block(blockName,scales,rotation,insert,attribs,bound,block_elements,segmentation_config)
+#         elements.extend(block_e)
+#         segments.extend(block_s)
+#         ori_segments.extend(block_o)
+#         stiffeners.extend(block_sf)
+#     return elements,segments,ori_segments,stiffeners
 def readJson(path,segmentation_config):
     # elements=[]
     block_sub_datas=[]
@@ -598,36 +629,14 @@ def readJson(path,segmentation_config):
     try:  
         with open(path, 'r', encoding='utf-8') as file:  
             data_list = json.load(file)
-        block_sub_datas.append(["TOP",[1.0,1.0],0,[0,0],[],None,data_list[0]])
-        for ele in data_list[0]:
-            if ele["type"]=="insert":
-                blockName=ele["blockName"]
-                # x1,x2,y1,y2=ele["bound"]["x1"],ele["bound"]["x2"],ele["bound"]["y1"],ele["bound"]["y2"]
-                scales=ele["scales"]
-                rotation=ele["rotation"]
-                insert=ele["insert"]
-                attribs=ele['attribs']
-                block_data=data_list[1][blockName]
-                bound=ele["bound"]
-                #pre-check
-                T_is_contained=False
-                for sube in block_data:
-                    if sube.get("layerName") is not None and sube["layerName"]=="T":
-                        T_is_contained=True
-                        break
-                block_elements=[]
-                for sube in block_data:
-                    #or sube["type"] not in elementtype or sube["color"] not in color  or sube.get("linetype") is None or sube["linetype"] not in linetype
-                    if  (T_is_contained and sube.get("layerName") is not None and sube["layerName"]!="T") or (T_is_contained and sube.get("layerName") is None) :
-                        continue
-                    block_elements.append(sube)
-                  
-                block_sub_data=[blockName,scales,rotation,insert,attribs,bound,block_elements]
-                block_sub_datas.append(block_sub_data)
+        block_datas=data_list[1]
+        elements,segments,arc_splits,ori_segments,stiffeners=process_block(False,block_datas,"TOP",[1.0,1.0],0,[0,0],[],None,data_list[0],segmentation_config)
+        segments=expandFixedLength(segments,segmentation_config.line_expand_length)
+        arc_splits=expandFixedLength(arc_splits,segmentation_config.arc_expand_length)
            
-        elements,segments,ori_segments,stiffeners=process_blocks(block_sub_datas,segmentation_config)
-        transform_elements(elements)
-        return elements,segments,ori_segments,stiffeners
+       
+       
+        return elements,segments+arc_splits,ori_segments,stiffeners
     except FileNotFoundError:  
         print("The file does not exist.")
     except json.JSONDecodeError:  
@@ -1082,7 +1091,7 @@ def compute_star_replines(new_segments,elements):
     star_pos_map={}
     star_pos_set=set()
     for e in elements:
-        if isinstance(e,DText) and (e.content).strip()=="*":
+        if isinstance(e,DText) and is_star_text(e.content):
             x,y=(e.bound["x1"]+e.bound["x2"])/2,(e.bound["y1"]+e.bound["y2"])/2
             vertical_lines.append(DSegment(DPoint(x,y),DPoint(x,y+5000)))
     for i, seg1 in enumerate(vertical_lines):
@@ -2417,6 +2426,7 @@ def process_text_map(text_map,removed_segments,segmentation_config):
     for p ,texts in new_text_map.items():
         text_wo_d=[]
         text_w_d=[]
+        text_map={}
         for t in texts:
             if t[3] is None:
                 text_wo_d.append(t)
@@ -2424,7 +2434,15 @@ def process_text_map(text_map,removed_segments,segmentation_config):
                 if t[1]["Type"]=="R":
                     text_wo_d.append(t)
                 else:
-                    text_w_d.append(t)
+                    content=t[0].content.strip()
+                    if content not in text_map:
+                        text_map[content]=(t[3],t)
+                    else:
+                        if text_map[content][0]<t[3]:
+                            text_map[content]=(t[3],t)
+        for content,t_t in text_map.items():
+            text_w_d.append(t_t[1])
+
         sorted(text_w_d,key=lambda t:t[3],reverse=True)
         new_text_w_d=[]
         if len(text_w_d)>1:

@@ -80,6 +80,21 @@ def is_near_convex(points, i, tolerance=0.1):
 
     return True
 
+def is_near_rectangle(points, area, tolerance = 0.01):
+    if len(points) < 3:
+        return False  # 不构成多边形
+
+    # 确保输入点集是一个二维数组
+    points = [(float(x), float(y)) for x, y in points]
+
+    # 计算输入多边形面积
+    poly_area = polygon_area(points)
+    
+    if abs(poly_area - area) / area > tolerance:
+        return False
+
+    return True
+
 
 def calculate_angle(point1, point2, point3):
     """
@@ -356,7 +371,7 @@ def outputPolyInfo(poly, segments, segmentation_config, point_map, index,star_po
             mid_point=DPoint((segment.end_point.x+segment.start_point.x)/2,(segment.end_point.y+segment.start_point.y)/2)
             l = (dx_1**2 + dy_1**2)**0.5
             v_1 = (dy_1 / l * segmentation_config.parallel_max_distance, -dx_1 / l * segmentation_config.parallel_max_distance)
-            point1,point2,point3=segment.start_point,segment.end_point,mid_point
+            point1,point2,point3=DSegment(segment.start_point,mid_point).mid_point(),DSegment(segment.end_point,mid_point).mid_point(),mid_point
             for j, other in enumerate(segments):
                 if segment == other:
                     continue
@@ -364,12 +379,12 @@ def outputPolyInfo(poly, segments, segmentation_config, point_map, index,star_po
                 if is_parallel(segment, other,segmentation_config.is_parallel_tolerance):
                     #print(segment,other)
                     s1 = DSegment(
-                        DPoint(segment.start_point.x + v_1[0], segment.start_point.y + v_1[1]),
-                        DPoint(segment.start_point.x - v_1[0], segment.start_point.y - v_1[1])
+                        DPoint(point1.x + v_1[0], point1.y + v_1[1]),
+                        DPoint(point1.x - v_1[0], point1.y - v_1[1])
                     )
                     s2 = DSegment(
-                        DPoint(segment.end_point.x + v_1[0], segment.end_point.y + v_1[1]),
-                        DPoint(segment.end_point.x - v_1[0], segment.end_point.y - v_1[1])
+                        DPoint(point2.x + v_1[0], point2.y + v_1[1]),
+                        DPoint(point2.x - v_1[0], point2.y - v_1[1])
                     )
                     s3 = DSegment(
                         DPoint(mid_point.x + v_1[0], mid_point.y + v_1[1]),
@@ -392,7 +407,7 @@ def outputPolyInfo(poly, segments, segmentation_config, point_map, index,star_po
                         i2=None
                     if i3 is not None and DSegment(i3,point3).length()<segmentation_config.parallel_min_distance:
                         i3=None
-                    if i1 is not None or i2 is not None or i3 is not None:
+                    if i1 is not None and i2 is not None and i3 is not None:
                         segment.isConstraint = True
                         poly_refs[i].isConstraint = True
                         # if poly_refs[i].length()<=27 and poly_refs[i].length()>=25:
@@ -426,7 +441,7 @@ def outputPolyInfo(poly, segments, segmentation_config, point_map, index,star_po
             mid_point=DPoint((segment.end_point.x+segment.start_point.x)/2,(segment.end_point.y+segment.start_point.y)/2)
             l = (dx_1**2 + dy_1**2)**0.5
             v_1 = (dy_1 / l * segmentation_config.parallel_max_distance, -dx_1 / l * segmentation_config.parallel_max_distance)
-            point1,point2,point3=segment.start_point,segment.end_point,mid_point
+            point1,point2,point3=DSegment(segment.start_point,mid_point).mid_point(),DSegment(segment.end_point,mid_point).mid_point(),mid_point
             for j, other in enumerate(segments):
                 if segment == other:
                     continue
@@ -434,12 +449,12 @@ def outputPolyInfo(poly, segments, segmentation_config, point_map, index,star_po
                 if is_parallel(segment, other,segmentation_config.is_parallel_tolerance):
                     #print(segment,other)
                     s1 = DSegment(
-                        DPoint(segment.start_point.x + v_1[0], segment.start_point.y + v_1[1]),
-                        DPoint(segment.start_point.x - v_1[0], segment.start_point.y - v_1[1])
+                        DPoint(point1.x + v_1[0], point1.y + v_1[1]),
+                        DPoint(point1.x - v_1[0], point1.y - v_1[1])
                     )
                     s2 = DSegment(
-                        DPoint(segment.end_point.x + v_1[0], segment.end_point.y + v_1[1]),
-                        DPoint(segment.end_point.x - v_1[0], segment.end_point.y - v_1[1])
+                        DPoint(point2.x + v_1[0], point2.y + v_1[1]),
+                        DPoint(point2.x - v_1[0], point2.y - v_1[1])
                     )
                     s3 = DSegment(
                         DPoint(mid_point.x + v_1[0], mid_point.y + v_1[1]),
@@ -462,7 +477,7 @@ def outputPolyInfo(poly, segments, segmentation_config, point_map, index,star_po
                         i2=None
                     if i3 is not None and DSegment(i3,point3).length()<segmentation_config.parallel_min_distance:
                         i3=None
-                    if i1 is not None or i2 is not None or i3 is not None:
+                    if i1 is not None and i2 is not None and i3 is not None:
                         others.add(other)
                         segment.isPart=True
                         poly_refs[i].isPart=True
@@ -661,8 +676,29 @@ def outputPolyInfo(poly, segments, segmentation_config, point_map, index,star_po
         print(f"回路{index}自由边长度在总轮廓长度中占比不超过{segmentation_config.free_edge_ratio*100}%")
         return None
     
+    # 如果整体肘板轮廓接近于矩形，则不进行输出
+    max_x = float('-inf')
+    min_x = float('inf')
+    max_y = float('-inf')
+    min_y = float('inf')
+    points = []
+    for seg in poly_refs:
+        if isinstance(seg.ref, DArc):
+            continue
+        points.append(seg.start_point)
+        points.append(seg.end_point)
+        x_coords = [seg.start_point[0], seg.end_point[0]]
+        y_coords = [seg.start_point[1], seg.end_point[1]]
 
-    
+        max_x = max(max_x, *x_coords)
+        min_x = min(min_x, *x_coords)
+        max_y = max(max_y, *y_coords)
+        min_y = min(min_y, *y_coords)
+
+    area = (max_x - min_x) * (max_y - min_y)
+    if is_near_rectangle(points, area, segmentation_config.near_rectangle_tolerance):
+        print("肘板轮廓接近矩形！")
+        return None
 
     # step6: 绘制对边分类后的几何图像
     plot_info_poly(poly_refs, os.path.join(segmentation_config.poly_info_dir, f'infopoly{index}.png'),tis,ds,sfs,others)

@@ -123,44 +123,45 @@ def convertLWPolyline(entity:ezdxf.entities.Spline):
     mid['hasArc'] = entity.has_arc
 
     # mid['vertices'] = [[x[0].item(),x[1].item()] for x in entity.vertices()]
-    if not entity.has_arc:
-        mid['vertices'] = [[x[0].item(),x[1].item()] for x in entity.vertices()]
-        mid['verticesType']  = [["line"] for x in entity.vertices()]
-    else:
-        mid['vertices'] = []
-        mid['verticesType'] = []
+    # if not entity.has_arc:
+    #     mid['vertices'] = [[x[0].item(),x[1].item()] for x in entity.vertices()]
+    #     mid['verticesType']  = [["line"] for x in entity.vertices()]
+    # else:
+    mid['vertices'] = []
+    mid['verticesType'] = []
 
-        # print(entity.dxf.handle, entity.dxf.count)
-        for i in range(entity.dxf.count  - 1):
-            start_point = entity.__getitem__(i)
-            end_point = entity.__getitem__(i + 1)
-            # print(start_point[-1])
+    # print(entity.dxf.handle, entity.dxf.count)
+    for i in range(entity.dxf.count  - 1):
+        start_point = entity.__getitem__(i)
+        end_point = entity.__getitem__(i + 1)
+        # print(start_point[-1])
 
-            if start_point[-1] != 0.:
-                arc = ezdxf.math.bulge_to_arc(start_point[:2], end_point[:2], start_point[-1])
-                center, start_angle, end_angle, radius  = arc 
-                x, y = center
-                mid["vertices"].append([x, y, start_angle, end_angle, radius])
-                mid['verticesType'].append("arc")
-            else:
-                x, y = start_point[:2]
-                mid["vertices"].append([x, y])
-                mid['verticesType'].append("line")
+        if start_point[-1] != 0.:
+            arc = ezdxf.math.bulge_to_arc(start_point[:2], end_point[:2], start_point[-1])
+            center, start_angle, end_angle, radius  = arc 
+            x, y = center
+            mid["vertices"].append([x, y, start_angle, end_angle, radius])
+            mid['verticesType'].append("arc")
+        else:
+            x_s, y_s = start_point[:2]
+            x_e, y_e = end_point[:2]
+            mid["vertices"].append([x_s, y_s, x_e, y_e])
+            mid['verticesType'].append("line")
             
-        if entity.is_closed:
-            start_point = entity.__getitem__(entity.dxf.count - 1)
-            end_point = entity.__getitem__(0)
+        # if entity.is_closed:
+        #     start_point = entity.__getitem__(entity.dxf.count - 1)
+        #     end_point = entity.__getitem__(0)
 
-            if start_point[-1] != 0.:
-                    arc = ezdxf.math.bulge_to_arc(start_point[:2], end_point[:2], start_point[-1])
-                    center, start_angle, end_angle, radius  = arc 
-                    x, y = center
-                    mid["vertices"].append([x, y, start_angle, end_angle, radius])
-                    mid['verticesType'].append("arc")
-            else:
-                x, y = start_point[:2]
-                mid["vertices"].append([x, y])
-                mid['verticesType'].append("line")
+        #     if start_point[-1] != 0.:
+        #             arc = ezdxf.math.bulge_to_arc(start_point[:2], end_point[:2], start_point[-1])
+        #             center, start_angle, end_angle, radius  = arc 
+        #             x, y = center
+        #             mid["vertices"].append([x, y, start_angle, end_angle, radius])
+        #             mid['verticesType'].append("arc")
+        #     else:
+        #         x, y = start_point[:2]
+        #         mid["vertices"].append([x, y])
+        #         mid['verticesType'].append("line")
 
 
     # for i in range(num_vertices):
@@ -438,25 +439,25 @@ def dxf2json(dxfpath,dxfname,output_folder):
 
 if __name__ == "__main__":
     
-    dxfpath = '//home/user10/code/BraketDetection/test'
-    dxfname = 'small2.dxf'
-    dxf2json(dxfpath,dxfname, dxfpath)
-    # folder_path = '/home/user10/code/BraketDetection/test'
-    # output_foler='/home/user10/code/BraketDetection/test'
-    # for filename in os.listdir(folder_path):
-    #     # 检查文件是否是JSON文件
-    #     if filename.endswith('.dxf'):
-    #         file_path = os.path.join(folder_path, filename)
-    #         name = os.path.splitext(filename)[0]
-    #         output_path = os.path.join(output_foler, name)
-    #         # training_data_output_path = os.path.join(training_data_output_folder, name)
-    #         print(f"正在处理文件: {file_path}")
+    # dxfpath = '//home/user10/code/BraketDetection/test'
+    # dxfname = 'small2.dxf'
+    # dxf2json(dxfpath,dxfname, dxfpath)
+    folder_path = '../jndata'
+    output_foler='../jndata'
+    for filename in os.listdir(folder_path):
+        # 检查文件是否是JSON文件
+        if filename.endswith('.dxf'):
+            file_path = os.path.join(folder_path, filename)
+            name = os.path.splitext(filename)[0]
+            output_path = os.path.join(output_foler, name)
+            # training_data_output_path = os.path.join(training_data_output_folder, name)
+            print(f"正在处理文件: {file_path}")
             
-    #         # 打开并读取JSON文件内容
-    #         try:
-    #             dxf2json(folder_path,filename, output_foler)
-    #         except Exception as e:
-    #             print(f"处理文件 {file_path} 时出错: {e}")
+            # 打开并读取JSON文件内容
+            try:
+                dxf2json(folder_path,filename, output_foler)
+            except Exception as e:
+                print(f"处理文件 {file_path} 时出错: {e}")
 
 
     # dxfpath = './split'
