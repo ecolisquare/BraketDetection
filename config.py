@@ -19,7 +19,7 @@ class SegmentationConfig:
 
         self.segment_filter_length=0.25
         self.segment_filter_iters=100
-
+        self.segment_remove_interval=50
         self.segment_split_epsilon=0.25
 
         self.intersection_epsilon=1e-9
@@ -93,7 +93,7 @@ class SegmentationConfig:
         self.is_parallel_tolerance=0.05
         #readJson
         self.line_type=["BYLAYER", "Continuous","Bylayer","CONTINUOUS","ByBlock","BYBLOCK"]
-        self.color=[3, 7, 8, 4,2,140,254,1]
+        self.color=[3, 7, 8, 4,2,140,254,1,5]
         self.constraint_color=[1,3]
         self.element_type=["line","arc","lwpolyline","polyline","spline"]
 

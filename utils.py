@@ -816,7 +816,7 @@ def split_segments(segments, intersections,epsilon=0.25,expansion_param=0):
     return new_segments, edge_map,point_map
 
 
-def filter_segments(segments,intersections,point_map,expansion_param=12,iters=3):
+def filter_segments(segments,intersections,point_map,expansion_param=12,iters=3,interval=1):
     new_segments=[]
     edge_map = {}
     new_point_map={}
@@ -896,11 +896,11 @@ def filter_segments(segments,intersections,point_map,expansion_param=12,iters=3)
             div_s,div_e=len(new_point_map[vs]),len(new_point_map[ve])
             if div_s==1 or div_e==1:
                 continue
-            if div_s==3:
+            if div_s==3 and (i+1)%interval==0:
                 ns=[ss for ss in new_point_map[vs] if ss !=s]
                 if isinstance(ns[0].ref,DArc) and ns[0].ref == ns[1].ref:
                     continue
-            if div_e==3:
+            if div_e==3 and (i+1)%interval==0:
                 ns=[ss for ss in new_point_map[ve] if ss !=s]
                 if isinstance(ns[0].ref,DArc) and ns[0].ref == ns[1].ref:
                     continue
@@ -2443,7 +2443,7 @@ def process_text_map(text_map,removed_segments,segmentation_config):
         for content,t_t in text_map.items():
             text_w_d.append(t_t[1])
 
-        sorted(text_w_d,key=lambda t:t[3],reverse=True)
+        text_w_d=sorted(text_w_d,key=lambda t:t[3],reverse=True)
         new_text_w_d=[]
         if len(text_w_d)>1:
             for i in range(len(text_w_d)):
@@ -2485,7 +2485,7 @@ def findClosedPolys_via_BFS(elements,texts,dimensions,segments,segmentation_conf
     # if verbose:
     #     print("根据交点分割线段")
     new_segments, edge_map,point_map= split_segments(segments, isecDic,segmentation_config.segment_filter_length)
-    filtered_segments, filtered_edge_map,filtered_point_map= filter_segments(segments,isecDic,point_map,segmentation_config.segment_filter_length,segmentation_config.segment_filter_iters)
+    filtered_segments, filtered_edge_map,filtered_point_map= filter_segments(segments,isecDic,point_map,segmentation_config.segment_filter_length,segmentation_config.segment_filter_iters,segmentation_config.segment_remove_interval)
     
     
     
@@ -2512,7 +2512,7 @@ def findClosedPolys_via_BFS(elements,texts,dimensions,segments,segmentation_conf
     new_segments, edge_map,point_map= split_segments(initial_segments, isecDic,segmentation_config.segment_filter_length)
     #filter lines
 
-    filtered_segments, filtered_edge_map,filtered_point_map= filter_segments(initial_segments,isecDic,point_map,segmentation_config.segment_filter_length,segmentation_config.segment_filter_iters)
+    filtered_segments, filtered_edge_map,filtered_point_map= filter_segments(initial_segments,isecDic,point_map,segmentation_config.segment_filter_length,segmentation_config.segment_filter_iters,segmentation_config.segment_remove_interval)
     braket_start_lines=findBraketByHints(filtered_segments,text_map)
     # polys=[]
     # outputLines(new_segments,point_map,polys,segmentation_config.line_image_path,segmentation_config.draw_intersections,segmentation_config.draw_segments,segmentation_config.line_image_drawPolys)
@@ -2647,7 +2647,7 @@ def findClosedPolys_via_BFS(elements,texts,dimensions,segments,segmentation_conf
         print(f"封闭多边形个数:{len(polys)}")
     #outputPolysAndGeometry(filtered_point_map,polys,segmentation_config.poly_image_dir,segmentation_config.draw_polys,segmentation_config.draw_geometry,segmentation_config.draw_poly_nums)
     outputLines(segmentation_config,filtered_segments,filtered_point_map,polys,cornor_holes,star_pos ,texts,text_map,dimensions,replines,segmentation_config.line_image_path,segmentation_config.draw_intersections,segmentation_config.draw_segments,segmentation_config.line_image_drawPolys,)
-    return polys, segments, point_map,star_pos_map,cornor_holes,text_map
+    return polys, new_segments, point_map,star_pos_map,cornor_holes,text_map
 
 
  
