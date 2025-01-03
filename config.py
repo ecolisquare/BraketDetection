@@ -77,8 +77,11 @@ class SegmentationConfig:
         self.dfs_optional=False
 
         #constraint determine--parallel
-        self.parallel_max_distance= 50
+        self.parallel_max_distance= 15
         self.parallel_min_distance=5
+
+        self.parallel_max_distance_relax=50
+        self.parallel_min_distance_relax=5
 
         #bracket bounding box
         self.bracket_bbox_expand_length=50

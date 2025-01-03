@@ -435,12 +435,12 @@ def outputPolyInfo(poly, segments, segmentation_config, point_map, index,star_po
     st_segments=set()
     #查找相邻结构
     for i,segment in enumerate(poly_refs):
-        if segment.isConstraint:
+        if True:
             dx_1 = segment.end_point.x - segment.start_point.x
             dy_1 = segment.end_point.y - segment.start_point.y
             mid_point=DPoint((segment.end_point.x+segment.start_point.x)/2,(segment.end_point.y+segment.start_point.y)/2)
             l = (dx_1**2 + dy_1**2)**0.5
-            v_1 = (dy_1 / l * segmentation_config.parallel_max_distance, -dx_1 / l * segmentation_config.parallel_max_distance)
+            v_1 = (dy_1 / l * segmentation_config.parallel_max_distance_relax, -dx_1 / l * segmentation_config.parallel_max_distance_relax)
             point1,point2,point3=DSegment(segment.start_point,mid_point).mid_point(),DSegment(segment.end_point,mid_point).mid_point(),mid_point
             for j, other in enumerate(segments):
                 if segment == other:
@@ -471,11 +471,11 @@ def outputPolyInfo(poly, segments, segmentation_config, point_map, index,star_po
                     i3 = segment_intersection(s3.start_point, s3.end_point, other.start_point, other.end_point)
                     if i3 == other.end_point or i3 == other.start_point:
                         i3 = None
-                    if i1 is not None and DSegment(i1,point1).length()<segmentation_config.parallel_min_distance:
+                    if i1 is not None and DSegment(i1,point1).length()<segmentation_config.parallel_min_distance_relax:
                         i1=None
-                    if i2 is not None and DSegment(i2,point2).length()<segmentation_config.parallel_min_distance:
+                    if i2 is not None and DSegment(i2,point2).length()<segmentation_config.parallel_min_distance_relax:
                         i2=None
-                    if i3 is not None and DSegment(i3,point3).length()<segmentation_config.parallel_min_distance:
+                    if i3 is not None and DSegment(i3,point3).length()<segmentation_config.parallel_min_distance_relax:
                         i3=None
                     if i1 is not None and i2 is not None and i3 is not None:
                         others.add(other)

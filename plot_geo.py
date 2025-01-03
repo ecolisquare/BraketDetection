@@ -209,6 +209,8 @@ def plot_info_poly(segments, path,texts,dimensions,stifferners,others=[]):
                 color="#00AA00"
         else:
             color = "#0000FF"
+            if segment.isPart:
+                color="#000000"
         if isinstance(segment.ref, DArc):
             if segment.ref.end_angle < segment.ref.start_angle:
                 end_angle = segment.ref.end_angle + 360
