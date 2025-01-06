@@ -429,8 +429,8 @@ def process_block(T_is_contained,block_datas,blockName,scales,rotation,insert,at
         if ele["type"]=="line":
            
             # 虚线过滤
-            if ele.get("linetype") is None or ele["linetype"] not in linetype:
-                continue
+            # if ele.get("linetype") is None or ele["linetype"] not in linetype:
+            #     continue
             if ele.get("layerName") is not None and ele["layerName"] in layname:
                 if ele["layerName"] in segmentation_config.stiffener_name:
                     e=DLine(DPoint(ele["start"][0],ele["start"][1]),DPoint(ele["end"][0],ele["end"][1]),ele["color"],ele["handle"],meta=block_meta_data)
@@ -449,8 +449,8 @@ def process_block(T_is_contained,block_datas,blockName,scales,rotation,insert,at
             if ele["color"] not in color:
                 continue
             # 虚线过滤
-            if ele.get("linetype") is None or ele["linetype"] not in linetype:
-                continue
+            # if ele.get("linetype") is None or ele["linetype"] not in linetype:
+            #     continue
             if ele.get("layerName") is not None and ele["layerName"] in layname:
                 continue
             # 创建DArc对象
@@ -463,8 +463,8 @@ def process_block(T_is_contained,block_datas,blockName,scales,rotation,insert,at
             if ele["color"] not in color:
                 continue
             # 虚线过滤
-            if ele.get("linetype") is None or ele["linetype"] not in linetype:
-                continue
+            # if ele.get("linetype") is None or ele["linetype"] not in linetype:
+            #     continue
             if ele.get("layerName") is not None and ele["layerName"] in layname:
                 continue
             vs = ele["vertices"]
@@ -484,8 +484,8 @@ def process_block(T_is_contained,block_datas,blockName,scales,rotation,insert,at
             if ele["color"] not in color:
                 continue
             # 虚线过滤
-            if ele.get("linetype") is None or ele["linetype"] not in linetype:
-                continue
+            # if ele.get("linetype") is None or ele["linetype"] not in linetype:
+            #     continue
             if ele.get("layerName") is not None and ele["layerName"] in layname:
                 continue
             vs = ele["vertices"]
@@ -515,8 +515,8 @@ def process_block(T_is_contained,block_datas,blockName,scales,rotation,insert,at
             if ele["color"] not in color:
                 continue
             # 虚线过滤
-            if ele.get("linetype") is None or ele["linetype"] not in linetype:
-                continue
+            # if ele.get("linetype") is None or ele["linetype"] not in linetype:
+            #     continue
             if ele.get("layerName") is not None and ele["layerName"] in layname:
                 continue
             vs = ele["vertices"]
