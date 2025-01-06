@@ -146,8 +146,6 @@ def conerhole_free_classifier(classification_table, conerhole_num, free_edges_se
 
     return matched_type if matched_type is not None else "Unclassified"
 
-
-
 def poly_classifier(poly_refs, conerhole_num, poly_free_edges, edges, classification_file_path, info_json_path, keyname, is_output_json = False):
     classification_table = load_classification_table(classification_file_path)
 

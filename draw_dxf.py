@@ -4,7 +4,7 @@ import ezdxf
 import json
 
 
-def draw_rectangle_in_dxf(file_path, folder, bbox_list):
+def draw_rectangle_in_dxf(file_path, folder, bbox_list, classi_res):
         
         
         folder = os.path.normpath(os.path.abspath(folder))
@@ -18,7 +18,7 @@ def draw_rectangle_in_dxf(file_path, folder, bbox_list):
             doc.layers.add("Braket", color=30) 
 
 
-        for idx, bbox in enumerate(bbox_list):
+        for idx, (bbox, classification) in enumerate(zip(bbox_list, classi_res)):
 
             x1 = bbox[0][0] - 20
             y1 = bbox[0][1] - 20
@@ -36,8 +36,8 @@ def draw_rectangle_in_dxf(file_path, folder, bbox_list):
             msp.add_line(bottom_right, bottom_left, dxfattribs={"layer": "Braket"})
             msp.add_line(bottom_left, top_left, dxfattribs={"layer": "Braket"})
 
-            # text = msp.add_text("NO:{}".format(idx), dxfattribs={"layer": "Braket", "height":200})
-            # text.dxf.insert = ((x1+x2)/2, y2)
+            text = msp.add_text(classification, dxfattribs={"layer": "Braket", "height":200})
+            text.dxf.insert = ((x1+x2)/2, y2)
             # msp.add_text("NO.{}".format(idx), dxfattribs={"layer": "Split", "height": 100}).set_dxf_attrib("insert",(x1, y1-20))
 
             # 保存修改后的 DXF 文件
