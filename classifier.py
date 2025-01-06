@@ -119,7 +119,7 @@ def conerhole_free_classifier(classification_table, conerhole_num, free_edges_se
             conerhole_count[key] = conerhole_count.get(key, 0) + 1
         if(reversed_edges_sequence[i][0] != "conerhole"):
             reversed_non_conerhole_edges.append(reversed_edges_sequence[i][1])
-    for key, row in classification_table.items():
+    for key_name, row in classification_table.items():
         # step1: 自由边轮廓严格匹配
         if row["free_edges"] != free_edges_sequence and row["free_edges"] != reversed_free_edges_sequence:
             continue
@@ -142,7 +142,7 @@ def conerhole_free_classifier(classification_table, conerhole_num, free_edges_se
         if temp_conerhole_count != conerhole_count:
             continue
 
-        matched_type = key if matched_type is None else f"{matched_type}, {key}"
+        matched_type = key_name if matched_type is None else f"{matched_type}, {key_name}"
 
     return matched_type if matched_type is not None else "Unclassified"
 

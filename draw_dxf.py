@@ -36,7 +36,7 @@ def draw_rectangle_in_dxf(file_path, folder, bbox_list, classi_res):
             msp.add_line(bottom_right, bottom_left, dxfattribs={"layer": "Braket"})
             msp.add_line(bottom_left, top_left, dxfattribs={"layer": "Braket"})
 
-            text = msp.add_text(classification, dxfattribs={"layer": "Braket", "height":200})
+            text = msp.add_text(classification, dxfattribs={"layer": "Braket", "height":50})
             text.dxf.insert = ((x1+x2)/2, y2)
             # msp.add_text("NO.{}".format(idx), dxfattribs={"layer": "Split", "height": 100}).set_dxf_attrib("insert",(x1, y1-20))
 
