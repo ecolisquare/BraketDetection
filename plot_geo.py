@@ -234,17 +234,18 @@ def outputRes(segments,point_map,polys,resPNGPath,drawIntersections=False,drawLi
     if drawLines:
         for seg in segments:
             vs, ve = seg.start_point, seg.end_point
-            plt.plot([vs.x, ve.x], [vs.y, ve.y], 'k-')
+            ax.plot([vs.x, ve.x], [vs.y, ve.y], 'k-')
     if drawIntersections:
-        print("============")
-        print(len(segments))
-        print("=============")
+        # print("============")
+        # print(len(segments))
+        # print("=============")
+        print(point_map[DPoint(458,414)])
         for p,ss in point_map.items():
-            print(len(ss))
+            # print(len(ss))
             if len(ss)>1:
                 
                 # print(p.x,p.y)
-                plt.plot(p.x, p.y, 'r.')
+                ax.plot(p.x, p.y, 'r.')
     if drawPolys:
         for poly in polys:
             for i, segment in enumerate(poly):

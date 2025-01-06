@@ -979,8 +979,8 @@ if __name__ == "__main__":
     # dxfpath = './测试数据'
     # dxfname = 'target'
     # dxf2json(dxfpath,dxfname, dxfpath)
-    folder_path = '/home/user10/code/BraketDetection/data/split'
-    output_foler='/home/user10/code/BraketDetection/data/split'
+    folder_path = '/home/user10/code/BraketDetection/data/board_example'
+    output_foler='/home/user10/code/BraketDetection/data/board_example'
     for filename in os.listdir(folder_path):
         # 检查文件是否是JSON文件
         if filename.endswith('.dxf'):

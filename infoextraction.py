@@ -196,9 +196,10 @@ def computePolygon(poly,tolerance = 0.1):
     polygon_points = list(polygon_points)
     polygon = Polygon(polygon_points)
     
-    polygon_with_tolerance = polygon.buffer(tolerance)
+    # polygon_with_tolerance = polygon.buffer(tolerance)
 
-    return polygon_with_tolerance
+    # return polygon_with_tolerance
+    return polygon
 def point_is_inside(point,polygon):
     point_=Point(point.x,point.y)
     return polygon.contains(point_)
@@ -436,17 +437,7 @@ def outputPolyInfo(poly, segments, segmentation_config, point_map, index,star_po
         #                 break
     
             
-    # 属于同一参考线的边只要有一个是固定边，则所有都是固定边
-    for a in range(len(poly_refs)):
-        for b in range(len(poly_refs)):
-            if isinstance(poly_refs[a].ref, DLwpolyline) and isinstance(poly_refs[b].ref, DLwpolyline):
-                if poly_refs[a].ref.points[0] == poly_refs[b].ref.points[0] and poly_refs[a].ref.points[-1] == poly_refs[b].ref.points[-1]:
-                    poly_refs[b].isConstraint = poly_refs[a].isConstraint or poly_refs[b].isConstraint
-                    poly_refs[a].isConstraint = poly_refs[a].isConstraint or poly_refs[b].isConstraint
-            if isinstance(poly_refs[a].ref, DLine) and isinstance(poly_refs[b].ref, DLine):
-                if poly_refs[a].ref.start_point == poly_refs[b].ref.start_point and poly_refs[a].ref.end_point == poly_refs[b].ref.end_point:
-                    poly_refs[b].isConstraint = poly_refs[a].isConstraint or poly_refs[b].isConstraint
-                    poly_refs[a].isConstraint = poly_refs[a].isConstraint or poly_refs[b].isConstraint
+   
     
     #加强结构
     sfs=stiffenersInPoly(stiffeners,poly,segmentation_config)
@@ -459,7 +450,7 @@ def outputPolyInfo(poly, segments, segmentation_config, point_map, index,star_po
     
     #查找相邻结构
     for i,segment in enumerate(poly_refs):
-        if True:
+        if not isinstance(segment.ref,DArc):
             dx_1 = segment.end_point.x - segment.start_point.x
             dy_1 = segment.end_point.y - segment.start_point.y
             mid_point=DPoint((segment.end_point.x+segment.start_point.x)/2,(segment.end_point.y+segment.start_point.y)/2)
@@ -507,23 +498,38 @@ def outputPolyInfo(poly, segments, segmentation_config, point_map, index,star_po
                         l2=other.length()
                         if  distance<segmentation_config.parallel_min_distance:
                             continue
-                        if distance < segmentation_config.parallel_max_distance:
+                        q1,q2=other.start_point,other.end_point
+                        q3=other.mid_point()
+                        q4,q5=DSegment(q3,q1).mid_point(),DSegment(q3,q2).mid_point()
+                        count=0
+                        for q in [q1,q2,q3,q4,q5]:
+                            if point_is_inside(q,polygon) :
+                                count+=1
+                        if count>2:
+                            is_inside=True
+                        else:
+                            is_inside=False
+                        if distance < segmentation_config.parallel_max_distance and is_inside==False:
                             #contraint
                             others.add(other)
                             segment.isPart=True
                             poly_refs[i].isPart=True
                             segment.isConstraint = True
                             poly_refs[i].isConstraint = True
-                        elif l1<l2 *segmentation_config.contraint_factor:
+                        elif l1<l2 *segmentation_config.contraint_factor and is_inside==False:
                             #constraint
                             others.add(other)
                             segment.isPart=True
                             poly_refs[i].isPart=True
                             segment.isConstraint = True
                             poly_refs[i].isConstraint = True
+                        elif l1<segmentation_config.free_edge_min_length:
+                            others.add(other)
+                            segment.isPart=True
+                            poly_refs[i].isPart=True
+                            segment.isConstraint = True
+                            poly_refs[i].isConstraint = True
                         else:
-                            mp=other.mid_point()
-                            is_inside=point_is_inside(mp,polygon)
                             if is_inside:
                                 is_fb=True
                                 fb_segments.add(other)
@@ -535,7 +541,35 @@ def outputPolyInfo(poly, segments, segmentation_config, point_map, index,star_po
                             segment.isPart=True
                             poly_refs[i].isPart=True
                             # st_segments.add(segment)
-                               
+     # 属于同一参考线的边只要有一个是固定边，则所有都是固定边
+    for a in range(len(poly_refs)):
+        for b in range(len(poly_refs)):
+            if isinstance(poly_refs[a].ref, DLwpolyline) and isinstance(poly_refs[b].ref, DLwpolyline):
+                if poly_refs[a].ref.points[0] == poly_refs[b].ref.points[0] and poly_refs[a].ref.points[-1] == poly_refs[b].ref.points[-1]:
+                    poly_refs[b].isConstraint = poly_refs[a].isConstraint or poly_refs[b].isConstraint
+                    poly_refs[a].isConstraint = poly_refs[a].isConstraint or poly_refs[b].isConstraint
+            if isinstance(poly_refs[a].ref, DLine) and isinstance(poly_refs[b].ref, DLine):
+                if poly_refs[a].ref.start_point == poly_refs[b].ref.start_point and poly_refs[a].ref.end_point == poly_refs[b].ref.end_point:
+                    poly_refs[b].isConstraint = poly_refs[a].isConstraint or poly_refs[b].isConstraint
+                    poly_refs[a].isConstraint = poly_refs[a].isConstraint or poly_refs[b].isConstraint
+
+
+    #相邻夹角小的边，如果有一个是固定边，则所有都是固定边
+    for i,s in enumerate(poly):
+        current=i
+        next=(i+1)%len(poly)
+       
+        if conpute_angle_of_two_segments(poly[current],poly[next])  <segmentation_config.constraint_split_angle:
+            
+            if poly[current].isConstraint:
+             
+                # print(poly[current],poly[next])
+                poly[next].isConstraint=True
+            if  poly[next].isConstraint:
+                poly[current].isConstraint=True
+
+
+
     st_segments=list(st_segments)
     others=list(others)
     fb_segments=list(fb_segments)
@@ -681,7 +715,8 @@ def outputPolyInfo(poly, segments, segmentation_config, point_map, index,star_po
     # print(free_edges)
     # print("=============")
     # print(cornerhole_edges)
-    #plot_info_poly(poly_refs, os.path.join(segmentation_config.poly_info_dir, f'infopoly{index}.png'),tis,ds,sfs,others)
+    if segmentation_config.mode=="dev":
+        plot_info_poly(poly_refs, os.path.join(segmentation_config.poly_info_dir, f'infopoly{index}.png'),tis,ds,sfs,others)
     if len(free_edges) > 1:
         print(f"回路{index}超过两条自由边！")
         #return poly_refs
@@ -710,6 +745,8 @@ def outputPolyInfo(poly, segments, segmentation_config, point_map, index,star_po
                 edge.append(constarint_edge[i])
         new_constraint_edges.append(edge)
     constraint_edges=new_constraint_edges
+
+    
     # 如果除去圆弧外固定边多边形不是凸多边形则不进行输出
     constraint_edge_poly = []
 
@@ -818,11 +855,14 @@ def outputPolyInfo(poly, segments, segmentation_config, point_map, index,star_po
             log_to_file(file_path, f"坐标：{seg.StarCornerhole}（星形角隅孔）")
             cornerhole_index += 1
     #输出加强信息
-    s_info="没有加强"
+    s_info="没有加强提示，需要从标注信息获取"
     if is_fb:
         s_info="FB"
-    elif len(fl_segments)>0:
-        s_info="FL"
+    else:
+        for s in free_edges[0]:
+            if s.isPart:
+                s_info="FL"
+                break
     
 
     log_to_file(file_path, f"肘板加强类别为:{s_info}")
