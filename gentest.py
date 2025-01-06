@@ -44,12 +44,14 @@ def output_training_data(polys, training_data_output_folder, name):
                 f.write(f"{shifted_start_x:.2f} {shifted_start_y:.2f} {shifted_end_x:.2f} {shifted_end_y:.2f} {length:.2f}\n")
             
 
-def process_json_files(folder_path, output_foler, training_data_output_folder, training_img_output_folder):
+def process_json_files(folder_path, output_foler, dxf_path):
     # 检查文件夹是否存在
     if not os.path.isdir(folder_path):
         print(f"路径 {folder_path} 不存在或不是一个文件夹。")
         return
     
+    all_bbox = []
+    all_classi = []
     # 遍历文件夹中的每个文件
     for filename in os.listdir(folder_path):
         # 检查文件是否是JSON文件
@@ -57,18 +59,25 @@ def process_json_files(folder_path, output_foler, training_data_output_folder, t
             file_path = os.path.join(folder_path, filename)
             name = os.path.splitext(filename)[0]
             output_path = os.path.join(output_foler, name)
-            # training_data_output_path = os.path.join(training_data_output_folder, name)
             print(f"正在处理文件: {file_path}")
             
             # 打开并读取JSON文件内容
             try:
-                process_json_data(file_path, output_path, training_data_output_folder, training_img_output_folder, name)  # 对数据进行操作
+                bboxs, classi_res = process_json_data(file_path, output_path)  # 对数据进行操作
+                all_bbox.extend(bboxs)
+                all_classi.extend(classi_res)
             except json.JSONDecodeError as e:
                 print(f"解析JSON文件 {file_path} 时出错: {e}")
             except Exception as e:
                 print(f"处理文件 {file_path} 时出错: {e}")
+    
+    # 将所有检测结果画到一张图纸上
+    try:
+        draw_rectangle_in_dxf(dxf_path, folder_path, all_bbox, all_classi)
+    except Exception as e:
+        print(f"绘制dxf文件到 {folder_path} 时出错: {e}")
 
-def process_json_data(json_path, output_path, training_data_output_folder, training_img_output_folder, name):
+def process_json_data(json_path, output_path):
     segmentation_config=SegmentationConfig()
     segmentation_config.json_path = json_path
     segmentation_config.line_image_path = os.path.join(output_path, "line.png")
@@ -141,14 +150,11 @@ def process_json_data(json_path, output_path, training_data_output_folder, train
         bbox = [[min_x, min_y], [max_x, max_y]]
         bboxs.append(bbox)
     
-    dxf_path = os.path.splitext(segmentation_config.json_path)[0] + '.dxf'
-    dxf_output_folder = segmentation_config.dxf_output_folder
-    draw_rectangle_in_dxf(dxf_path, dxf_output_folder, bboxs, classi_res)
+    return bboxs, classi_res
 
 
 if __name__ == '__main__':
-    folder_path = "//home/user10/code/BraketDetection/text_data"
+    folder_path = "../jndata"
     output_folder = "./output"
-    training_data_output_folder = "./DGCNN/data_folder"
-    training_img_output_folder = "./training_img"
-    process_json_files(folder_path, output_folder, training_data_output_folder, training_img_output_folder)
+    dxf_path = ""
+    process_json_files(folder_path, output_folder, dxf_path)

@@ -100,14 +100,23 @@ def unrestricted_classifier(classification_table, conerhole_num, free_edges_sequ
 
     return matched_type if matched_type is not None else "Unclassified"
 
+def generate_key(edge):
+    # Generate a key that considers both original and reversed order
+    return min(tuple(edge), tuple(reversed(edge)))
+
 def conerhole_free_classifier(classification_table, conerhole_num, free_edges_sequence, reversed_free_edges_sequence, edges_sequence, reversed_edges_sequence):
     matched_type = None
     non_conerhole_edges = []
     reversed_non_conerhole_edges = []
+    conerhole_count = {}
     # 去掉非自由边轮廓中的角隅孔，只保留固定边
     for i in range(len(edges_sequence)):
         if(edges_sequence[i][0] != "cornerhole"):
             non_conerhole_edges.append(edges_sequence[i][1])
+        # 记录角隅孔字典
+        else:
+            key = generate_key(edges_sequence[i][1])
+            conerhole_count[key] = conerhole_count.get(key, 0) + 1
         if(reversed_edges_sequence[i][0] != "conerhole"):
             reversed_non_conerhole_edges.append(reversed_edges_sequence[i][1])
     for key, row in classification_table.items():
@@ -117,20 +126,25 @@ def conerhole_free_classifier(classification_table, conerhole_num, free_edges_se
 
         # step2: 非自由边轮廓去除角隅孔后严格匹配
         temp_sequence = []
+        temp_conerhole_count = {}
         for i, non_free in enumerate(row["non_free_edges"]):
             # Check if the type and edges of the current non-free match in sequence
             if non_free["type"] == "constraint":
                 temp_sequence.append(non_free["edges"])
+            elif non_free["type"] == "cornerhole":
+                key = generate_key(non_free["edges"])
+                temp_conerhole_count[key] = temp_conerhole_count.get(key, 0) + 1
 
         if temp_sequence != non_conerhole_edges and temp_sequence != reversed_non_conerhole_edges:
             continue
-        else:
-            matched_type = key
-            break
+
+        # step3: 角隅孔计数匹配
+        if temp_conerhole_count != conerhole_count:
+            continue
+
+        matched_type = key if matched_type is None else f"{matched_type}, {key}"
 
     return matched_type if matched_type is not None else "Unclassified"
-
-
 
 def poly_classifier(poly_refs, conerhole_num, poly_free_edges, edges, classification_file_path, info_json_path, keyname, is_output_json = False):
     classification_table = load_classification_table(classification_file_path)
@@ -139,9 +153,12 @@ def poly_classifier(poly_refs, conerhole_num, poly_free_edges, edges, classifica
 
     # Step 2: 获取自由边的轮廓
     free_edges_sequence = []
-    for seg in poly_free_edges[0]:
+    for i, seg in enumerate(poly_free_edges[0]):
         if isinstance(seg.ref, DLine) or isinstance(seg.ref, DLwpolyline):
-            free_edges_sequence.append("line")
+            if (i == 0 or i == len(poly_free_edges[0]) - 1) and seg.length() < 25:
+                free_edges_sequence.append("toe")
+            else:
+                free_edges_sequence.append("line")
         elif isinstance(seg.ref, DArc):
             free_edges_sequence.append("arc")
     reversed_free_edges_sequence = free_edges_sequence[::-1]  # Reverse free edges
@@ -188,7 +205,6 @@ def poly_classifier(poly_refs, conerhole_num, poly_free_edges, edges, classifica
     if is_output_json:
         geometry_info = {
             keyname: {
-                "cornerhole_num": conerhole_num,
                 "free_edges_sequence": free_edges_sequence,
                 "non_free_edges_sequence": edges_sequence
             }
@@ -213,4 +229,4 @@ def poly_classifier(poly_refs, conerhole_num, poly_free_edges, edges, classifica
 
 
     # Step 5: 遍历每个肘板类型，进行匹配
-    return strict_classifier(classification_table, conerhole_num, free_edges_sequence, reversed_free_edges_sequence, edges_sequence, reversed_edges_sequence)
+    return conerhole_free_classifier(classification_table, conerhole_num, free_edges_sequence, reversed_free_edges_sequence, edges_sequence, reversed_edges_sequence)

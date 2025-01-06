@@ -840,6 +840,6 @@ def outputPolyInfo(poly, segments, segmentation_config, point_map, index,star_po
     
     log_to_file(file_path, f"肘板类别为{classification_res}")
     if classification_res == "Unclassified":
-        return poly_refs
+        return poly_refs, classification_res
 
-    return poly_refs
+    return poly_refs, classification_res
