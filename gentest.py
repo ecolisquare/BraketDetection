@@ -9,39 +9,6 @@ from draw_dxf import *
 from config import *
 
 
-def output_training_data(polys, training_data_output_folder, name):
-    # 如果输出文件夹不存在，则创建
-    os.makedirs(training_data_output_folder, exist_ok=True)
-    
-    for i, poly in enumerate(polys):
-        # 计算多边形中心坐标
-        num_points = 0
-        center_x, center_y = 0.0, 0.0
-        
-        for seg in poly:
-            (start_x, start_y), (end_x, end_y), length = seg.start_point, seg.end_point, seg.length()
-            center_x += start_x + end_x
-            center_y += start_y + end_y
-            num_points += 2  # 每个seg有两个点
-        
-        # 计算中心坐标
-        center_x /= num_points
-        center_y /= num_points
-
-        # 创建文件并输出每个线段信息
-        output_file = os.path.join(training_data_output_folder, f"{name}_{i}.txt")
-        with open(output_file, "w") as f:
-            for seg in poly:
-                (start_x, start_y), (end_x, end_y), length = seg.start_point, seg.end_point, seg.length()
-                
-                # 平移线段的起点和终点
-                shifted_start_x = start_x - center_x
-                shifted_start_y = start_y - center_y
-                shifted_end_x = end_x - center_x
-                shifted_end_y = end_y - center_y
-                
-                # 将平移后的线段信息写入文件，保留两位小数
-                f.write(f"{shifted_start_x:.2f} {shifted_start_y:.2f} {shifted_end_x:.2f} {shifted_end_y:.2f} {length:.2f}\n")
             
 
 def process_json_files(folder_path, output_foler, dxf_path):
