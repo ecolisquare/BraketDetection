@@ -41,7 +41,7 @@ class SegmentationConfig:
         self.res_image_path = "./output/res.png"
 
         self.max_workers=-1
-        self.timeout=2
+        self.timeout=5
 
         self.type_path = "./type.json"
 
@@ -74,14 +74,14 @@ class SegmentationConfig:
         self.reference_text_max_distance=400
 
         #dfs
-        self.dfs_optional=False
+        self.dfs_optional=True
 
         #constraint determine--parallel
         self.parallel_max_distance= 15
         self.parallel_min_distance=5
 
         self.parallel_max_distance_relax=50
-        self.parallel_min_distance_relax=5
+        self.contraint_factor=1.05
 
         #bracket bounding box
         self.bracket_bbox_expand_length=50
@@ -112,3 +112,6 @@ class SegmentationConfig:
         self.min_angle_in_free_edge=45
         #自由边占比
         self.free_edge_ratio=0.15
+        
+        #约束边分割角度
+        self.constraint_split_angle=30

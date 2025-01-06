@@ -121,7 +121,7 @@ def process_json_data(json_path, output_path):
 
 
 if __name__ == '__main__':
-    folder_path = "../jndata"
+    folder_path = "/home/user10/code/BraketDetection/test2"
     output_folder = "./output"
-    dxf_path = ""
+    dxf_path = "/home/user10/code/BraketDetection/test2/all.dxf"
     process_json_files(folder_path, output_folder, dxf_path)

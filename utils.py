@@ -61,6 +61,23 @@ def computeAreaOfPoly(poly):
 def are_equal_with_tolerance(a, b, tolerance=1e-6):
     return abs(a - b) < tolerance
 
+def conpute_angle_of_two_segments(seg1,seg2):
+   
+    dx1 = seg1.end_point.x - seg1.start_point.x
+    dy1 = seg1.end_point.y - seg1.start_point.y
+    dx2 = seg2.end_point.x - seg2.start_point.x
+    dy2 = seg2.end_point.y - seg2.start_point.y
+
+    # 计算两个方向向量的模长
+    length1 = math.sqrt(dx1**2 + dy1**2)
+    length2 = math.sqrt(dx2**2 + dy2**2)
+    
+    
+    
+    # 归一化叉积
+    cross_product = (dx1 * dy2 - dy1 * dx2) / (length1 * length2)
+
+    return math.asin(cross_product)/math.pi*180
 def is_parallel(seg1, seg2, tolerance=0.05):
     """判断两条线段是否平行"""
     dx1 = seg1.end_point.x - seg1.start_point.x
@@ -429,8 +446,8 @@ def process_block(T_is_contained,block_datas,blockName,scales,rotation,insert,at
         if ele["type"]=="line":
            
             # 虚线过滤
-            if ele.get("linetype") is None or ele["linetype"] not in linetype:
-                continue
+            # if ele.get("linetype") is None or ele["linetype"] not in linetype:
+            #     continue
             if ele.get("layerName") is not None and ele["layerName"] in layname:
                 if ele["layerName"] in segmentation_config.stiffener_name:
                     e=DLine(DPoint(ele["start"][0],ele["start"][1]),DPoint(ele["end"][0],ele["end"][1]),ele["color"],ele["handle"],meta=block_meta_data)
@@ -449,8 +466,8 @@ def process_block(T_is_contained,block_datas,blockName,scales,rotation,insert,at
             if ele["color"] not in color:
                 continue
             # 虚线过滤
-            if ele.get("linetype") is None or ele["linetype"] not in linetype:
-                continue
+            # if ele.get("linetype") is None or ele["linetype"] not in linetype:
+            #     continue
             if ele.get("layerName") is not None and ele["layerName"] in layname:
                 continue
             # 创建DArc对象
@@ -463,8 +480,8 @@ def process_block(T_is_contained,block_datas,blockName,scales,rotation,insert,at
             if ele["color"] not in color:
                 continue
             # 虚线过滤
-            if ele.get("linetype") is None or ele["linetype"] not in linetype:
-                continue
+            # if ele.get("linetype") is None or ele["linetype"] not in linetype:
+            #     continue
             if ele.get("layerName") is not None and ele["layerName"] in layname:
                 continue
             vs = ele["vertices"]
@@ -484,8 +501,8 @@ def process_block(T_is_contained,block_datas,blockName,scales,rotation,insert,at
             if ele["color"] not in color:
                 continue
             # 虚线过滤
-            if ele.get("linetype") is None or ele["linetype"] not in linetype:
-                continue
+            # if ele.get("linetype") is None or ele["linetype"] not in linetype:
+            #     continue
             if ele.get("layerName") is not None and ele["layerName"] in layname:
                 continue
             vs = ele["vertices"]
@@ -515,8 +532,8 @@ def process_block(T_is_contained,block_datas,blockName,scales,rotation,insert,at
             if ele["color"] not in color:
                 continue
             # 虚线过滤
-            if ele.get("linetype") is None or ele["linetype"] not in linetype:
-                continue
+            # if ele.get("linetype") is None or ele["linetype"] not in linetype:
+            #     continue
             if ele.get("layerName") is not None and ele["layerName"] in layname:
                 continue
             vs = ele["vertices"]
