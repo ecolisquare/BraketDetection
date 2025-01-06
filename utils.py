@@ -61,6 +61,23 @@ def computeAreaOfPoly(poly):
 def are_equal_with_tolerance(a, b, tolerance=1e-6):
     return abs(a - b) < tolerance
 
+def conpute_angle_of_two_segments(seg1,seg2):
+   
+    dx1 = seg1.end_point.x - seg1.start_point.x
+    dy1 = seg1.end_point.y - seg1.start_point.y
+    dx2 = seg2.end_point.x - seg2.start_point.x
+    dy2 = seg2.end_point.y - seg2.start_point.y
+
+    # 计算两个方向向量的模长
+    length1 = math.sqrt(dx1**2 + dy1**2)
+    length2 = math.sqrt(dx2**2 + dy2**2)
+    
+    
+    
+    # 归一化叉积
+    cross_product = (dx1 * dy2 - dy1 * dx2) / (length1 * length2)
+
+    return math.asin(cross_product)/math.pi*180
 def is_parallel(seg1, seg2, tolerance=0.05):
     """判断两条线段是否平行"""
     dx1 = seg1.end_point.x - seg1.start_point.x

@@ -81,7 +81,7 @@ class SegmentationConfig:
         self.parallel_min_distance=5
 
         self.parallel_max_distance_relax=50
-        self.contraint_factor=1.0
+        self.contraint_factor=1.05
 
         #bracket bounding box
         self.bracket_bbox_expand_length=50
@@ -112,3 +112,6 @@ class SegmentationConfig:
         self.min_angle_in_free_edge=45
         #自由边占比
         self.free_edge_ratio=0.15
+        
+        #约束边分割角度
+        self.constraint_split_angle=30

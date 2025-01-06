@@ -1,7 +1,7 @@
 from  element import *
 from plot_geo import plot_geometry,plot_polys, plot_info_poly
 import os
-from utils import segment_intersection,computeBoundingBox,is_parallel
+from utils import segment_intersection,computeBoundingBox,is_parallel,conpute_angle_of_two_segments
 from classifier import poly_classifier
 from scipy.spatial import ConvexHull
 import matplotlib.pyplot as plt
@@ -694,9 +694,22 @@ def outputPolyInfo(poly, segments, segmentation_config, point_map, index,star_po
         print(f"回路{index}没有约束边！")
         #return poly_refs
         return None
-    
+    #分割固定边
+    new_constraint_edges=[]
     for constarint_edge in constraint_edges:
-        pass
+        angles=[0]
+        for i in range(len(constarint_edge)-1):
+            angles.append(conpute_angle_of_two_segments(constarint_edge[i],constarint_edge[i+1]))
+        edge=[]
+        for i,angle in enumerate(angles):
+            if angle<=segmentation_config.constraint_split_angle:
+                edge.append(constarint_edge[i])
+            else:
+                new_constraint_edges.append(edge)
+                edge=[]
+                edge.append(constarint_edge[i])
+        new_constraint_edges.append(edge)
+    constraint_edges=new_constraint_edges
     # 如果除去圆弧外固定边多边形不是凸多边形则不进行输出
     constraint_edge_poly = []
 
