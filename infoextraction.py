@@ -681,7 +681,7 @@ def outputPolyInfo(poly, segments, segmentation_config, point_map, index,star_po
     # print(free_edges)
     # print("=============")
     # print(cornerhole_edges)
-    plot_info_poly(poly_refs, os.path.join(segmentation_config.poly_info_dir, f'infopoly{index}.png'),tis,ds,sfs,others)
+    #plot_info_poly(poly_refs, os.path.join(segmentation_config.poly_info_dir, f'infopoly{index}.png'),tis,ds,sfs,others)
     if len(free_edges) > 1:
         print(f"回路{index}超过两条自由边！")
         #return poly_refs
@@ -817,7 +817,15 @@ def outputPolyInfo(poly, segments, segmentation_config, point_map, index,star_po
             log_to_file(file_path, f"角隅孔{cornerhole_index}轮廓：")
             log_to_file(file_path, f"坐标：{seg.StarCornerhole}（星形角隅孔）")
             cornerhole_index += 1
+    #输出加强信息
+    s_info="没有加强"
+    if is_fb:
+        s_info="FB"
+    elif len(fl_segments)>0:
+        s_info="FL"
+    
 
+    log_to_file(file_path, f"肘板加强类别为:{s_info}")
     # step10:输出周围标注信息
     k=0
     for i,t_t in enumerate(tis):
