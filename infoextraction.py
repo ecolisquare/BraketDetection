@@ -455,6 +455,8 @@ def outputPolyInfo(poly, segments, segmentation_config, point_map, index,star_po
     st_segments=set()
     fb_segments=set()
     fl_segments=set()
+    polygon=computePolygon(poly)
+    
     #查找相邻结构
     for i,segment in enumerate(poly_refs):
         if True:
@@ -520,14 +522,28 @@ def outputPolyInfo(poly, segments, segmentation_config, point_map, index,star_po
                             segment.isConstraint = True
                             poly_refs[i].isConstraint = True
                         else:
+                            mp=other.mid_point()
+                            is_inside=point_is_inside(mp,polygon)
+                            if is_inside:
+                                is_fb=True
+                                fb_segments.add(other)
+                                other.isFb=True
+                            else:
+                                fl_segments.add(other)
 
-                            others.add(other)
+                            # others.add(other)
                             segment.isPart=True
                             poly_refs[i].isPart=True
                             # st_segments.add(segment)
                                
     st_segments=list(st_segments)
     others=list(others)
+    fb_segments=list(fb_segments)
+    fl_segments=list(fl_segments)
+    if len(sfs)>0:
+        is_fb=True
+    others.extend(fb_segments)
+    others.extend(fl_segments)
     # step:5 确定自由边，合并相邻的固定边
     constraint_edges = []
     free_edges = []

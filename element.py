@@ -46,6 +46,7 @@ class DSegment:
         self.isCornerhole=False
         self.StarCornerhole = None
         self.isPart=False
+        self.isFb=False
     def __len__(self):
         return 2
 
