@@ -75,7 +75,9 @@ def conpute_angle_of_two_segments(seg1,seg2):
     
     
     # 归一化叉积
-    cross_product = (dx1 * dy2 - dy1 * dx2) / (length1 * length2)
+    cross_product = math.fabs((dx1 * dy2 - dy1 * dx2) / (length1 * length2))
+    if cross_product>1:
+        cross_product=1
 
     return math.asin(cross_product)/math.pi*180
 def is_parallel(seg1, seg2, tolerance=0.05):
@@ -253,7 +255,7 @@ def coordinatesmap(p:DPoint,insert,scales,rotation):
     sine=math.sin(rr)
 
     # x,y=(p[0]*scales[0]+100)/200,(p[1]*scales[1]+100)/200
-    x,y=((cosine*p[0]-sine*p[1])*scales[0])+insert[0],((sine*p[0]+cosine*p[1])*scales[1])+insert[1]
+    x,y=((cosine*p[0]*scales[0]-sine*p[1]*scales[1]))+insert[0],((sine*p[0]*scales[0]+cosine*p[1]*scales[1]))+insert[1]
     return DPoint(x,y)
 def transform_point(point,meta):
     return coordinatesmap(point,meta.insert,meta.scales,meta.rotation)
@@ -455,16 +457,16 @@ def process_block(T_is_contained,block_datas,blockName,scales,rotation,insert,at
                 if ele["layerName"] in segmentation_config.remove_layername:
                     continue
              # 颜色过滤
-            if ele["color"] not in color:
-                continue
+            # if ele["color"] not in color:
+            #     continue
             e=DLine(DPoint(ele["start"][0],ele["start"][1]),DPoint(ele["end"][0],ele["end"][1]),ele["color"],ele["handle"],meta=block_meta_data)
     
             elements.append(e)
             segments.append(DSegment(e.start_point,e.end_point,e))
         elif ele["type"] == "arc":
             # 颜色过滤
-            if ele["color"] not in color:
-                continue
+            # if ele["color"] not in color:
+            #     continue
             # 虚线过滤
             # if ele.get("linetype") is None or ele["linetype"] not in linetype:
             #     continue
@@ -477,8 +479,8 @@ def process_block(T_is_contained,block_datas,blockName,scales,rotation,insert,at
             continue
         elif ele["type"]=="spline":
             # 颜色过滤
-            if ele["color"] not in color:
-                continue
+            # if ele["color"] not in color:
+            #     continue
             # 虚线过滤
             # if ele.get("linetype") is None or ele["linetype"] not in linetype:
             #     continue
@@ -498,8 +500,8 @@ def process_block(T_is_contained,block_datas,blockName,scales,rotation,insert,at
                 segments.append(DSegment(simplified_ps[i], simplified_ps[i + 1], e))
         elif ele["type"]=="lwpolyline" :
                 # 颜色过滤
-            if ele["color"] not in color:
-                continue
+            # if ele["color"] not in color:
+            #     continue
             # 虚线过滤
             # if ele.get("linetype") is None or ele["linetype"] not in linetype:
             #     continue
@@ -529,8 +531,8 @@ def process_block(T_is_contained,block_datas,blockName,scales,rotation,insert,at
         elif  ele["type"]=="polyline":
 
             # 颜色过滤
-            if ele["color"] not in color:
-                continue
+            # if ele["color"] not in color:
+            #     continue
             # 虚线过滤
             # if ele.get("linetype") is None or ele["linetype"] not in linetype:
             #     continue
@@ -770,7 +772,7 @@ def merge_intersections(results,segments):
     return merged
 
 # Main function to find all intersections using multiprocessing
-def find_all_intersections(segments, epsilon=1e-9):
+def find_all_intersections(segments, epsilon=0.1):
     n = len(segments)
     k= max((n+31)//32,1)
     # Divide segments into chunks of size k
@@ -839,6 +841,7 @@ def filter_segments(segments,intersections,point_map,expansion_param=12,iters=3,
     new_point_map={}
     for seg, inter_points in intersections.items():
         # 按照坐标顺序排序交点
+        
         inter_points = sorted([seg.start_point] + inter_points + [seg.end_point], key=lambda p: (seg.start_point.x-p.x)*(seg.start_point.x-p.x)+(seg.start_point.y-p.y)*(seg.start_point.y-p.y))
         points=inter_points
         segList=[]
@@ -911,16 +914,18 @@ def filter_segments(segments,intersections,point_map,expansion_param=12,iters=3,
         for s in new_segments:
             vs,ve=s.start_point,s.end_point
             div_s,div_e=len(new_point_map[vs]),len(new_point_map[ve])
+            # if vs==ve:
+            #     continue
             if div_s==1 or div_e==1:
                 continue
-            if div_s==3 and (i+1)%interval==0:
-                ns=[ss for ss in new_point_map[vs] if ss !=s]
-                if isinstance(ns[0].ref,DArc) and ns[0].ref == ns[1].ref:
-                    continue
-            if div_e==3 and (i+1)%interval==0:
-                ns=[ss for ss in new_point_map[ve] if ss !=s]
-                if isinstance(ns[0].ref,DArc) and ns[0].ref == ns[1].ref:
-                    continue
+            # if div_s==3 and (i+1)%interval==0:
+            #     ns=[ss for ss in new_point_map[vs] if ss !=s]
+            #     if isinstance(ns[0].ref,DArc) and ns[0].ref == ns[1].ref:
+            #         continue
+            # if div_e==3 and (i+1)%interval==0:
+            #     ns=[ss for ss in new_point_map[ve] if ss !=s]
+            #     if isinstance(ns[0].ref,DArc) and ns[0].ref == ns[1].ref:
+            #         continue
             
             filtered_segments.append(s)
             if DSegment(s.start_point, s.end_point) not in filtered_edge_map:
@@ -2664,6 +2669,7 @@ def findClosedPolys_via_BFS(elements,texts,dimensions,segments,segmentation_conf
         print(f"封闭多边形个数:{len(polys)}")
     #outputPolysAndGeometry(filtered_point_map,polys,segmentation_config.poly_image_dir,segmentation_config.draw_polys,segmentation_config.draw_geometry,segmentation_config.draw_poly_nums)
     outputLines(segmentation_config,filtered_segments,filtered_point_map,polys,cornor_holes,star_pos ,texts,text_map,dimensions,replines,segmentation_config.line_image_path,segmentation_config.draw_intersections,segmentation_config.draw_segments,segmentation_config.line_image_drawPolys,)
+    
     return polys, new_segments, point_map,star_pos_map,cornor_holes,text_map
 
 

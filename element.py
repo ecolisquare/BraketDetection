@@ -7,12 +7,12 @@ class DPoint:
     def __eq__(self, other):  
         # 如果 other 也是 Point 实例，并且 x 和 y 坐标相等，则返回 True  
         if isinstance(other, DPoint):  
-            return (round(self.x/4)*1.0, round(self.y/4)*1.0) == (round(other.x/4)*1.0, round(other.y/4)*1.0)  
+            return (round(self.x/6), round(self.y/6)) == (round(other.x/6), round(other.y/6))  
         return False  
   
     def __hash__(self):  
         # 返回 (x, y) 元组的哈希值  
-        return hash((round(self.x/4)*1.0, round(self.y/4)*1.0))  
+        return hash((round(self.x/6), round(self.y/6)))  
     def __getitem__(self, index):  
         # 支持通过索引访问坐标  
         if index == 0:  

@@ -1,13 +1,15 @@
 class SegmentationConfig:
     def __init__(self):
         self.verbose=True
-
+        # self.mode="dev"
+        self.mode="dev"
         self.json_path=""
         
         self.line_expand_length=13
         self.arc_expand_length=8
         self.line_image_path="./output/line.png"
         self.draw_intersections=False
+
         self.draw_segments=True
         self.line_image_drawPolys=True
         self.draw_texts=True
@@ -25,7 +27,7 @@ class SegmentationConfig:
         self.intersection_epsilon=1e-9
         #包围盒
         self.bbox_min_area=5000
-        self.bbox_max_area=1000*1500
+        self.bbox_max_area=1000*15000
         self.bbox_ratio=10
 
 
@@ -80,8 +82,9 @@ class SegmentationConfig:
         self.parallel_max_distance= 15
         self.parallel_min_distance=5
 
-        self.parallel_max_distance_relax=50
+        self.parallel_max_distance_relax=60
         self.contraint_factor=1.05
+        self.free_edge_min_length=130
 
         #bracket bounding box
         self.bracket_bbox_expand_length=50
@@ -93,14 +96,14 @@ class SegmentationConfig:
         #筛选角隅孔时的平行判断
         self.is_parallel_tolerance_neighobor=0.16
         #固定边平行判断
-        self.is_parallel_tolerance=0.05
+        self.is_parallel_tolerance=0.15
         #readJson
         self.line_type=["BYLAYER", "Continuous","Bylayer","CONTINUOUS","ByBlock","BYBLOCK"]
         self.color=[3, 7, 8, 4,2,140,254,1,5]
         self.constraint_color=[1,3]
         self.element_type=["line","arc","lwpolyline","polyline","spline"]
 
-        self.stiffener_name = ["Stiffener_Invisible"]
+        self.stiffener_name = ["Stiffener_Invisible","Stiffener_Visible"]
         # self.remove_layername=["Stiffener_Invisible","Stiffener_Visible","Plate_Invisible","Plate_Visible"]
         self.remove_layername=[]
         self.remove_layername.extend(self.stiffener_name)
