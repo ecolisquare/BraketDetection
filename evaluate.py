@@ -1,5 +1,6 @@
+import os
 import ezdxf
-from load import *
+from load import dxf2json
 import json
 
 def read_json(json_path, bracket_layer):
@@ -29,8 +30,8 @@ if __name__ == '__main__':
     dxf2json(os.path.dirname(gt_dxf_path),os.path.basename(gt_dxf_path),os.path.dirname(gt_dxf_path))
 
     # 获得两个json路径
-    test_json_path = os.path.join(os.path.dirname(test_dxf_path),os.path.basename(test_dxf_path).split('.')[0], ".json")
-    gt_json_path = os.path.join(os.path.dirname(gt_dxf_path),os.path.basename(gt_dxf_path).split('.')[0], ".json")
+    test_json_path = os.path.join(os.path.dirname(test_dxf_path), (os.path.basename(test_dxf_path).split('.')[0] + ".json"))
+    gt_json_path = os.path.join(os.path.dirname(gt_dxf_path), (os.path.basename(gt_dxf_path).split('.')[0] + ".json"))
 
     # 解析两个json文件
-
+    
