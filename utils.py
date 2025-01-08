@@ -425,7 +425,14 @@ def process_block(T_is_contained,block_datas,blockName,scales,rotation,insert,at
     print(f"正在处理块:{blockName}")
     # if blockName!="L125X75X7" or insert[1]>-36900:
     #     return [],[],[]
-    
+    filtered_block_elements=[]
+    if segmentation_config.bracket_layer is  None:
+        filtered_block_elements=block_elements
+    else:
+        for element in block_elements:
+            if element["layerName"]==segmentation_config.bracket_layer:
+                filtered_block_elements.append(element)
+    block_elements=filtered_block_elements
     block_meta_data=DInsert(blockName,scales,rotation,insert,attribs,bound)
     #print(blockName,scales,rotation,insert,attribs,block_elements)
     elements=[]
