@@ -3,6 +3,7 @@ class SegmentationConfig:
         self.verbose=True
         # self.mode="dev"
         self.mode="dev"
+        self.bracket_layer=None
         self.json_path=""
         
         self.line_expand_length=13
@@ -83,7 +84,7 @@ class SegmentationConfig:
         self.parallel_min_distance=5
 
         self.parallel_max_distance_relax=60
-        self.contraint_factor=1.05
+        self.contraint_factor=0.98
         self.free_edge_min_length=130
 
         #bracket bounding box
