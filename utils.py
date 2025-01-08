@@ -350,8 +350,11 @@ def expandFixedLength(segList,dist,both=True,verbose=True):
         p2=seg[1]
         v=(p2[0]-p1[0],p2[1]-p1[1])
         l=math.sqrt(v[0]*v[0]+v[1]*v[1])
-        if l<=0.25:
+        if l<=dist:
             continue
+        # elif l<=dist:
+        #     l*=1.5
+
         v=(v[0]/l*dist,v[1]/l*dist)
         vs=DPoint(p1[0]-v[0],p1[1]-v[1]) if both else DPoint(p1[0],p1[1])
         ve=DPoint(p2[0]+v[0],p2[1]+v[1])
@@ -446,7 +449,7 @@ def process_block(T_is_contained,block_datas,blockName,scales,rotation,insert,at
         if is_useful_text(text.strip()):
             elements.append(DText(bound={"x1":-50,"x2":50,"y1":-50,"y2":50},content=text,handle=attrib["attribHandle"],meta=block_meta_data))
     color = segmentation_config.color
-    linetype =segmentation_config.line_type 
+    linetype =segmentation_config.remove_linetype
     elementtype=segmentation_config.element_type
     layname=segmentation_config.remove_layername
     for ele in block_elements:
@@ -454,16 +457,18 @@ def process_block(T_is_contained,block_datas,blockName,scales,rotation,insert,at
             continue
         if ele["type"]=="line":
            
-            # 虚线过滤
-            # if ele.get("linetype") is None or ele["linetype"] not in linetype:
-            #     continue
+           
+            
             if ele.get("layerName") is not None and ele["layerName"] in layname:
                 if ele["layerName"] in segmentation_config.stiffener_name:
                     e=DLine(DPoint(ele["start"][0],ele["start"][1]),DPoint(ele["end"][0],ele["end"][1]),ele["color"],ele["handle"],meta=block_meta_data)
                     stiffeners.append(DSegment(e.start_point,e.end_point,e))
                 if ele["layerName"] in segmentation_config.remove_layername:
                     continue
-             # 颜色过滤
+            # 虚线过滤
+            if ele.get("linetype") is not None and ele["linetype"] in linetype:
+                continue
+            # 颜色过滤
             # if ele["color"] not in color:
             #     continue
             e=DLine(DPoint(ele["start"][0],ele["start"][1]),DPoint(ele["end"][0],ele["end"][1]),ele["color"],ele["handle"],meta=block_meta_data)
@@ -474,10 +479,11 @@ def process_block(T_is_contained,block_datas,blockName,scales,rotation,insert,at
             # 颜色过滤
             # if ele["color"] not in color:
             #     continue
-            # 虚线过滤
-            # if ele.get("linetype") is None or ele["linetype"] not in linetype:
-            #     continue
+            
             if ele.get("layerName") is not None and ele["layerName"] in layname:
+                continue
+            # 虚线过滤
+            if ele.get("linetype") is not None and ele["linetype"] in linetype:
                 continue
             # 创建DArc对象
             e = DArc(DPoint(ele["center"][0], ele["center"][1]), ele["radius"], ele["startAngle"], ele["endAngle"],ele["color"],ele["handle"],meta=block_meta_data)
@@ -492,6 +498,9 @@ def process_block(T_is_contained,block_datas,blockName,scales,rotation,insert,at
             # if ele.get("linetype") is None or ele["linetype"] not in linetype:
             #     continue
             if ele.get("layerName") is not None and ele["layerName"] in layname:
+                continue
+            # 虚线过滤
+            if ele.get("linetype") is not None and ele["linetype"] in linetype:
                 continue
             vs = ele["vertices"]
             ps = [DPoint(v[0], v[1]) for v in vs]
@@ -513,6 +522,9 @@ def process_block(T_is_contained,block_datas,blockName,scales,rotation,insert,at
             # if ele.get("linetype") is None or ele["linetype"] not in linetype:
             #     continue
             if ele.get("layerName") is not None and ele["layerName"] in layname:
+                continue
+            # 虚线过滤
+            if ele.get("linetype") is not None and ele["linetype"] in linetype:
                 continue
             vs = ele["vertices"]
             vs_type=ele["verticesType"]
@@ -545,6 +557,9 @@ def process_block(T_is_contained,block_datas,blockName,scales,rotation,insert,at
             #     continue
             if ele.get("layerName") is not None and ele["layerName"] in layname:
                 continue
+            # 虚线过滤
+            if ele.get("linetype") is not None and ele["linetype"] in linetype:
+                continue
             vs = ele["vertices"]
             ps = [DPoint(v[0], v[1]) for v in vs]
 
@@ -561,6 +576,11 @@ def process_block(T_is_contained,block_datas,blockName,scales,rotation,insert,at
                 # if simplified_ps[-1].y>-48500 or simplified_ps[0].y>-48500:
                 segments.append(DSegment(simplified_ps[-1], simplified_ps[0], e))
         elif ele["type"]=="insert":
+                if ele.get("layerName") is not None and ele["layerName"] in layname:
+                    continue
+                # 虚线过滤
+                if ele.get("linetype") is not None and ele["linetype"] in linetype:
+                    continue
                 sub_blockName=ele["blockName"]
                 # x1,x2,y1,y2=ele["bound"]["x1"],ele["bound"]["x2"],ele["bound"]["y1"],ele["bound"]["y2"]
                 sub_scales=ele["scales"]
@@ -584,14 +604,29 @@ def process_block(T_is_contained,block_datas,blockName,scales,rotation,insert,at
                 ori_segments.extend(sub_ori_segments)
                 stiffeners.extend(sub_stiffeners)
         elif ele["type"]=="text" and blockName=="TOP":
+                if ele.get("layerName") is not None and ele["layerName"] in layname:
+                    continue
+                # 虚线过滤
+                if ele.get("linetype") is not None and ele["linetype"] in linetype:
+                    continue
                 e=DText(ele["bound"],ele["insert"], ele["color"],ele["content"].strip(),ele["height"],ele["handle"],meta=block_meta_data)
                 elements.append(e)
         elif  ele["type"]=="mtext" and blockName=="TOP":
+            if ele.get("layerName") is not None and ele["layerName"] in layname:
+                    continue
+            # 虚线过滤
+            if ele.get("linetype") is not None and ele["linetype"] in linetype:
+                continue
             string = ele["text"].strip()
             cleaned_string = re.sub(r"^\\A1;", "", string)
             e=DText(ele["bound"],ele["insert"], ele["color"],cleaned_string,ele["width"],ele["handle"],meta=block_meta_data,is_mtext=True)
             elements.append(e)
         elif ele["type"]=="dimension" and blockName=="TOP":
+            if ele.get("layerName") is not None and ele["layerName"] in layname:
+                continue
+            # 虚线过滤
+            if ele.get("linetype") is not None and ele["linetype"] in linetype:
+                continue
             textpos=ele["textpos"]
             defpoints=[]
             for i in range(5):
@@ -1084,7 +1119,7 @@ def process_repline_with_repline_dfs(visited_edges,repline, graph, segmentation_
     Process a single repline using the DFS algorithm to find a closed loop
     starting and ending at repline.start_point.
     """
-    path = dfs_paths_with_repline(visited_edges,graph, repline, segmentation_config.path_max_length, segmentation_config.timeout)
+    path = dfs_paths_with_repline(visited_edges,graph, repline, segmentation_config.dfs_path_max_length, segmentation_config.timeout)
     return path
 
 
@@ -1195,6 +1230,8 @@ def checkRefAndSlope(p,segments,tolerance,point_map,segmentation_config):
     flag=False
     idx=None
     lines=[]
+    # if p==DPoint(1170.958216976533, 3938.019285178291):
+    #     print(segments)
     for i,s1 in enumerate(segments):
         for j,s2 in enumerate(segments):
             if i>=j:
@@ -1211,7 +1248,17 @@ def checkRefAndSlope(p,segments,tolerance,point_map,segmentation_config):
                     nq=[s for s in point_map[q] if s!=s1 and is_parallel(s,s1,tolerance)]
                     if len(nq)>0:
                         l+=nq[0].length()
-                    #print(l)
+                    k=0
+                    while len(nq)>0:
+                        q=nq[0].start_point if nq[0].end_point==q else nq[0].end_point
+                        nq=[s for s in point_map[q] if s!=nq[0] and is_parallel(s,nq[0],tolerance)]
+                        if len(nq)>0:
+                            l+=nq[0].length()
+                            k+=1
+                            if k>10:
+                                break
+                    # if p==DPoint(1170.958216976533, 3938.019285178291):
+                    #     print(l)
                     if l<segmentation_config.repline_neighbor_min_length:
                         flag=False
                 if flag and l2<segmentation_config.repline_neighbor_min_length:
@@ -1220,7 +1267,17 @@ def checkRefAndSlope(p,segments,tolerance,point_map,segmentation_config):
                     nq=[s for s in point_map[q] if s!=s2 and is_parallel(s,s2,tolerance)]
                     if len(nq)>0:
                         l+=nq[0].length()
-                    #print(l)
+                    k=0
+                    while len(nq)>0:
+                        q=nq[0].start_point if nq[0].end_point==q else nq[0].end_point
+                        nq=[s for s in point_map[q] if s!=nq[0] and is_parallel(s,nq[0],tolerance)]
+                        if k>10:
+                            break
+                        if len(nq)>0:
+                            l+=nq[0].length()
+                            k+=1
+                    # if p==DPoint(1170.958216976533, 3938.019285178291):
+                    #     print(l)
                     if l<segmentation_config.repline_neighbor_min_length:
                         flag=False
                 
@@ -1323,9 +1380,16 @@ def compute_cornor_holes(filtered_segments,filtered_point_map,segmentation_confi
                     ns=[ss for ss in filtered_point_map[start] if ss!=s ]
                     ne=[ss for ss in filtered_point_map[other] if ss!=current ]
                     #print(111)
+                    # if start==DPoint(1170.958216976533, 3938.019285178291) or other==DPoint(1170.958216976533, 3938.019285178291):
+                    #     print(checkRefAndSlope(start,ns,segmentation_config.is_parallel_tolerance_neighobor,filtered_point_map,segmentation_config)[0])
+                    #     print(checkRefAndSlope(other,ne,segmentation_config.is_parallel_tolerance_neighobor,filtered_point_map,segmentation_config)[0]) 
+                    #     print(checkValid(s,ns,segmentation_config.is_parallel_tolerance_neighobor,segmentation_config))
+                    #     print(checkValid(current,ne,segmentation_config.is_parallel_tolerance_neighobor,segmentation_config))
                     if checkRefAndSlope(start,ns,segmentation_config.is_parallel_tolerance_neighobor,filtered_point_map,segmentation_config)[0] and checkRefAndSlope(other,ne,segmentation_config.is_parallel_tolerance_neighobor,filtered_point_map,segmentation_config)[0] and checkValid(s,ns,segmentation_config.is_parallel_tolerance_neighobor,segmentation_config) and checkValid(current,ne,segmentation_config.is_parallel_tolerance_neighobor,segmentation_config):
                         ls=checkRefAndSlope(start,ns,segmentation_config.is_parallel_tolerance_neighobor,filtered_point_map,segmentation_config)[1]
                         le=checkRefAndSlope(other,ne,segmentation_config.is_parallel_tolerance_neighobor,filtered_point_map,segmentation_config)[1]
+                        
+
                         if checkTwoEndLines(ls,le,segmentation_config):
                             for ss in segments:
                                 segment_is_visited.add(ss)

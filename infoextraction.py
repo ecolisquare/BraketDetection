@@ -156,10 +156,11 @@ def calculate_poly_refs(poly,segmentation_config):
                 last_segment = refs[-1]
                 # 判断是否平行
                 if is_parallel(last_segment, segment,segmentation_config.is_parallel_tolerance):
+                    seg=last_segment if last_segment.length()>segment.length() else segment
                     new_segment = DSegment(
                         start_point=last_segment.start_point,
                         end_point=segment.end_point,
-                        ref=last_segment.ref
+                        ref=seg.ref
                     )
                     refs[-1] = new_segment
                     continue
@@ -188,12 +189,11 @@ def calculate_poly_refs(poly,segmentation_config):
 
 
 def computePolygon(poly,tolerance = 0.1):
-    polygon_points = set()  # Concave polygon example
+    polygon_points = list()  # Concave polygon example
     for edge in poly:
         vs,ve=edge.start_point,edge.end_point
-        polygon_points.add((vs.x,vs.y))
-        polygon_points.add((ve.x,ve.y))
-    polygon_points = list(polygon_points)
+        polygon_points.append((vs.x,vs.y))
+        polygon_points.append((ve.x,ve.y))
     polygon = Polygon(polygon_points)
     
     # polygon_with_tolerance = polygon.buffer(tolerance)
@@ -307,8 +307,13 @@ def outputPolyInfo(poly, segments, segmentation_config, point_map, index,star_po
 
     # step2: 合并边界线
     poly_refs = calculate_poly_refs(poly,segmentation_config)
-
-
+    
+    new_poly_ref=[]
+    for ref in poly_refs:
+        new_poly_ref.append(DSegment(ref.start_point,ref.end_point,ref.ref))
+    poly_refs=new_poly_ref
+    for ref in poly_refs:
+        ref.initialize()
 
     # plot_polys({},poly_refs,"./check")
     # step3: 标记角隅孔
@@ -448,125 +453,240 @@ def outputPolyInfo(poly, segments, segmentation_config, point_map, index,star_po
     fl_segments=set()
     polygon=computePolygon(poly)
     
+
+    other_refs=[]
+    distances=[]
     #查找相邻结构
     for i,segment in enumerate(poly_refs):
-        if not isinstance(segment.ref,DArc):
-            dx_1 = segment.end_point.x - segment.start_point.x
-            dy_1 = segment.end_point.y - segment.start_point.y
-            mid_point=DPoint((segment.end_point.x+segment.start_point.x)/2,(segment.end_point.y+segment.start_point.y)/2)
-            l = (dx_1**2 + dy_1**2)**0.5
-            v_1 = (dy_1 / l * segmentation_config.parallel_max_distance_relax, -dx_1 / l * segmentation_config.parallel_max_distance_relax)
-            point1,point2,point3=DSegment(segment.start_point,mid_point).mid_point(),DSegment(segment.end_point,mid_point).mid_point(),mid_point
-            for j, other in enumerate(segments):
-                if segment == other:
-                    continue
+        # if not isinstance(segment.ref,DArc):
+        dx_1 = segment.end_point.x - segment.start_point.x
+        dy_1 = segment.end_point.y - segment.start_point.y
+        mid_point=DPoint((segment.end_point.x+segment.start_point.x)/2,(segment.end_point.y+segment.start_point.y)/2)
+        l = (dx_1**2 + dy_1**2)**0.5
+        v_1 = (dy_1 / l * segmentation_config.parallel_max_distance_relax, -dx_1 / l * segmentation_config.parallel_max_distance_relax)
+        point1,point2,point3=DSegment(segment.start_point,mid_point).mid_point(),DSegment(segment.end_point,mid_point).mid_point(),mid_point
+        point4,point5=DSegment(DSegment(point1,point3).mid_point(),segment.start_point).mid_point(),DSegment(DSegment(point2,point3).mid_point(),segment.end_point).mid_point()
+        point1=point4
+        point2=point5
+        # print(segment)
+        # print(point1,point2,point3)
+        d1,d2,d3=None,None,None
+        seg1,seg2,seg3=None,None,None
+        for j, other in enumerate(segments):
+            if segment == other:
+                continue
+            
+            if is_parallel(segment, other,segmentation_config.is_parallel_tolerance):
+                #print(segment,other)
+                s1 = DSegment(
+                    DPoint(point1.x + v_1[0], point1.y + v_1[1]),
+                    DPoint(point1.x - v_1[0], point1.y - v_1[1])
+                )
+                s2 = DSegment(
+                    DPoint(point2.x + v_1[0], point2.y + v_1[1]),
+                    DPoint(point2.x - v_1[0], point2.y - v_1[1])
+                )
+                s3 = DSegment(
+                    DPoint(point3.x + v_1[0], point3.y + v_1[1]),
+                    DPoint(point3.x - v_1[0], point3.y - v_1[1])
+                )
+
+                i1 = segment_intersection(s1.start_point, s1.end_point, other.start_point, other.end_point)
+                if i1 == other.end_point or i1 == other.start_point:
+                    i1 = None
                 
-                if is_parallel(segment, other,segmentation_config.is_parallel_tolerance):
-                    #print(segment,other)
-                    s1 = DSegment(
-                        DPoint(point1.x + v_1[0], point1.y + v_1[1]),
-                        DPoint(point1.x - v_1[0], point1.y - v_1[1])
-                    )
-                    s2 = DSegment(
-                        DPoint(point2.x + v_1[0], point2.y + v_1[1]),
-                        DPoint(point2.x - v_1[0], point2.y - v_1[1])
-                    )
-                    s3 = DSegment(
-                        DPoint(mid_point.x + v_1[0], mid_point.y + v_1[1]),
-                        DPoint(mid_point.x - v_1[0], mid_point.y - v_1[1])
-                    )
+                i2 = segment_intersection(s2.start_point, s2.end_point, other.start_point, other.end_point)
+                if i2 == other.end_point or i2 == other.start_point:
+                    i2 = None
+                i3 = segment_intersection(s3.start_point, s3.end_point, other.start_point, other.end_point)
+                if i3 == other.end_point or i3 == other.start_point:
+                    i3 = None
+                # if i1 is not None and DSegment(i1,point1).length()<segmentation_config.parallel_min_distance_relax:
+                #     i1=None
+                # if i2 is not None and DSegment(i2,point2).length()<segmentation_config.parallel_min_distance_relax:
+                #     i2=None
+                # if i3 is not None and DSegment(i3,point3).length()<segmentation_config.parallel_min_distance_relax:
+                #     i3=None
 
-                    i1 = segment_intersection(s1.start_point, s1.end_point, other.start_point, other.end_point)
-                    if i1 == other.end_point or i1 == other.start_point:
-                        i1 = None
-                    
-                    i2 = segment_intersection(s2.start_point, s2.end_point, other.start_point, other.end_point)
-                    if i2 == other.end_point or i2 == other.start_point:
-                        i2 = None
-                    i3 = segment_intersection(s3.start_point, s3.end_point, other.start_point, other.end_point)
-                    if i3 == other.end_point or i3 == other.start_point:
-                        i3 = None
-                    # if i1 is not None and DSegment(i1,point1).length()<segmentation_config.parallel_min_distance_relax:
-                    #     i1=None
-                    # if i2 is not None and DSegment(i2,point2).length()<segmentation_config.parallel_min_distance_relax:
-                    #     i2=None
-                    # if i3 is not None and DSegment(i3,point3).length()<segmentation_config.parallel_min_distance_relax:
-                    #     i3=None
-                    if i1 is not None and i2 is not None and i3 is not None:
-                        distance=DSegment(i3,point3).length()
-                        l1=segment.length()
-                        l2=other.length()
-                        if  distance<segmentation_config.parallel_min_distance:
-                            continue
-                        q1,q2=other.start_point,other.end_point
-                        q3=other.mid_point()
-                        q4,q5=DSegment(q3,q1).mid_point(),DSegment(q3,q2).mid_point()
-                        count=0
-                        for q in [q1,q2,q3,q4,q5]:
-                            if point_is_inside(q,polygon) :
-                                count+=1
-                        if count>2:
-                            is_inside=True
+                if i1 is not None:
+                    d=DSegment(i1,point1).length()
+                    if d>=segmentation_config.parallel_min_distance_relax and d<=segmentation_config.parallel_max_distance_relax:
+                        if seg1 is None:
+                            seg1=other
+                            d1=d
                         else:
-                            is_inside=False
-                        if distance < segmentation_config.parallel_max_distance and is_inside==False:
-                            #contraint
-                            others.add(other)
-                            segment.isPart=True
-                            poly_refs[i].isPart=True
-                            segment.isConstraint = True
-                            poly_refs[i].isConstraint = True
-                        elif l1<l2 *segmentation_config.contraint_factor and is_inside==False:
-                            #constraint
-                            others.add(other)
-                            segment.isPart=True
-                            poly_refs[i].isPart=True
-                            segment.isConstraint = True
-                            poly_refs[i].isConstraint = True
-                        elif l1<segmentation_config.free_edge_min_length:
-                            others.add(other)
-                            segment.isPart=True
-                            poly_refs[i].isPart=True
-                            segment.isConstraint = True
-                            poly_refs[i].isConstraint = True
+                            
+                            if d<d1:
+                                seg1=other
+                                d1=d
+                        
+                if i2 is not None:
+                    d=DSegment(i2,point2).length()
+                    if d>=segmentation_config.parallel_min_distance_relax and d<=segmentation_config.parallel_max_distance_relax:
+                        if seg2 is None:
+                            seg2=other
+                            d2=d
                         else:
-                            if is_inside:
-                                is_fb=True
-                                fb_segments.add(other)
-                                other.isFb=True
-                            else:
-                                fl_segments.add(other)
+                            if d<d2:
+                                seg2=other
+                                d2=d
+                if i3 is not None:
+                    d=DSegment(i3,point3).length()
+                    if d>=segmentation_config.parallel_min_distance_relax and d<=segmentation_config.parallel_max_distance_relax:
+                        if seg3 is None:
+                            seg3=other
+                            d3=d
+                        else:
+                            if d<d3:
+                                seg3=other
+                                d3=d
+            
+                # if i1 is not None and i2 is not None and i3 is not None:
+                #     distance=DSegment(i3,point3).length()
+                #     l1=segment.length()
+                #     l2=other.length()
+                #     if  distance<segmentation_config.parallel_min_distance:
+                #         continue
+                #     q1,q2=other.start_point,other.end_point
+                #     q3=other.mid_point()
+                #     q4,q5=DSegment(q3,q1).mid_point(),DSegment(q3,q2).mid_point()
+                #     count=0
+                #     for q in [q1,q2,q3,q4,q5]:
+                #         if point_is_inside(q,polygon) :
+                #             count+=1
+                #     if count>2:
+                #         is_inside=True
+                #     else:
+                #         is_inside=False
+                #     if distance < segmentation_config.parallel_max_distance and is_inside==False:
+                #         #contraint
+                #         others.add(other)
+                #         segment.isPart=True
+                #         poly_refs[i].isPart=True
+                #         segment.isConstraint = True
+                #         poly_refs[i].isConstraint = True
+                #     elif l1<l2 *segmentation_config.contraint_factor and is_inside==False:
+                #         #constraint
+                #         others.add(other)
+                #         segment.isPart=True
+                #         poly_refs[i].isPart=True
+                #         segment.isConstraint = True
+                #         poly_refs[i].isConstraint = True
+                #     elif l1<segmentation_config.free_edge_min_length:
+                #         others.add(other)
+                #         segment.isPart=True
+                #         poly_refs[i].isPart=True
+                #         segment.isConstraint = True
+                #         poly_refs[i].isConstraint = True
+                #     else:
+                #         if is_inside:
+                #             is_fb=True
+                #             fb_segments.add(other)
+                #             other.isFb=True
+                #         else:
+                #             fl_segments.add(other)
 
-                            # others.add(other)
-                            segment.isPart=True
-                            poly_refs[i].isPart=True
+                #         # others.add(other)
+                #         segment.isPart=True
+                #         poly_refs[i].isPart=True
+         
                             # st_segments.add(segment)
+        other_refs.append([seg1,seg2,seg3])
+        distances.append([d1,d2,d3])
+    
+
+    for i,segment in enumerate(poly_refs):
+        d1,d2,d3=distances[i][0],distances[i][1],distances[i][2]
+        s1,s2,s3=other_refs[i][0],other_refs[i][1],other_refs[i][2]
+        if s1 is not None and s2 is not None and s3 is not None:
+            # print(d1,d2,d3)
+            # print(s1,s2,s3)
+            distance=d3
+            l1=segment.length()
+            s_set=set()
+            s_set.add(s1)
+            s_set.add(s2)
+            s_set.add(s3)
+            l2=0
+            for other in list(s_set):
+                l2+=other.length()
+            # print(distance,l1,l2)
+            other=s3
+            q1,q2=other.start_point,other.end_point
+            q3=other.mid_point()
+            q4,q5=DSegment(q3,q1).mid_point(),DSegment(q3,q2).mid_point()
+            count=0
+            for q in [q1,q2,q3,q4,q5]:
+                if point_is_inside(q,polygon) :
+                    count+=1
+            if count>2:
+                is_inside=True
+            else:
+                is_inside=False
+            if distance < segmentation_config.parallel_max_distance and is_inside==False and not isinstance(segment.ref,DArc):
+                #contraint
+                # print(1)
+                others.add(other)
+                segment.isPart=True
+                poly_refs[i].isPart=True
+                segment.isConstraint = True
+                poly_refs[i].isConstraint = True
+            elif l1<l2 *segmentation_config.contraint_factor and is_inside==False and not isinstance(segment.ref,DArc):
+                #constraint
+                # print(2)
+                others.add(other)
+                segment.isPart=True
+                poly_refs[i].isPart=True
+                segment.isConstraint = True
+                poly_refs[i].isConstraint = True
+            elif l1<segmentation_config.free_edge_min_length and is_inside==False and not isinstance(segment.ref,DArc):
+                # print(3)
+                others.add(other)
+                segment.isPart=True
+                poly_refs[i].isPart=True
+                segment.isConstraint = True
+                poly_refs[i].isConstraint = True
+            else:
+                # print(4)
+                if is_inside:
+                    is_fb=True
+                    fb_segments.add(other)
+                    other.isFb=True
+                else:
+                    fl_segments.add(other)
+
+                # others.add(other)
+                segment.isPart=True
+                poly_refs[i].isPart=True
+         
+     
+     
      # 属于同一参考线的边只要有一个是固定边，则所有都是固定边
-    for a in range(len(poly_refs)):
-        for b in range(len(poly_refs)):
-            if isinstance(poly_refs[a].ref, DLwpolyline) and isinstance(poly_refs[b].ref, DLwpolyline):
-                if poly_refs[a].ref.points[0] == poly_refs[b].ref.points[0] and poly_refs[a].ref.points[-1] == poly_refs[b].ref.points[-1]:
-                    poly_refs[b].isConstraint = poly_refs[a].isConstraint or poly_refs[b].isConstraint
-                    poly_refs[a].isConstraint = poly_refs[a].isConstraint or poly_refs[b].isConstraint
-            if isinstance(poly_refs[a].ref, DLine) and isinstance(poly_refs[b].ref, DLine):
-                if poly_refs[a].ref.start_point == poly_refs[b].ref.start_point and poly_refs[a].ref.end_point == poly_refs[b].ref.end_point:
-                    poly_refs[b].isConstraint = poly_refs[a].isConstraint or poly_refs[b].isConstraint
-                    poly_refs[a].isConstraint = poly_refs[a].isConstraint or poly_refs[b].isConstraint
+    # for a in range(len(poly_refs)):
+    #     for b in range(len(poly_refs)):
+    #         if isinstance(poly_refs[a].ref, DLwpolyline) and isinstance(poly_refs[b].ref, DLwpolyline):
+    #             if poly_refs[a].ref.points[0] == poly_refs[b].ref.points[0] and poly_refs[a].ref.points[-1] == poly_refs[b].ref.points[-1]:
+    #                 poly_refs[b].isConstraint = poly_refs[a].isConstraint or poly_refs[b].isConstraint
+    #                 poly_refs[a].isConstraint = poly_refs[a].isConstraint or poly_refs[b].isConstraint
+    #         if isinstance(poly_refs[a].ref, DLine) and isinstance(poly_refs[b].ref, DLine):
+    #             if poly_refs[a].ref.start_point == poly_refs[b].ref.start_point and poly_refs[a].ref.end_point == poly_refs[b].ref.end_point:
+    #                 poly_refs[b].isConstraint = poly_refs[a].isConstraint or poly_refs[b].isConstraint
+    #                 poly_refs[a].isConstraint = poly_refs[a].isConstraint or poly_refs[b].isConstraint
 
 
     #相邻夹角小的边，如果有一个是固定边，则所有都是固定边
-    for i,s in enumerate(poly):
-        current=i
-        next=(i+1)%len(poly)
+    # for i,s in enumerate(poly):
+    #     current=i
+    #     next=(i+1)%len(poly)
        
-        if conpute_angle_of_two_segments(poly[current],poly[next])  <segmentation_config.constraint_split_angle:
+    #     if conpute_angle_of_two_segments(poly[current],poly[next])  <segmentation_config.constraint_split_angle:
             
-            if poly[current].isConstraint:
+    #         if poly[current].isConstraint:
              
-                # print(poly[current],poly[next])
-                poly[next].isConstraint=True
-            if  poly[next].isConstraint:
-                poly[current].isConstraint=True
+    #             # print(poly[current],poly[next])
+    #             poly[next].isConstraint=True
+    #         if  poly[next].isConstraint:
+    #             poly[current].isConstraint=True
 
 
 
@@ -574,7 +694,7 @@ def outputPolyInfo(poly, segments, segmentation_config, point_map, index,star_po
     others=list(others)
     fb_segments=list(fb_segments)
     fl_segments=list(fl_segments)
-    if len(sfs)>0:
+    if len(sfs)>0 or len(fb_segments)>0:
         is_fb=True
     others.extend(fb_segments)
     others.extend(fl_segments)

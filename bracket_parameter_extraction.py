@@ -9,17 +9,16 @@ def is_useful_text(content=""):
     label = content.strip()
     if label==None or label=="":
         return False
-    if label=="*" or label.isdigit():
-        return True
-    patterns=[
-        r"(?:B)?(?P<primary>\d+([.]\d+)?)(?:X(?P<secondary>\d+([.]\d+)?))?(?:X(?P<thickness>\d+([.]\d+)?))?\s*(?:[~%$&]*?)\s*(?P<material>A|[A-Z]{2,3}|([A-Z]\d+))?",
-        r"(?:[~%]*?)\s*(?P<material>A|[A-Z]{2,3}|([A-Z]\d+))?",
-        r"(?:FB)?(?P<primary>\d+([.]\d+)?)(?:X(?P<fb_thickness>\d+([.]\d+)?))?\s*(?:[~%]*?)\s*(?P<material>A|[A-Z]{2,3}|([A-Z]\d+))?",
-        r"(?:[~%]*?)\s*(?P<material>A|[A-Z]{2,3}|([A-Z]\d+))?",
-        r"(?:FL)?(?P<section_height>\d+([.]\d+)?)",
-        r"BK(?P<bk_code>\d{2})",
-        r"R(?P<radius>\d+([.]\d+)?)",
-    ]
+    pattern_b = r"(?:B)?(?P<val1>\d+([.]\d+)?)(?:X(?P<val2>\d+([.]\d+)?))?(?:X(?P<val3>\d+([.]\d+)?))?\s*(?P<special>[~%$&]+)?\s*(?P<material>(AH)|(DH)|(F\d+))?"
+    pattern_b_op = r"(?P<special>[~%$&]+)?\s*(?P<material>(AH)|(DH)|(F\d+))?"
+    pattern_fb = r"(?:FB)?(?P<val1>\d+([.]\d+)?)(?:X(?P<val2>\d+([.]\d+)?))?\s*(?P<special>[~%$&]+)?\s*(?P<material>(AH)|(DH)|(F\d+))?"
+    pattern_fb_op = r"(?P<special>[~%$&]+)?\s*(?P<material>(AH)|(DH)|(F\d+))?"
+    pattern_fl = r"(?:FL)?(?P<val1>\d+([.]\d+)?)(?:X(?P<val2>\d+([.]\d+)?))?\s*(?P<special>[~%$&]+)?\s*(?P<material>(AH)|(DH)|(F\d+))?"
+    pattern_fl_op=r"(?P<special>[~%$&]+)?\s*(?P<material>(AH)|(DH)|(F\d+))?"
+    pattern_bk = r"BK(?P<bk_code>\d{2})"
+    pattern_r = r"R(?P<radius>\d+([.]\d+)?)"
+    pattern_digit = r"(?P<value>\d+([.]\d+)?)"
+    patterns=[pattern_b, pattern_b_op, pattern_fb, pattern_fb_op, pattern_fl, pattern_fl_op, pattern_bk, pattern_r, pattern_digit]
     flag=False
     for pattern in patterns:
         if re.fullmatch(pattern, label):
@@ -27,201 +26,6 @@ def is_useful_text(content=""):
         if flag:
             break
     return flag
-# def parse_elbow_plate(label="", annotation_position="other", is_fb=False):
-#     """
-#     Parse elbow plate annotation parameters, including arm length, thickness, material, reinforcement edges, and other information.
-
-#     :param label: str, Annotation string of the elbow plate, e.g., "B150X10A", "FB120X10", "BK01", "R300"
-#     :param annotation_position: str, Annotation position: "top", "bottom", or "no annotation line"
-#     :param is_fb: bool, Force interpretation as FB type when true.
-#     :return: dict, A dictionary containing parameters, e.g., {"Arm Length": 150, "Thickness": 10, "Material": "A"} or None if parsing fails.
-#     """
-#     # Strip unnecessary spaces
-#     label = label.strip()
-#     if label is None or label=="":
-#         return None
-#     # Define regular expressions
-
-
-#     pattern_b=r"(?:B)?(?P<primary>\d+([.]\d+)?)(?:X(?P<secondary>\d+([.]\d+)?))?(?:X(?P<thickness>\d+([.]\d+)?))?\s*(?:[~%$&]*?)\s*(?P<material>A|[A-Z]{2,3}|([A-Z]\d+))?"
-#     pattern_b_op=r"(?:[~%$&]*?)\s*(?P<material>A|[A-Z]{2,3}|([A-Z]\d+))?"
-#     pattern_fb=r"(?:FB)?(?P<primary>\d+([.]\d+)?)(?:X(?P<fb_thickness>\d+([.]\d+)?))?\s*(?:[~%$&]*?)\s*(?P<material>A|[A-Z]{2,3}|([A-Z]\d+))?"
-#     pattern_fb_op=r"(?:[~%$&]*?)\s*(?P<material>A|[A-Z]{2,3}|([A-Z]\d+))?"
-#     pattern_fl=r"(?:FL)?(?P<section_height>\d+([.]\d+)?)"
-#     pattern_bk=r"BK(?P<bk_code>\d{2})"
-#     pattern_r=r"R(?P<radius>\d+([.]\d+)?)"
-#     pattern_digit=r"(?P<value>\d+([.]\d+)?)"
-#     # Check different annotation types
-#     if annotation_position == "top":
-#         #print(label)
-#         # Annotations at the top prioritize parsing as B, BK, or R type
-#         if match := re.fullmatch(pattern_b, label):
-
-#             primary = float(match.group("primary"))
-#             secondary=float(match.group("secondary")) if match.group("secondary") else None
-#             thickness = float(match.group("thickness")) if match.group("thickness") else None
-#             material = match.group("material") if match.group("material") else "A"
-
-#             arm_length = None
-#             if primary >= 100:  # Assume values >= 100 are arm lengths
-#                 arm_length = primary
-#             else:
-#                 thickness = primary if thickness is None else thickness
-#             arm_length2=None
-#             if secondary is not None and secondary >=100:
-#                 arm_length2=secondary
-#             else:
-#                 thickness = secondary if thickness is None else thickness
-                
-
-#             if arm_length is not None and arm_length < 100:
-#                 return None
-#             if arm_length2 is not None and arm_length2 < 100:
-#                 return None
-#             if thickness is not None and thickness > 50:
-#                 return None
-
-#             return {
-#                 "Type": "B",
-#                 "Arm Length1": arm_length,
-#                 "Arm Length2":arm_length2,
-#                 "Thickness": thickness,
-#                 "Material": material,
-#             }
-#         elif match := re.fullmatch(pattern_b_op, label):
-#             material = match.group("material") if match.group("material") else None
-#             if material is not None:
-#                 return {
-#                     "Type": "B",
-#                     "Arm Length1": None,
-#                     "Arm Length2":None,
-#                     "Thickness": None,
-#                     "Material": material,
-#                 }
-#         elif match := re.fullmatch(pattern_bk, label):
-#             bk_code = match.group("bk_code")
-#             return {
-#                 "Type": "BK",
-#                 "Typical Section Code": bk_code,
-#             }
-
-#         elif match := re.fullmatch(pattern_r, label):
-#             radius = float(match.group("radius"))
-#             return {
-#                 "Type": "R",
-#                 "Radius": radius,
-#             }
-
-#     elif annotation_position == "bottom":
-#         # Annotations at the bottom prioritize parsing as FB, FL, or R type
-#         if is_fb:
-#             if match := re.fullmatch(pattern_fb, label):
-#                 primary = float(match.group("primary"))
-#                 fb_thickness = float(match.group("fb_thickness")) if match.group("fb_thickness") else None
-#                 material = match.group("material") if match.group("material") else "A"
-
-
-#                 section_height = None
-#                 if primary >= 100:  # Assume values >= 100 are arm lengths
-#                     section_height = primary
-#                 else:
-#                     fb_thickness = primary if fb_thickness is None else fb_thickness
-
-#                 if section_height is not None and section_height < 100:
-#                     return None
-#                 if fb_thickness is not None and fb_thickness > 50:
-#                     return None
-            
-
-#                 return {
-#                     "Type": "FB",
-#                     "Section Height": section_height,
-#                     "Thickness": fb_thickness,
-#                     "Material": material,
-#                 }
-#             elif match := re.fullmatch(pattern_fb_op, label):
-#                 material = match.group("material") if match.group("material") else None
-#                 if material is not None:
-#                     return {
-#                         "Type": "FB",
-#                         "Section Height": None,
-#                         "Thickness": None,
-#                         "Material": material,
-#                     }
-
-
-#         else:
-#             if match := re.fullmatch(pattern_fl, label):
-#                 section_height = float(match.group("section_height"))
-
-#                 if section_height < 100:
-#                     return None
-
-#                 return {
-#                     "Type": "FL",
-#                     "Section Height": section_height,
-#                 }
-
-#             elif match := re.fullmatch(pattern_fb, label):
-#                 primary = float(match.group("primary"))
-#                 fb_thickness = float(match.group("fb_thickness")) if match.group("fb_thickness") else None
-#                 material = match.group("material") if match.group("material") else "A"
-
-
-#                 section_height = None
-#                 if primary >= 100:  # Assume values >= 100 are arm lengths
-#                     section_height = primary
-#                 else:
-#                     fb_thickness = primary if fb_thickness is None else fb_thickness
-
-#                 if section_height is not None and section_height < 100:
-#                     return None
-#                 if fb_thickness is not None and fb_thickness > 50:
-#                     return None
-            
-
-#                 return {
-#                     "Type": "FB",
-#                     "Section Height": section_height,
-#                     "Thickness": fb_thickness,
-#                     "Material": material,
-#                 }
-#             elif match := re.fullmatch(pattern_fb_op, label):
-#                 material = match.group("material") if match.group("material") else None
-#                 if material is not None:
-#                     return {
-#                         "Type": "FB",
-#                         "Section Height": None,
-#                         "Thickness": None,
-#                         "Material": material,
-#                     }
-
-
-#         if match := re.fullmatch(pattern_r, label):
-#             radius = float(match.group("radius"))
-#             return {
-#                 "Type": "R",
-#                 "Radius": radius,
-#             }
-
-#     elif annotation_position == "other":
-#         # Without an annotation line, parse as R type or a simple numerical value
-#         if match := re.fullmatch(pattern_r, label):
-#             radius = float(match.group("radius"))
-#             return {
-#                 "Type": "R",
-#                 "Radius": radius,
-#             }
-
-#         elif match := re.fullmatch(pattern_digit, label):
-#             value = float(match.group("value"))
-#             return {
-#                 "Type": "Numeric",
-#                 "Value": value,
-#             }
-
-#     # If no type matches
-#     return None
 
 def parse_elbow_plate(label="", annotation_position="other", is_fb=False):
     """
@@ -240,11 +44,12 @@ def parse_elbow_plate(label="", annotation_position="other", is_fb=False):
         return None
 
     # Define regular expressions
-    pattern_b = r"(?:B)?(?P<val1>\d+([.]\d+)?)(?:X(?P<val2>\d+([.]\d+)?))?(?:X(?P<val3>\d+([.]\d+)?))?\s*(?P<material>A|[A-Z]{2,3}|([A-Z]\d+))?"
-    pattern_b_op = r"(?:[~%$&]*?)\s*(?P<material>A|[A-Z]{2,3}|([A-Z]\d+))?"
-    pattern_fb = r"(?:FB)?(?P<primary>\d+([.]\d+)?)(?:X(?P<fb_thickness>\d+([.]\d+)?))?\s*(?:[~%$&]*?)\s*(?P<material>A|[A-Z]{2,3}|([A-Z]\d+))?"
-    pattern_fb_op = r"(?:[~%$&]*?)\s*(?P<material>A|[A-Z]{2,3}|([A-Z]\d+))?"
-    pattern_fl = r"(?:FL)?(?P<section_height>\d+([.]\d+)?)"
+    pattern_b = r"(?:B)?(?P<val1>\d+([.]\d+)?)(?:X(?P<val2>\d+([.]\d+)?))?(?:X(?P<val3>\d+([.]\d+)?))?\s*(?P<special>[~%$&]+)?\s*(?P<material>(AH)|(DH)|(F\d+))?"
+    pattern_b_op = r"(?P<special>[~%$&]+)?\s*(?P<material>(AH)|(DH)|(F\d+))?"
+    pattern_fb = r"(?:FB)?(?P<val1>\d+([.]\d+)?)(?:X(?P<val2>\d+([.]\d+)?))?\s*(?P<special>[~%$&]+)?\s*(?P<material>(AH)|(DH)|(F\d+))?"
+    pattern_fb_op = r"(?P<special>[~%$&]+)?\s*(?P<material>(AH)|(DH)|(F\d+))?"
+    pattern_fl = r"(?:FL)?(?P<val1>\d+([.]\d+)?)(?:X(?P<val2>\d+([.]\d+)?))?\s*(?P<special>[~%$&]+)?\s*(?P<material>(AH)|(DH)|(F\d+))?"
+    pattern_fl_op=r"(?P<special>[~%$&]+)?\s*(?P<material>(AH)|(DH)|(F\d+))?"
     pattern_bk = r"BK(?P<bk_code>\d{2})"
     pattern_r = r"R(?P<radius>\d+([.]\d+)?)"
     pattern_digit = r"(?P<value>\d+([.]\d+)?)"
@@ -255,8 +60,9 @@ def parse_elbow_plate(label="", annotation_position="other", is_fb=False):
         if match := re.fullmatch(pattern_b, label):
 
             values = [float(v) for v in (match.group("val1"), match.group("val2"), match.group("val3")) if v]
-            material = match.group("material") if match.group("material") else "A"
-
+            material = match.group("material") if match.group("material") else "AH"
+            special=match.group("special") if match.group("special") else "none"
+            
             arm_lengths = [v for v in values if v >= 100]
             thickness = [v for v in values if v < 100]
 
@@ -276,9 +82,11 @@ def parse_elbow_plate(label="", annotation_position="other", is_fb=False):
                 "Arm Length2": arm_length2,
                 "Thickness": thickness,
                 "Material": material,
+                "Special":special
             }
         elif match := re.fullmatch(pattern_b_op, label):
             material = match.group("material") if match.group("material") else None
+            special=match.group("special") if match.group("special") else "none"
             if material is not None:
                 return {
                     "Type": "B",
@@ -286,6 +94,7 @@ def parse_elbow_plate(label="", annotation_position="other", is_fb=False):
                     "Arm Length2": None,
                     "Thickness": None,
                     "Material": material,
+                    "Special":special
                 }
         elif match := re.fullmatch(pattern_bk, label):
             bk_code = match.group("bk_code")
@@ -305,79 +114,108 @@ def parse_elbow_plate(label="", annotation_position="other", is_fb=False):
         # Annotations at the bottom prioritize parsing as FB, FL, or R type
         if is_fb:
             if match := re.fullmatch(pattern_fb, label):
-                primary = float(match.group("primary"))
-                fb_thickness = float(match.group("fb_thickness")) if match.group("fb_thickness") else None
-                material = match.group("material") if match.group("material") else "A"
 
-                section_height = None
-                if primary >= 100:  # Assume values >= 100 are arm lengths
-                    section_height = primary
-                else:
-                    fb_thickness = primary if fb_thickness is None else fb_thickness
+                values = [float(v) for v in (match.group("val1"), match.group("val2")) if v]
+                material = match.group("material") if match.group("material") else "AH"
+                special=match.group("special") if match.group("special") else "none"
 
-                if section_height is not None and section_height < 100:
+                section_height = [v for v in values if v >= 100]
+                thickness = [v for v in values if v < 100]
+
+                if len(section_height) > 1 or len(thickness) > 1:
                     return None
-                if fb_thickness is not None and fb_thickness > 50:
+
+                section_height = section_height[0] if len(section_height) > 0 else None
+                thickness = thickness[0] if len(thickness) > 0 else None
+
+                if thickness is not None and thickness > 50:
                     return None
+
+            
 
                 return {
                     "Type": "FB",
                     "Section Height": section_height,
-                    "Thickness": fb_thickness,
+                    "Thickness": thickness,
                     "Material": material,
+                    "Special": special
                 }
             elif match := re.fullmatch(pattern_fb_op, label):
                 material = match.group("material") if match.group("material") else None
+                special=match.group("special") if match.group("special") else "none"
                 if material is not None:
                     return {
                         "Type": "FB",
                         "Section Height": None,
                         "Thickness": None,
                         "Material": material,
+                        "Special": special
                     }
 
         else:
             if match := re.fullmatch(pattern_fl, label):
-                section_height = float(match.group("section_height"))
+                
+                values = [float(v) for v in (match.group("val1"), match.group("val2")) if v]
+                material = match.group("material") if match.group("material") else "AH"
+                special=match.group("special") if match.group("special") else "none"
 
-                if section_height < 100:
+                section_height = [v for v in values if v >= 100]
+                thickness = [v for v in values if v < 100]
+
+                if len(section_height) > 1 or len(thickness) > 1:
                     return None
+
+                section_height = section_height[0] if len(section_height) > 0 else None
+                thickness = thickness[0] if len(thickness) > 0 else None
+
+                if thickness is not None and thickness > 50:
+                    return None
+
 
                 return {
                     "Type": "FL",
                     "Section Height": section_height,
+                    "Thickness": thickness,
+                    "Material": material,
+                    "Special":special
                 }
 
             elif match := re.fullmatch(pattern_fb, label):
-                primary = float(match.group("primary"))
-                fb_thickness = float(match.group("fb_thickness")) if match.group("fb_thickness") else None
-                material = match.group("material") if match.group("material") else "A"
+                values = [float(v) for v in (match.group("val1"), match.group("val2")) if v]
+                material = match.group("material") if match.group("material") else "AH"
+                special=match.group("special") if match.group("special") else "none"
 
-                section_height = None
-                if primary >= 100:  # Assume values >= 100 are arm lengths
-                    section_height = primary
-                else:
-                    fb_thickness = primary if fb_thickness is None else fb_thickness
+                section_height = [v for v in values if v >= 100]
+                thickness = [v for v in values if v < 100]
 
-                if section_height is not None and section_height < 100:
+                if len(section_height) > 1 or len(thickness) > 1:
                     return None
-                if fb_thickness is not None and fb_thickness > 50:
+
+                section_height = section_height[0] if len(section_height) > 0 else None
+                thickness = thickness[0] if len(thickness) > 0 else None
+
+                if thickness is not None and thickness > 50:
                     return None
+
+            
 
                 return {
                     "Type": "FB",
                     "Section Height": section_height,
-                    "Thickness": fb_thickness,
+                    "Thickness": thickness,
                     "Material": material,
+                    "Special": special
                 }
-            elif match := re.fullmatch(pattern_fb_op, label):
+            elif match := re.fullmatch(pattern_fl_op, label):
                 material = match.group("material") if match.group("material") else None
+                special=match.group("special") if match.group("special") else "none"
                 if material is not None:
                     return {
-                        "Type": "FB",
+                        "Type": "FL",
                         "Section Height": None,
                         "Thickness": None,
                         "Material": material,
+                        "Special": special
                     }
 
         if match := re.fullmatch(pattern_r, label):

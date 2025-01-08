@@ -7,12 +7,12 @@ class DPoint:
     def __eq__(self, other):  
         # 如果 other 也是 Point 实例，并且 x 和 y 坐标相等，则返回 True  
         if isinstance(other, DPoint):  
-            return (round(self.x/6), round(self.y/6)) == (round(other.x/6), round(other.y/6))  
+            return (round(self.x/3), round(self.y/3)) == (round(other.x/3), round(other.y/3))  
         return False  
   
     def __hash__(self):  
         # 返回 (x, y) 元组的哈希值  
-        return hash((round(self.x/6), round(self.y/6)))  
+        return hash((round(self.x/3), round(self.y/3)))  
     def __getitem__(self, index):  
         # 支持通过索引访问坐标  
         if index == 0:  
@@ -44,6 +44,11 @@ class DSegment:
         self.ref=ref
         self.isConstraint=False
         self.isCornerhole=False
+        self.StarCornerhole = None
+        self.isPart=False
+        self.isFb=False
+    def initialize(self):
+        self.isConstraint=False
         self.StarCornerhole = None
         self.isPart=False
         self.isFb=False
@@ -231,16 +236,20 @@ class DArc(DElement):
     def transform(self):
         self.center=self.transform_point(self.center,self.meta)
         self.radius=math.fabs(self.meta.scales[0])*self.radius
-        self.start_angle = self.start_angle+self.meta.rotation  # in degrees  
-        self.end_angle = self.end_angle+self.meta.rotation     # in degrees  
-        sa=self.start_angle/180*math.pi
-        ea=self.end_angle/180*math.pi
-        c1=math.cos(sa)
-        s1=math.sin(sa)
-        c2=math.cos(ea)
-        s2=math.sin(ea)
-        self.start_point=DPoint(self.center[0]+self.radius*c1,self.center[1]+self.radius*s1)
-        self.end_point=DPoint(self.center[0]+self.radius*c2,self.center[1]+self.radius*s2)
+        # self.start_angle = self.start_angle+self.meta.rotation  # in degrees  
+        # self.end_angle = self.end_angle+self.meta.rotation     # in degrees  
+        # sa=self.start_angle/180*math.pi
+        # ea=self.end_angle/180*math.pi
+        # c1=math.cos(sa)
+        # s1=math.sin(sa)
+        # c2=math.cos(ea)
+        # s2=math.sin(ea)
+        # self.start_point=DPoint(self.center[0]+self.radius*c1,self.center[1]+self.radius*s1)
+        # self.end_point=DPoint(self.center[0]+self.radius*c2,self.center[1]+self.radius*s2)
+        self.start_point=self.transform_point(self.start_point,self.meta)
+        self.end_point=self.transform_point(self.end_point,self.meta)
+        self.start_angle=math.atan2(self.start_point.y-self.center.y,self.start_point.x-self.center.x)
+        self.end_angle=math.atan2(self.end_point.y-self.center.y,self.end_point.x-self.center.x)
   
 
 class DText(DElement):  

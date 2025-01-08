@@ -2,18 +2,18 @@ class SegmentationConfig:
     def __init__(self):
         self.verbose=True
         # self.mode="dev"
-        self.mode="dev"
+        self.mode="pro"
         self.bracket_layer=None
         self.json_path=""
         
-        self.line_expand_length=13
+        self.line_expand_length=14.5
         self.arc_expand_length=8
         self.line_image_path="./output/line.png"
         self.draw_intersections=False
 
         self.draw_segments=True
         self.line_image_drawPolys=True
-        self.draw_texts=True
+        self.draw_texts=False
 
         self.draw_poly_nums=1000
         self.poly_image_dir="./output"
@@ -53,8 +53,11 @@ class SegmentationConfig:
         self.json_output_path = "./output/bracket.json"   #输出解析后的肘板轮廓，便于调整匹配算法
 
         #肘板边数
-        self.path_max_length = 20
+        self.path_max_length = 30
         self.path_min_length = 3
+
+        self.dfs_path_max_length=40
+        self.dfs_path_min_length=3
         #compute cornor_hole
         self.repline_neighbor_min_length=14
 
@@ -77,14 +80,17 @@ class SegmentationConfig:
         self.reference_text_max_distance=400
 
         #dfs
-        self.dfs_optional=True
+        self.dfs_optional=False
 
         #constraint determine--parallel
-        self.parallel_max_distance= 15
+        self.parallel_max_distance= 16
         self.parallel_min_distance=5
 
+        
+
         self.parallel_max_distance_relax=60
-        self.contraint_factor=0.98
+        self.parallel_min_distance_relax=5
+        self.contraint_factor=0.96
         self.free_edge_min_length=130
 
         #bracket bounding box
@@ -106,7 +112,9 @@ class SegmentationConfig:
 
         self.stiffener_name = ["Stiffener_Invisible","Stiffener_Visible"]
         # self.remove_layername=["Stiffener_Invisible","Stiffener_Visible","Plate_Invisible","Plate_Visible"]
-        self.remove_layername=[]
+        self.remove_linetype=[]
+
+        self.remove_layername=["分段总段划分"]
         self.remove_layername.extend(self.stiffener_name)
         #check is bracket
         #偏离凸多边形的程度
