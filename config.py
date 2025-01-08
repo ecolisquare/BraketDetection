@@ -13,7 +13,8 @@ class SegmentationConfig:
 
         self.draw_segments=True
         self.line_image_drawPolys=True
-        self.draw_texts=False
+        self.draw_line_image = True
+        self.draw_texts=True
 
         self.draw_poly_nums=1000
         self.poly_image_dir="./output"

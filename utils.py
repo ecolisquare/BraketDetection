@@ -2727,7 +2727,8 @@ def findClosedPolys_via_BFS(elements,texts,dimensions,segments,segmentation_conf
 
     # 根据边框对多边形进行过滤
     #polys = filterPolys(polys,t=3000,d=5)
-    polys = filterPolys(closed_polys,segmentation_config.path_max_length,segmentation_config.path_min_length,segmentation_config.bbox_min_area,segmentation_config.bbox_max_area,segmentation_config.bbox_ratio)
+    if segmentation_config.bracket_layer is None:
+        polys = filterPolys(closed_polys,segmentation_config.path_max_length,segmentation_config.path_min_length,segmentation_config.bbox_min_area,segmentation_config.bbox_max_area,segmentation_config.bbox_ratio)
     print(len(polys))
     # 剔除重复路径
     polys = remove_duplicate_polygons(polys,segmentation_config.eps,segmentation_config.min_samples)
@@ -2739,7 +2740,8 @@ def findClosedPolys_via_BFS(elements,texts,dimensions,segments,segmentation_conf
     if verbose:
         print(f"封闭多边形个数:{len(polys)}")
     #outputPolysAndGeometry(filtered_point_map,polys,segmentation_config.poly_image_dir,segmentation_config.draw_polys,segmentation_config.draw_geometry,segmentation_config.draw_poly_nums)
-    outputLines(segmentation_config,filtered_segments,filtered_point_map,polys,cornor_holes,star_pos ,texts,text_map,dimensions,replines,segmentation_config.line_image_path,segmentation_config.draw_intersections,segmentation_config.draw_segments,segmentation_config.line_image_drawPolys,)
+    if segmentation_config.draw_line_image:
+        outputLines(segmentation_config,filtered_segments,filtered_point_map,polys,cornor_holes,star_pos ,texts,text_map,dimensions,replines,segmentation_config.line_image_path,segmentation_config.draw_intersections,segmentation_config.draw_segments,segmentation_config.line_image_drawPolys,)
     
     return polys, new_segments, point_map,star_pos_map,cornor_holes,text_map
 

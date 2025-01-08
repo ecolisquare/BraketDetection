@@ -14,8 +14,8 @@ def strict_classifier(classification_table, conerhole_num, free_edges_sequence, 
     matched_type = None
     for key, row in classification_table.items():
         # Step 1: Match cornerhole_nums
-        if row["cornerhole_nums"] != conerhole_num:
-            continue
+        # if row["cornerhole_nums"] != conerhole_num:
+        #     continue
         
         # Step 2: Match free_edges (both normal and reversed)
         if row["free_edges"] != free_edges_sequence and row["free_edges"] != reversed_free_edges_sequence:
