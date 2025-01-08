@@ -336,7 +336,7 @@ def sort_points_on_arc(points, arc):
 
 
 #expand lines by fixed length
-def expandFixedLength(segList,dist,both=True,verbose=True):
+def expandFixedLength(segList,dist,both=True,verbose=True,ignore_length=False):
 
 
     new_seglist=[] 
@@ -350,11 +350,12 @@ def expandFixedLength(segList,dist,both=True,verbose=True):
         p2=seg[1]
         v=(p2[0]-p1[0],p2[1]-p1[1])
         l=math.sqrt(v[0]*v[0]+v[1]*v[1])
-        if l<=dist:
+        if l<=dist and ignore_length==False:
             continue
         # elif l<=dist:
         #     l*=1.5
-
+        if l<0.25:
+            continue
         v=(v[0]/l*dist,v[1]/l*dist)
         vs=DPoint(p1[0]-v[0],p1[1]-v[1]) if both else DPoint(p1[0],p1[1])
         ve=DPoint(p2[0]+v[0],p2[1]+v[1])
@@ -2267,10 +2268,10 @@ def outputLines(segmentation_config,segments,point_map,polys,cornor_holes,star_p
                 d1,d2,d3,d4=d.defpoints[0], x,d.defpoints[1],d.defpoints[2]
                 ss=[DSegment(d1,d4),DSegment(d4,d3),DSegment(d3,d2)]
                 sss=[DSegment(d2,d1)]
-                ss=expandFixedLength(ss,25,True,False)
-                sss=expandFixedLength(sss,100,True,False)
+                ss=expandFixedLength(ss,25,True,False,True)
+                sss=expandFixedLength(sss,100,True,False,True)
                 q=sss[0].end_point
-                sss=expandFixedLength(sss,100,False,False)
+                sss=expandFixedLength(sss,100,False,False,True)
                 for s in ss:
                     plt.plot([s.start_point.x,s.end_point.x], [s.start_point.y,s.end_point.y], color="#FF0000", lw=2,linestyle='--')
                 for s in sss:
@@ -2304,8 +2305,8 @@ def outputLines(segmentation_config,segments,point_map,polys,cornor_holes,star_p
                 a,b=d.defpoints[0],d.defpoints[3]
                 o=p_mul(p_add(a,b),0.5)
                 ss=[DSegment(a,b)]
-                ss=expandFixedLength(ss,100,True,False)
-                ss=expandFixedLength(ss,100,False,False)
+                ss=expandFixedLength(ss,100,True,False,True)
+                ss=expandFixedLength(ss,100,False,False,True)
                 a_,b_=ss[0].start_point,ss[0].end_point
                 plt.arrow(a_.x, a_.y, a.x-a_.x,a.y-a_.y, head_width=20, head_length=20, fc='red', ec='red')
                 plt.arrow(b_.x, b_.y, b.x-b_.x,b.y-b_.y, head_width=20, head_length=20, fc='red', ec='red')
