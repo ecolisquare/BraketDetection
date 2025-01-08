@@ -1,4 +1,6 @@
 import os
+import sys
+import io
 from load import dxf2json
 import json
 from element import *
@@ -111,6 +113,7 @@ if __name__ == '__main__':
     # gt_bracket_layer = input("请输人工标记图纸中肘板标记所在图层名：")
 
     print("----------------测试开始---------------")
+    sys.stdout = io.StringIO()
 
     # 将两个dxf文件转为json
     dxf2json(os.path.dirname(test_dxf_path),os.path.basename(test_dxf_path),os.path.dirname(test_dxf_path))
@@ -175,6 +178,7 @@ if __name__ == '__main__':
     classification_precision = successful_classifications / gt_total_with_labels if gt_total_with_labels > 0 else 1
 
     # 输出评估结果
+    sys.stdout = sys.__stdout__
     print("----------------测试完毕---------------")
     print(f"肘板检出率: {detection_precison:.2f}")
     print(f"肘板分类正确率: {classification_precision:.2f}")
