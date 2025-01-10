@@ -976,7 +976,7 @@ def dxf2json(dxfpath,dxfname,output_folder):
 
 if __name__ == "__main__":
     
-    dxfpath = '/home/user10/code/BraketDetection/data/split'
+    dxfpath = './data'
     dxfname = 'all.dxf'
     dxf2json(dxfpath,dxfname, dxfpath)
     # folder_path = '/home/user10/code/BraketDetection/data/board_example'

@@ -5,34 +5,50 @@ from load import dxf2json
 import json
 from element import *
 from config import *
-from utils import readJson, findAllTextsAndDimensions, processDimensions, processTexts, findClosedPolys_via_BFS
+from utils import readJson, findAllTextsAndDimensions, processDimensions, processTexts, findClosedPolys_via_BFS,process_lwpoline
 from shapely.geometry import Polygon, Point
 
 def read_json(json_path, bracket_layer):
-    segment_config = SegmentationConfig()
-    segment_config.bracket_layer = bracket_layer
-    elements,segments,ori_segments,stiffeners = readJson(json_path, segment_config)
-    return elements, segments
-
-def find_all_text(elements):
     texts=[]
-    for e in elements:
-        if isinstance(e,DText):
-            texts.append(e)
-    return texts
+    polys=[]
+    try:  
+        with open(json_path, 'r', encoding='utf-8') as file:  
+            data_list = json.load(file)
+        block_elements=data_list[0]
+        for ele in block_elements:
+            if ele["layerName"]!=bracket_layer:
+                continue
+            if ele["type"]=="text":
+                e=DText(ele["bound"],ele["insert"], ele["color"],ele["content"].strip(),ele["height"],ele["handle"],meta=None)
+                texts.append(e)
+            elif ele["type"]=="lwpolyline":
+                vs = ele["vertices"]
+                new_vs=[]
+                poly=[]
+                for i,v in enumerate(vs):
+                    if len(v)==4:
+                        new_vs.append([v[0], v[1]])
+                        new_vs.append([v[2], v[3]])        
+                for i in range(len(new_vs)-1):
+                    s,e=DPoint(new_vs[i][0],new_vs[i][1]),DPoint(new_vs[i+1][0],new_vs[i+1][1])
+                    seg=DSegment(s,e,None)
+                    if seg.length()>0:
+                        poly.append(seg)
+                
+                if ele["isClosed"]:
+                    s,e=DPoint(new_vs[-1][0],new_vs[-1][1]),DPoint(new_vs[0][0],new_vs[0][1])
+                    seg=DSegment(s,e,None)
+                    if seg.length()>0:
+                        poly.append(seg)
+                polys.append(poly)
+        
+    except FileNotFoundError:  
+        print("The file does not exist.")
+    except json.JSONDecodeError:  
+        print("Error decoding JSON.")
+    
+    return texts, polys
 
-def find_all_path(elements, segments):
-    segmentation_config=SegmentationConfig()
-    segmentation_config.draw_line_image = False
-    segmentation_config.verbose = False
-    texts ,dimensions=findAllTextsAndDimensions(elements)
-    dimensions=processDimensions(dimensions)
-    texts=processTexts(texts)
-    if segmentation_config.verbose:
-        print("json文件读取完毕")
-    #找出所有包含角隅孔圆弧的基本环
-    polys, new_segments, point_map,star_pos_map,cornor_holes,text_map=findClosedPolys_via_BFS(elements,texts,dimensions,segments,segmentation_config)
-    return polys
 
 def calculate_total_covered_area(gt_poly, test_polys):
     """
@@ -102,10 +118,10 @@ def find_nearest_text(poly, texts, extra_range = 700):
     return nearest_text
 
 if __name__ == '__main__':
-    test_dxf_path = "../jndata2/all/all_braket.dxf"
-    gt_dxf_path = "../jndata2/all/all_braket.dxf"
+    test_dxf_path = "./output/FR18-3_braket.dxf"
+    gt_dxf_path = "./gt/FR18-3gt.dxf"
     test_bracket_layer = "Braket"
-    gt_bracket_layer = "Braket"
+    gt_bracket_layer = "分段总段划分"
 
     # test_dxf_path = input("请输入待评估图纸路径：")
     # test_bracket_layer = input("请输入待评估图纸中肘板标记所在图层名：")
@@ -124,16 +140,10 @@ if __name__ == '__main__':
     gt_json_path = os.path.join(os.path.dirname(gt_dxf_path), (os.path.basename(gt_dxf_path).split('.')[0] + ".json"))
 
     # 解析两个json文件
-    test_ele, test_seg = read_json(test_json_path, test_bracket_layer)
-    gt_ele, gt_seg = read_json(gt_json_path, gt_bracket_layer)
+    test_texts, test_polys_seg = read_json(test_json_path, test_bracket_layer)
+    gt_texts, gt_polys_seg = read_json(gt_json_path, gt_bracket_layer)
 
-    # 获得分类标签
-    test_texts = find_all_text(test_ele)
-    gt_texts = find_all_text(gt_ele)
 
-    # 获得肘板标记框
-    test_polys_seg = find_all_path(test_ele, test_seg)
-    gt_polys_seg = find_all_path(test_ele, test_seg)
 
     test_polys = []
     gt_polys = []
@@ -182,6 +192,7 @@ if __name__ == '__main__':
     print("----------------测试完毕---------------")
     print(f"肘板检出率: {detection_precison:.2f}")
     print(f"肘板分类正确率: {classification_precision:.2f}")
-    print(gt_total_with_labels , len(gt_polys) , len(gt_texts))
+    print(gt_total_with_labels , len(gt_polys) , len(gt_texts),len(test_polys),len(test_texts))
     print("-------------测试结果输出完毕----------")
+    # print([ len(s) for s in test_polys_seg ])
     

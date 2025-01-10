@@ -6,6 +6,13 @@ class SegmentationConfig:
         self.bracket_layer=None
         self.json_path=""
         
+        #grid setting
+        self.M=100
+        self.N=100
+        self.x_padding=100
+        self.y_padding=100
+
+
         self.line_expand_length=14.5
         self.arc_expand_length=8
         self.line_image_path="./output/line.png"
@@ -30,7 +37,7 @@ class SegmentationConfig:
         #包围盒
         self.bbox_min_area=5000
         self.bbox_max_area=1000*15000
-        self.bbox_ratio=10
+        self.bbox_ratio=4
 
 
         self.remove_tolerance=1e-5
@@ -44,8 +51,8 @@ class SegmentationConfig:
         self.poly_info_dir = "./output"
         self.res_image_path = "./output/res.png"
 
-        self.max_workers=-1
-        self.timeout=5
+        self.max_workers=4
+        self.timeout=2
 
         self.type_path = "./type.json"
 
@@ -93,6 +100,7 @@ class SegmentationConfig:
         self.parallel_min_distance_relax=5
         self.contraint_factor=0.96
         self.free_edge_min_length=130
+        self.constraint_min_length=50
 
         #bracket bounding box
         self.bracket_bbox_expand_length=50
@@ -128,3 +136,4 @@ class SegmentationConfig:
         
         #约束边分割角度
         self.constraint_split_angle=30
+        

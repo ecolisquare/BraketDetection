@@ -623,7 +623,7 @@ def outputPolyInfo(poly, segments, segmentation_config, point_map, index,star_po
                 is_inside=True
             else:
                 is_inside=False
-            if distance < segmentation_config.parallel_max_distance and is_inside==False and not isinstance(segment.ref,DArc):
+            if distance < segmentation_config.parallel_max_distance and is_inside==False and not isinstance(segment.ref,DArc) and l1>=segmentation_config.constraint_min_length:
                 #contraint
                 # print(1)
                 others.add(other)
@@ -631,7 +631,7 @@ def outputPolyInfo(poly, segments, segmentation_config, point_map, index,star_po
                 poly_refs[i].isPart=True
                 segment.isConstraint = True
                 poly_refs[i].isConstraint = True
-            elif l1<l2 *segmentation_config.contraint_factor and is_inside==False and not isinstance(segment.ref,DArc):
+            elif l1<l2 *segmentation_config.contraint_factor and is_inside==False and not isinstance(segment.ref,DArc) and l1>=segmentation_config.constraint_min_length:
                 #constraint
                 # print(2)
                 others.add(other)
@@ -639,7 +639,7 @@ def outputPolyInfo(poly, segments, segmentation_config, point_map, index,star_po
                 poly_refs[i].isPart=True
                 segment.isConstraint = True
                 poly_refs[i].isConstraint = True
-            elif l1<segmentation_config.free_edge_min_length and is_inside==False and not isinstance(segment.ref,DArc):
+            elif l1<segmentation_config.free_edge_min_length and is_inside==False and not isinstance(segment.ref,DArc) and l1>=segmentation_config.constraint_min_length:
                 # print(3)
                 others.add(other)
                 segment.isPart=True

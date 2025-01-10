@@ -817,14 +817,15 @@ def merge_intersections(results,segments):
 # Main function to find all intersections using multiprocessing
 def find_all_intersections(segments, epsilon=0.1):
     n = len(segments)
-    k= max((n+31)//32,1)
+    L=4
+    k= max((n+L-1)//L,1)
     # Divide segments into chunks of size k
     segment_chunks = [segments[i:i + k] for i in range(0, n, k)]
     s_l=[len(c) for c in segment_chunks]
     print(len(segment_chunks))
     print(s_l)
     # Use ProcessPoolExecutor for parallel computation
-    with ProcessPoolExecutor(max_workers=32) as executor:
+    with ProcessPoolExecutor(max_workers=L) as executor:
         partial_intersections = partial(compute_intersections, chunk2=segments,epsilon=epsilon)
         results = list(executor.map(partial_intersections, segment_chunks))
 
@@ -1733,7 +1734,8 @@ def removeReferenceLines(elements,texts,initial_segments,all_segments,point_map,
     h1e=[]
     h2e=[]
     n = len(vertical_lines)
-    k= max((n+31)//32,1)
+    L=4
+    k= max((n+L-1)//L,1)
     # Divide segments into chunks of size k
     segment_chunks = [vertical_lines[i:i + k] for i in range(0, n, k)]
     element_chunks=  [v1e[i:i + k] for i in range(0, n, k)]
@@ -1744,14 +1746,15 @@ def removeReferenceLines(elements,texts,initial_segments,all_segments,point_map,
     print(len(segment_chunks))
     print(s_l)
     # Use ProcessPoolExecutor for parallel computation
-    with ProcessPoolExecutor(max_workers=32) as executor:
+    with ProcessPoolExecutor(max_workers=L) as executor:
         partial_intersections = partial(process_intersections, segments=all_segments,point_map=point_map,segmentation_config=segmentation_config)
         results = list(executor.map(partial_intersections, chuncks))
     for result in results:
         horizontal_line.extend(result[0])
         h1e.extend(result[1])
     n = len(vl2)
-    k= max((n+31)//32,1)
+    L=4
+    k= max((n+L-1)//L,1)
     # Divide segments into chunks of size k
     segment_chunks = [vl2[i:i + k] for i in range(0, n, k)]
     element_chunks=  [v2e[i:i + k] for i in range(0, n, k)]
@@ -1762,7 +1765,7 @@ def removeReferenceLines(elements,texts,initial_segments,all_segments,point_map,
     print(len(segment_chunks))
     print(s_l)
     # Use ProcessPoolExecutor for parallel computation
-    with ProcessPoolExecutor(max_workers=32) as executor:
+    with ProcessPoolExecutor(max_workers=L) as executor:
         partial_intersections = partial(process_intersections2, segments=all_segments,point_map=point_map,segmentation_config=segmentation_config)
         results = list(executor.map(partial_intersections, chuncks))
     for result in results:
@@ -2568,6 +2571,177 @@ def process_text_map(text_map,removed_segments,segmentation_config):
         new_text_map[p].extend(text_wo_d)
 
     return new_text_map
+
+def get_segment_blocks(segment: DSegment, rect, M, N):
+    """
+    计算给定线段在矩形框划分的 MxN 网格中占据的块。
+    
+    参数:
+        segment: DSegment 实例，线段。
+        rect: (rect_x_min, rect_x_max, rect_y_min, rect_y_max)，矩形框范围。
+        M: 列数（块的宽方向划分）。
+        N: 行数（块的高方向划分）。
+    
+    返回:
+        set: 占据的块索引集合，形式为 (row, col)。
+    """
+    rect_x_min, rect_x_max, rect_y_min, rect_y_max = rect
+    cell_width = (rect_x_max - rect_x_min) / M
+    cell_height = (rect_y_max - rect_y_min) / N
+
+    # 获取线段的起点和终点
+    x0, y0 = segment.start_point.x, segment.start_point.y
+    x1, y1 = segment.end_point.x, segment.end_point.y
+
+    # 计算步长比例
+    dx = abs(x1 - x0)
+    dy = abs(y1 - y0)
+
+    # 按网格调整步长
+    sx = cell_width if x0 < x1 else -cell_width
+    sy = cell_height if y0 < y1 else -cell_height
+    sx=sx/4
+    sy=sy/4
+    # 初始化误差项（考虑网格尺寸）
+    err = dx / cell_width - dy / cell_height
+
+    # 存储占据的块索引
+    grids = set()
+    final_col_index = int((x1 - rect_x_min) / cell_width)
+    final_row_index = int((y1 - rect_y_min) / cell_height)
+    while True:
+        # 计算当前点所属的块索引
+        col_index = int((x0 - rect_x_min) / cell_width)
+        row_index = int((y0 - rect_y_min) / cell_height)
+
+        # 确保索引在范围内
+        if 0 <= col_index < M and 0 <= row_index < N:
+            # print(x0,y0,x1,y1,dx,dy)
+            # print((x0-rect_x_min)/cell_width,(y0-rect_y_min)/cell_height)
+            # print(col_index,row_index,final_col_index,final_row_index)
+            grids.add((row_index, col_index))
+        else:
+            #assert(1==2)
+            grids.add((final_row_index, final_col_index))
+            break
+        # 终止条件
+        
+        if col_index == final_col_index and row_index == final_row_index:
+            break
+        if col_index==final_col_index:
+            if row_index==final_row_index+1 or row_index==final_row_index-1:
+                grids.add((row_index, col_index))
+                grids.add((final_row_index, final_col_index))
+                break
+        if row_index == final_row_index:
+            if col_index==final_col_index+1 or col_index==final_col_index-1:
+                grids.add((row_index, col_index))
+                grids.add((final_row_index, final_col_index))
+                break
+        # 更新误差项和当前点
+        e2 = 2 * err
+        if e2 > -dy / cell_height:
+            err -= dy / cell_height
+            x0 += sx
+        if e2 < dx / cell_width:
+            err += dx / cell_width
+            y0 += sy
+
+    return grids
+
+
+def segments_in_blocks(segments,segmentation_config):
+    rect_x_min, rect_x_max, rect_y_min, rect_y_max=float("inf"),float("-inf"),float("inf"),float("-inf")
+    M,N=segmentation_config.M,segmentation_config.N
+    for s in segments:
+        vs,ve=s.start_point,s.end_point
+        rect_x_min=min(vs.x,ve.x,rect_x_min)
+        rect_x_max=max(vs.x,ve.x,rect_x_max)
+        rect_y_min=min(vs.y,ve.y,rect_y_min)
+        rect_y_max=max(vs.y,ve.y,rect_y_max)
+    rect_x_min-=segmentation_config.x_padding
+    rect_x_max+=segmentation_config.x_padding
+    rect_y_min-=segmentation_config.y_padding
+    rect_y_max+=segmentation_config.y_padding
+    rect=(rect_x_min, rect_x_max, rect_y_min, rect_y_max)
+    #print(rect)
+    grid=[]
+    for i in range(M):
+        row=[]
+        for j in range(N):
+            col=[]
+            row.append(col)
+        grid.append(row)
+    pbar=tqdm(total=len(segments),desc="test")
+    for s in segments:
+        pbar.update()
+        block_idxs=get_segment_blocks(s,rect,M,N)
+        for idx in block_idxs:
+            i,j=idx
+            grid[i][j].append(s)
+    pbar.close()
+    return grid,(rect,M,N)
+
+
+def segments_near_poly(poly,grid,meta):
+    grid_set=set()
+    rect,M,N=meta
+    for s in poly:
+        g_set=get_segment_blocks(s,rect,M,N)
+        for g in g_set:
+            grid_set.add(g)
+    segments=[]
+    for g in grid_set:
+        i,j=g
+        segments.extend(grid[i][j])
+    return segments,list(grid_set)
+
+def visualize_grid_and_segment(segments, poly,rect, M, N, blocks):
+    """
+    Visualizes the grid and highlights the segment and occupied blocks.
+
+    Parameters:
+        segment: The DSegment instance to visualize.
+        rect: Tuple defining the rectangular area (x_min, x_max, y_min, y_max).
+        M: Number of columns in the grid.
+        N: Number of rows in the grid.
+        blocks: The set of occupied blocks as (row, col) indices.
+    """
+    rect_x_min, rect_x_max, rect_y_min, rect_y_max = rect
+    cell_width = (rect_x_max - rect_x_min) / M
+    cell_height = (rect_y_max - rect_y_min) / N
+
+    # Create the grid
+    fig, ax = plt.subplots(figsize=(10, 10))
+    for i in range(M + 1):
+        x = rect_x_min + i * cell_width
+        ax.plot([x, x], [rect_y_min, rect_y_max], color='black', linestyle='--', linewidth=0.5)
+    for j in range(N + 1):
+        y = rect_y_min + j * cell_height
+        ax.plot([rect_x_min, rect_x_max], [y, y], color='black', linestyle='--', linewidth=0.5)
+
+    # Highlight the occupied blocks
+    for row, col in blocks:
+        x = rect_x_min + col * cell_width
+        y = rect_y_min + row * cell_height
+        ax.add_patch(plt.Rectangle((x, y), cell_width, cell_height, color='blue', alpha=0.3))
+
+    # Plot the segment
+    for segment in segments:
+        x0, y0 = segment.start_point.x, segment.start_point.y
+        x1, y1 = segment.end_point.x, segment.end_point.y
+        ax.plot([x0, x1], [y0, y1], color='green', linewidth=2)
+    for segment in poly:
+        x0, y0 = segment.start_point.x, segment.start_point.y
+        x1, y1 = segment.end_point.x, segment.end_point.y
+        ax.plot([x0, x1], [y0, y1], color='red', linewidth=2)
+    # Set axis limits and labels
+    ax.set_xlim(rect_x_min, rect_x_max)
+    ax.set_ylim(rect_y_min, rect_y_max)
+    ax.set_aspect('equal')
+    ax.set_title("Grid and Segment Visualization")
+    ax.legend()
+    plt.show()
 def findClosedPolys_via_BFS(elements,texts,dimensions,segments,segmentation_config):
     verbose=segmentation_config.verbose
     # Step 1: 计算交点
@@ -2811,3 +2985,5 @@ def processDimensions(dimensions):
             dim_pos=DPoint((d.defpoints[0].x+d.defpoints[3].x)/2,(d.defpoints[0].y+d.defpoints[3].y)/2)
             ds.append([d,dim_pos]) 
     return ds
+
+

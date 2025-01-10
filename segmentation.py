@@ -21,6 +21,14 @@ if __name__ == '__main__':
     #文件中线段元素的读取和根据颜色过滤
     elements,segments,ori_segments,stiffeners=readJson(json_path,segmentation_config)
    
+    grid,meta=segments_in_blocks(ori_segments,segmentation_config)
+    # for row in grid:
+    #     rows=[]
+    #     for col in row:
+    #         rows.append(len(col))
+    #     print(rows)
+
+
     texts ,dimensions=findAllTextsAndDimensions(elements)
     ori_dimensions=dimensions
     dimensions=processDimensions(dimensions)
@@ -50,7 +58,10 @@ if __name__ == '__main__':
         #     res=None
 
         #     print(e)
-        res = outputPolyInfo(poly, ori_segments, segmentation_config, point_map, i, star_pos_map, cornor_holes,texts,dimensions,text_map,stiffeners)
+        segments_nearby,blocks=segments_near_poly(poly,grid,meta)
+        # visualize_grid_and_segment(segments_nearby, poly,meta[0],meta[1],meta[2], blocks)
+        # print(len(segments_nearby))
+        res = outputPolyInfo(poly, segments_nearby, segmentation_config, point_map, i, star_pos_map, cornor_holes,texts,dimensions,text_map,stiffeners)
         pbar.update()
         if res is not None:
             # print(res)
