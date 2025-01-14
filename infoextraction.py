@@ -598,6 +598,11 @@ def outputPolyInfo(poly, segments, segmentation_config, point_map, index,star_po
     for i,segment in enumerate(poly_refs):
         d1,d2,d3=distances[i][0],distances[i][1],distances[i][2]
         s1,s2,s3=other_refs[i][0],other_refs[i][1],other_refs[i][2]
+        if s3 is not None:
+            if d1 is not None and abs(d1-d3)>1 :
+                s1=None
+            if d2 is not None and abs(d2-d3)>1:
+                s2=None
         if s1 is not None and s2 is not None and s3 is not None:
             # print(d1,d2,d3)
             # print(s1,s2,s3)
@@ -646,7 +651,15 @@ def outputPolyInfo(poly, segments, segmentation_config, point_map, index,star_po
                 poly_refs[i].isPart=True
                 segment.isConstraint = True
                 poly_refs[i].isConstraint = True
-            else:
+            elif l1<l2 *segmentation_config.contraint_factor*0.5 and is_inside==False and not isinstance(segment.ref,DArc) and l1<segmentation_config.constraint_min_length:
+                # print(l2)
+                others.add(other)
+                segment.isPart=True
+                poly_refs[i].isPart=True
+                segment.isConstraint = True
+                poly_refs[i].isConstraint = True
+            elif l1>=segmentation_config.free_edge_min_length:
+
                 # print(4)
                 if is_inside:
                     is_fb=True
@@ -753,13 +766,9 @@ def outputPolyInfo(poly, segments, segmentation_config, point_map, index,star_po
         # 处理自由边
         else:
             if current_type == 'free':  # 如果当前在合并自由边
-                if current_edge[-1].ref.color == segment.ref.color:  # 如果颜色相同
-                    current_edge.append(segment)  # 添加到当前边
-                else:
-                    # 保存当前合并边，并开始新的合并边
-                    free_edges.append(current_edge)
-                    edges.append(current_edge)
-                    current_edge = [segment]  # 开始新的合并边
+                
+                current_edge.append(segment)  # 添加到当前边
+                
             else:
                 # 保存上一个合并边
                 if current_edge:
@@ -836,8 +845,9 @@ def outputPolyInfo(poly, segments, segmentation_config, point_map, index,star_po
     # print("=============")
     # print(cornerhole_edges)
     if segmentation_config.mode=="dev":
-        plot_info_poly(poly_refs, os.path.join(segmentation_config.poly_info_dir, f'infopoly{index}.png'),tis,ds,sfs,others)
+        plot_info_poly(polygon,poly_refs, os.path.join(segmentation_config.poly_info_dir, f'infopoly{index}.png'),tis,ds,sfs,others)
     if len(free_edges) > 1:
+        print(free_edges)
         print(f"回路{index}超过两条自由边！")
         #return poly_refs
         return None
@@ -932,7 +942,7 @@ def outputPolyInfo(poly, segments, segmentation_config, point_map, index,star_po
         return None
 
     # step6: 绘制对边分类后的几何图像
-    plot_info_poly(poly_refs, os.path.join(segmentation_config.poly_info_dir, f'infopoly{index}.png'),tis,ds,sfs,others)
+    plot_info_poly(polygon,poly_refs, os.path.join(segmentation_config.poly_info_dir, f'infopoly{index}.png'),tis,ds,sfs,others)
 
     # step7: 输出几何中心和边界信息
     file_path = os.path.join(segmentation_config.poly_info_dir, f'info{index}.txt')
@@ -992,10 +1002,14 @@ def outputPolyInfo(poly, segments, segmentation_config, point_map, index,star_po
         t=t_t[0]
         pos=t_t[1]
         content=t.content
+        if t_t[2]["Type"] in ["B","FB","BK","FL"] and not point_is_inside(pos,polygon):
+            continue
+        if t_t[2]["Type"]=="None":
+            continue
         log_to_file(file_path,f"标注{i+1}:")
         log_to_file(file_path,f"位置: {pos}、内容: {content}、颜色: {t.color}、句柄: {t.handle}")
         log_to_file(file_path,str(t_t[2]))
-        log_to_file(file_path,t_t[3])
+        # log_to_file(file_path,t_t[3])
         k+=1
     for i,d_t in enumerate(ds):
         d=d_t[0]

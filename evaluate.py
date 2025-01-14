@@ -56,19 +56,23 @@ def calculate_total_covered_area(gt_poly, test_polys):
     """
     gt_polygon = Polygon(gt_poly)
     if not gt_polygon.is_valid:
+        print("gt invalid")
         return 0.0
 
     total_inter_area = 0.0
     for test_poly in test_polys:
         test_polygon = Polygon(test_poly)
         if not test_polygon.is_valid:
+            print("test invalid")
             continue
         # 累加交集面积
         inter_area = gt_polygon.intersection(test_polygon).area
         total_inter_area += inter_area
     # 计算总覆盖比例
     gt_area = gt_polygon.area
+    print(total_inter_area / gt_area)
     if gt_area > 0:
+
         return total_inter_area / gt_area
     else:
         return 0.0
@@ -118,8 +122,8 @@ def find_nearest_text(poly, texts, extra_range = 700):
     return nearest_text
 
 if __name__ == '__main__':
-    test_dxf_path = "./output/FR18-3_braket.dxf"
-    gt_dxf_path = "./gt/FR18-3gt.dxf"
+    test_dxf_path = "./output/Large8_braket.dxf"
+    gt_dxf_path = "./gt/Large8gt.dxf"
     test_bracket_layer = "Braket"
     gt_bracket_layer = "分段总段划分"
 
@@ -129,7 +133,7 @@ if __name__ == '__main__':
     # gt_bracket_layer = input("请输人工标记图纸中肘板标记所在图层名：")
 
     print("----------------测试开始---------------")
-    sys.stdout = io.StringIO()
+    # sys.stdout = io.StringIO()
 
     # 将两个dxf文件转为json
     dxf2json(os.path.dirname(test_dxf_path),os.path.basename(test_dxf_path),os.path.dirname(test_dxf_path))
@@ -160,7 +164,7 @@ if __name__ == '__main__':
         gt_polys.append(poly)
     
     # 评估肘板检出率
-    coverage_threshold = 0.5
+    coverage_threshold = 0.15
     detect_count = 0
     for gt_poly in gt_polys:
         if calculate_total_covered_area(gt_poly, test_polys) > coverage_threshold:
@@ -188,7 +192,7 @@ if __name__ == '__main__':
     classification_precision = successful_classifications / gt_total_with_labels if gt_total_with_labels > 0 else 1
 
     # 输出评估结果
-    sys.stdout = sys.__stdout__
+    # sys.stdout = sys.__stdout__
     print("----------------测试完毕---------------")
     print(f"肘板检出率: {detection_precison:.2f}")
     print(f"肘板分类正确率: {classification_precision:.2f}")

@@ -106,13 +106,14 @@ class DElement:
     def transform_point(self,point,meta):
         return self.coordinatesmap(point,meta.insert,meta.scales,meta.rotation)
 class DLine(DElement):  
-    def __init__(self, start_point: DPoint=DPoint(0,0), end_point: DPoint=DPoint(1,0),color=7,handle="",meta=None):  
+    def __init__(self, start_point: DPoint=DPoint(0,0), end_point: DPoint=DPoint(1,0), linetype="Continuous",color=7,handle="",meta=None):  
         super().__init__()
         self.start_point = start_point  
         self.end_point = end_point  
         self.color=color
         self.handle=handle
         self.meta=meta
+        self.linetype=linetype.upper()
         # self.computeCenterCoordinateAndWeight()
 
     def __repr__(self):  
@@ -134,7 +135,7 @@ class DLine(DElement):
         self.end_point=self.transform_point(self.end_point,self.meta)
 
 class DLwpolyline(DElement):  
-    def __init__(self, points: list[DPoint],color=7,isClosed=False,handle="",isLwPolyline=False,verticesType=[],ori_vertices=[],hasArc=False,meta=None):  
+    def __init__(self, points: list[DPoint], linetype="Continuous",color=7,isClosed=False,handle="",isLwPolyline=False,verticesType=[],ori_vertices=[],hasArc=False,meta=None):  
         super().__init__()
         self.points = points
         self.color=color  
@@ -145,6 +146,7 @@ class DLwpolyline(DElement):
         self.ori_vertices=ori_vertices
         self.hasArc=hasArc
         self.meta=meta
+        self.linetype=linetype.upper()
         # self.computeCenterCoordinateAndWeight()
   
   
@@ -191,7 +193,7 @@ class DLwpolyline(DElement):
 
 
 class DArc(DElement):  
-    def __init__(self, center: DPoint, radius: float, start_angle: float, end_angle: float,color=7,handle="",meta=None):  
+    def __init__(self, center: DPoint, radius: float, start_angle: float, end_angle: float,linetype="Continuous",color=7,handle="",meta=None):  
         super().__init__()
         self.center = center  
         self.radius = radius  
@@ -208,6 +210,7 @@ class DArc(DElement):
         self.start_point=DPoint(center[0]+radius*c1,center[1]+radius*s1)
         self.end_point=DPoint(center[0]+radius*c2,center[1]+radius*s2)
         self.meta=meta
+        self.linetype=linetype.upper()
   
     def __repr__(self):  
         return (f"Arc(center={self.center}, radius={self.radius}, "  
@@ -341,4 +344,243 @@ class DInsert:
     def mid_point(self):
         return DPoint((self.bound["x1"]+self.bound["x2"])*0.5,(self.bound["y1"]+self.bound["y2"])*0.5)
 
-  
+
+
+#accelerate structure
+
+class DBlock:
+    def __init__(self,segments, rect, M, N,min_cell_length,min_segments_num):
+        self.rect=rect
+        self.M=M
+        self.N=N
+        self.min_M=M
+        self.min_N=N
+        self.min_cell_length=min_cell_length
+        self.min_segments_num=min_segments_num
+        self.adapt_block()
+        self.initialize(segments,rect,self.M,self.N)
+    def clip_line(self,rect_x_min, rect_x_max, rect_y_min, rect_y_max, start_point, end_point):
+        """
+        裁剪线段使其位于包围盒内，如果线段在包围盒内，则返回裁剪后的起点和终点。
+        :param rect_x_min: 包围盒最小x坐标
+        :param rect_x_max: 包围盒最大x坐标
+        :param rect_y_min: 包围盒最小y坐标
+        :param rect_y_max: 包围盒最大y坐标
+        :param start_point: 线段起点 (x1, y1)
+        :param end_point: 线段终点 (x2, y2)
+        :return: (裁剪后的起点, 裁剪后的终点)，如果线段完全在包围盒外，返回None
+        """
+        x1, y1 = start_point.x,start_point.y
+        x2, y2 = end_point.x,end_point.y
+
+        dx = x2 - x1
+        dy = y2 - y1
+
+        p = [-dx, dx, -dy, dy]
+        q = [x1 - rect_x_min, rect_x_max - x1, y1 - rect_y_min, rect_y_max - y1]
+
+        t_min = 0
+        t_max = 1
+
+        for i in range(4):
+            if p[i] == 0:  # 线段平行于边界
+                if q[i] < 0:
+                    return None  # 完全在外部
+            else:
+                t = q[i] / p[i]
+                if p[i] < 0:
+                    t_min = max(t_min, t)  # 更新 t_min
+                else:
+                    t_max = min(t_max, t)  # 更新 t_max
+
+        if t_min > t_max:
+            return None  # 完全在外部
+
+        # 计算裁剪后的起点和终点
+        clipped_start = DPoint(x1 + t_min * dx, y1 + t_min * dy)
+        clipped_end = DPoint(x1 + t_max * dx, y1 + t_max * dy)
+
+        return clipped_start, clipped_end
+    def adapt_block(self):
+        rect_x_min, rect_x_max, rect_y_min, rect_y_max = self.rect
+        xx,yy=rect_x_max-rect_x_min,rect_y_max-rect_y_min
+        if xx< yy:
+            ratio=int(yy/xx)
+            self.N*=ratio
+        else:
+            ratio=int(xx/yy)
+            self.M*=ratio
+    def initialize(self,segments,rect,M,N):
+        rect_x_min, rect_x_max, rect_y_min, rect_y_max = rect
+        cell_width = (rect_x_max - rect_x_min) / M
+        cell_height = (rect_y_max - rect_y_min) / N
+        if cell_width<= self.min_cell_length or cell_height <=self.min_cell_length or len(segments)<=self.min_segments_num:
+            self.leaf=True
+            self.segments=segments
+        else:
+            self.leaf=False
+            self.sub_blocks=[]
+            grid=self.segments_in_blocks(segments)
+            
+            for i in range(N):
+                sub_row=[]
+                for j in range(M):
+                    x,y=rect_x_min+j*cell_width,rect_y_min+i*cell_height
+                    sub_row.append(DBlock(grid[i][j],(x-1,x+cell_width+1,y-1,y+cell_height+1),self.min_M,self.min_N,self.min_cell_length,self.min_segments_num))
+                self.sub_blocks.append(sub_row)    
+    def get_segment_blocks(self,segment,rect,M,N):
+        rect_x_min, rect_x_max, rect_y_min, rect_y_max = rect
+    
+        result=self.clip_line(rect_x_min+0.1, rect_x_max-0.1, rect_y_min+0.1, rect_y_max-0.1, segment.start_point, segment.end_point)
+        if result is None:
+            print(segment,rect,M,N)
+            clipped_start, clipped_end=segment.start_point,segment.end_point
+        else:
+            clipped_start, clipped_end=result
+        clipped_segment=DSegment(clipped_start,clipped_end)
+
+
+        cell_width = (rect_x_max - rect_x_min) / M
+        cell_height = (rect_y_max - rect_y_min) / N
+
+        # 获取线段的起点和终点
+        x0, y0 = clipped_segment.start_point.x, clipped_segment.start_point.y
+        x1, y1 = clipped_segment.end_point.x, clipped_segment.end_point.y
+
+        # 计算步长比例
+        dx = abs(x1 - x0)
+        dy = abs(y1 - y0)
+
+        # 按网格调整步长
+        sx = cell_width if x0 < x1 else -cell_width
+        sy = cell_height if y0 < y1 else -cell_height
+        sx=sx/4
+        sy=sy/4
+        # 初始化误差项（考虑网格尺寸）
+        err = dx / cell_width - dy / cell_height
+
+        # 存储占据的块索引
+        grids = set()
+        final_col_index = int((x1 - rect_x_min) / cell_width)
+        final_row_index = int((y1 - rect_y_min) / cell_height)
+        while True:
+            # 计算当前点所属的块索引
+            col_index = int((x0 - rect_x_min) / cell_width)
+            row_index = int((y0 - rect_y_min) / cell_height)
+
+            # 确保索引在范围内
+            if 0 <= col_index and col_index< M and 0 <= row_index  and row_index< N:
+                # print(x0,y0,x1,y1,dx,dy)
+                # print((x0-rect_x_min)/cell_width,(y0-rect_y_min)/cell_height)
+                # print(col_index,row_index,final_col_index,final_row_index)
+                grids.add((row_index, col_index))
+            else:
+                #assert(1==2)
+                if 0 <= final_col_index and   final_col_index< M and 0 <= final_row_index  and final_row_index< N:
+                    grids.add((final_row_index, final_col_index))
+                break
+            # 终止条件
+            
+            if col_index == final_col_index and row_index == final_row_index:
+                break
+            if col_index==final_col_index:
+                if row_index==final_row_index+1 or row_index==final_row_index-1:
+                    grids.add((row_index, col_index))
+                    if 0 <= final_col_index and   final_col_index< M and 0 <= final_row_index  and final_row_index< N:
+                        grids.add((final_row_index, final_col_index))
+                    break
+            if row_index == final_row_index:
+                if col_index==final_col_index+1 or col_index==final_col_index-1:
+                    grids.add((row_index, col_index))
+                    if 0 <= final_col_index and   final_col_index< M and 0 <= final_row_index  and final_row_index< N:
+                        grids.add((final_row_index, final_col_index))
+                    break
+            # 更新误差项和当前点
+            e2 = 2 * err
+            if e2 > -dy / cell_height:
+                err -= dy / cell_height
+                x0 += sx
+            if e2 < dx / cell_width:
+                err += dx / cell_width
+                y0 += sy
+
+        return grids
+    
+
+    def segments_in_blocks(self,segments):
+        M,N=self.M,self.N
+        rect=self.rect
+
+        grid=[]
+        for i in range(N):
+            row=[]
+            for j in range(M):
+                col=[]
+                row.append(col)
+            grid.append(row)
+        #pbar=tqdm(total=len(segments),desc="test")
+        for s in segments:
+            #pbar.update()
+            block_idxs=self.get_segment_blocks(s,rect,M,N)
+            for idx in block_idxs:
+                i,j=idx
+                grid[i][j].append(s)
+        #pbar.close()
+        return grid
+
+
+    def segments_near_segment(self,segment):
+        if self.leaf:
+            return self.segments
+        grid_set=set()
+        rect,M,N=self.rect,self.M,self.N
+        g_set=self.get_segment_blocks(segment,rect,M,N)
+        for g in g_set:
+            grid_set.add(g)
+        segments=set()
+        for g in grid_set:
+            i,j=g
+            sub_s=self.sub_blocks[i][j].segments_near_segment(segment)
+            for s in sub_s:
+                segments.add(s)
+        return list(segments)
+    def segments_near_poly(self,poly):
+        s_set=set()
+        
+        for s in poly:
+            vs,ve=s.start_point,s.end_point
+            l=s.length()
+            dx,dy=ve.x-vs.x,ve.y-vs.y
+            v=DPoint(dy/l*60,-dx/l*60)
+            vs1,vs2,ve1,ve2=DPoint(vs.x+v.x,vs.y+v.y),DPoint(vs.x-v.x,vs.y-v.y),DPoint(ve.x+v.x,ve.y+v.y),DPoint(ve.x-v.x,ve.y-v.y)
+            s1,s2=DSegment(vs1,ve1),DSegment(vs2,ve2)
+            ss=self.segments_near_segment(s)
+            ss1=self.segments_near_segment(s1)
+            ss2=self.segments_near_segment(s2)
+            for s in ss:
+                s_set.add(s)
+            for s in ss1:
+                s_set.add(s)
+            for s in ss2:
+                s_set.add(s)
+        return list(s_set)
+
+
+
+def build_initial_block(segments,segmentation_config):
+    rect_x_min, rect_x_max, rect_y_min, rect_y_max=float("inf"),float("-inf"),float("inf"),float("-inf")
+    M,N=segmentation_config.M,segmentation_config.N
+    for s in segments:
+        vs,ve=s.start_point,s.end_point
+        rect_x_min=min(vs.x,ve.x,rect_x_min)
+        rect_x_max=max(vs.x,ve.x,rect_x_max)
+        rect_y_min=min(vs.y,ve.y,rect_y_min)
+        rect_y_max=max(vs.y,ve.y,rect_y_max)
+    rect_x_min-=segmentation_config.x_padding
+    rect_x_max+=segmentation_config.x_padding
+    rect_y_min-=segmentation_config.y_padding
+    rect_y_max+=segmentation_config.y_padding
+    rect=(rect_x_min, rect_x_max, rect_y_min, rect_y_max)
+
+
+    return DBlock(segments,rect,M,N,segmentation_config.min_cell_length,segmentation_config.min_segments_num)

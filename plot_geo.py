@@ -2,6 +2,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 from element import *
 import os
+from shapely.geometry import Point, Polygon
 def p_minus(a,b):
     return DPoint(a.x-b.x,a.y-b.y)
 def p_add(a,b):
@@ -50,6 +51,9 @@ def coordinatesmap_(p:DPoint,insert,scales,rotation):
 def transform_point_(point,meta):
     return coordinatesmap_(point,meta.insert,meta.scales,meta.rotation)
 
+def point_is_inside(point,polygon):
+    point_=Point(point.x,point.y)
+    return polygon.contains(point_)
 #输出封闭多边形
 def plot_polys(point_map,segments,path):
     fig, ax = plt.subplots()
@@ -91,7 +95,7 @@ def expandFixedLengthGeo(segList,dist,both=True):
         new_seglist.append(DSegment(vs,ve,seg.ref))
     return new_seglist
 
-def plot_info_poly(segments, path,texts,dimensions,stifferners,others=[]):
+def plot_info_poly(polygon,segments, path,texts,dimensions,stifferners,others=[]):
     fig, ax = plt.subplots()
     t_map={}
     for segment in stifferners:
@@ -106,11 +110,15 @@ def plot_info_poly(segments, path,texts,dimensions,stifferners,others=[]):
         t=t_t[0]
         pos=t_t[1]
         content=t.content
+        if t_t[2]["Type"] in ["B","FB","BK","FL"] and not point_is_inside(pos,polygon):
+            continue
+        if t_t[2]["Type"]=="None":
+            continue
         if pos not in t_map:
             t_map[pos]=[]
-            t_map[pos].append([content,t_t[2],t_t[3]])
+            t_map[pos].append(content)
         else:
-            t_map[pos].append([content,t_t[2],t_t[3]])
+            t_map[pos].append(content)
     for pos,cs in t_map.items():
         ax.text(pos.x, pos.y, cs, fontsize=12, color='blue', rotation=0)
     for d_t in dimensions:
@@ -212,11 +220,26 @@ def plot_info_poly(segments, path,texts,dimensions,stifferners,others=[]):
             if segment.isPart:
                 color="#000000"
         if isinstance(segment.ref, DArc):
-            if segment.ref.end_angle < segment.ref.start_angle:
-                end_angle = segment.ref.end_angle + 360
-            else:
-                end_angle = segment.ref.end_angle
-            theta = np.linspace(np.radians(segment.ref.start_angle), np.radians(end_angle), 100)
+            # if segment.ref.end_angle < segment.ref.start_angle:
+            #     end_angle = segment.ref.end_angle + 360
+            # else:
+            #     end_angle = segment.ref.end_angle
+            # start_angle=segment.ref.start_angle
+            # if end_angle-start_angle>180.5:
+            end_angle,start_angle=segment.ref.end_angle ,segment.ref.start_angle
+            delta=end_angle-start_angle
+            while delta<0:
+                end_angle+=360
+                delta+=360
+            while delta>360:
+                end_angle-=360
+                delta-=360
+
+            if delta>180:
+                start_angle,end_angle=end_angle,start_angle
+                end_angle+=360
+
+            theta = np.linspace(np.radians(start_angle), np.radians(end_angle), 100)
             x_arc = segment.ref.center.x + segment.ref.radius * np.cos(theta)
             y_arc = segment.ref.center.y + segment.ref.radius * np.sin(theta)
             # p=transform_point_(DPoint(x_arc,y_arc),segment.ref.meta)
@@ -239,7 +262,7 @@ def outputRes(segments,point_map,polys,resPNGPath,drawIntersections=False,drawLi
         # print("============")
         # print(len(segments))
         # print("=============")
-        print(point_map[DPoint(458,414)])
+        # print(point_map[DPoint(458,414)])
         for p,ss in point_map.items():
             # print(len(ss))
             if len(ss)>1:

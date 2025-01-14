@@ -2,15 +2,12 @@ class SegmentationConfig:
     def __init__(self):
         self.verbose=True
         # self.mode="dev"
-        self.mode="pro"
+        self.mode="dev"
         self.bracket_layer=None
         self.json_path=""
         
         #grid setting
-        self.M=100
-        self.N=100
-        self.x_padding=100
-        self.y_padding=100
+      
 
 
         self.line_expand_length=14.5
@@ -21,7 +18,7 @@ class SegmentationConfig:
         self.draw_segments=True
         self.line_image_drawPolys=True
         self.draw_line_image = True
-        self.draw_texts=True
+        self.draw_texts=False
 
         self.draw_poly_nums=1000
         self.poly_image_dir="./output"
@@ -37,7 +34,7 @@ class SegmentationConfig:
         #包围盒
         self.bbox_min_area=5000
         self.bbox_max_area=1000*15000
-        self.bbox_ratio=4
+        self.bbox_ratio=6
 
 
         self.remove_tolerance=1e-5
@@ -100,7 +97,7 @@ class SegmentationConfig:
         self.parallel_min_distance_relax=5
         self.contraint_factor=0.96
         self.free_edge_min_length=130
-        self.constraint_min_length=50
+        self.constraint_min_length=52
 
         #bracket bounding box
         self.bracket_bbox_expand_length=50
@@ -114,7 +111,7 @@ class SegmentationConfig:
         #固定边平行判断
         self.is_parallel_tolerance=0.15
         #readJson
-        self.line_type=["BYLAYER", "Continuous","Bylayer","CONTINUOUS","ByBlock","BYBLOCK"]
+        self.line_type=["BYLAYER","CONTINUOUS","BYBLOCK"]
         self.color=[3, 7, 8, 4,2,140,254,1,5]
         self.constraint_color=[1,3]
         self.element_type=["line","arc","lwpolyline","polyline","spline"]
@@ -136,4 +133,12 @@ class SegmentationConfig:
         
         #约束边分割角度
         self.constraint_split_angle=30
+
+        #加速结构
+        self.min_cell_length=500
+        self.min_segments_num=50
+        self.M=2
+        self.N=2
+        self.x_padding=100
+        self.y_padding=100
         

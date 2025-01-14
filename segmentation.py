@@ -21,7 +21,8 @@ if __name__ == '__main__':
     #文件中线段元素的读取和根据颜色过滤
     elements,segments,ori_segments,stiffeners=readJson(json_path,segmentation_config)
    
-    grid,meta=segments_in_blocks(ori_segments,segmentation_config)
+    ori_block=build_initial_block(ori_segments,segmentation_config)
+    # grid,meta=segments_in_blocks(ori_segments,segmentation_config)
     # for row in grid:
     #     rows=[]
     #     for col in row:
@@ -58,7 +59,8 @@ if __name__ == '__main__':
         #     res=None
 
         #     print(e)
-        segments_nearby,blocks=segments_near_poly(poly,grid,meta)
+        # segments_nearby,blocks=segments_near_poly(poly,grid,meta)
+        segments_nearby=ori_block.segments_near_poly(poly)
         # visualize_grid_and_segment(segments_nearby, poly,meta[0],meta[1],meta[2], blocks)
         # print(len(segments_nearby))
         res = outputPolyInfo(poly, segments_nearby, segmentation_config, point_map, i, star_pos_map, cornor_holes,texts,dimensions,text_map,stiffeners)
@@ -70,7 +72,7 @@ if __name__ == '__main__':
     pbar.close()
     print("结构化信息输出完毕，保存于:", segmentation_config.poly_info_dir)
 
-    outputRes(new_segments, point_map, polys_info, segmentation_config.res_image_path,segmentation_config.draw_intersections,segmentation_config.draw_segments,segmentation_config.line_image_drawPolys)
+    outputRes(ori_segments, point_map, polys_info, segmentation_config.res_image_path,segmentation_config.draw_intersections,segmentation_config.draw_segments,segmentation_config.line_image_drawPolys)
 
     #将检测到的肘板标注在原本的dxf文件中
     bboxs = []
