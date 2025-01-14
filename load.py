@@ -977,7 +977,7 @@ def dxf2json(dxfpath,dxfname,output_folder):
 if __name__ == "__main__":
     
     dxfpath = './data'
-    dxfname = 'small3.dxf'
+    dxfname = 'ddd.dxf'
     dxf2json(dxfpath,dxfname, dxfpath)
     # folder_path = './data/text_data'
     # output_foler='./data/text_data'

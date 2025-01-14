@@ -427,7 +427,7 @@ def transform_segments(segments,scales,rotation,insert):
         new_segments.append(segment)
     return new_segments
 #json --> elements
-def process_block(T_is_contained,block_datas,blockName,scales,rotation,insert,attribs,bound,block_elements,segmentation_config):
+def process_block(T_is_contained,block_datas,blockName,scales,rotation,insert,block_linetype,attribs,bound,block_elements,segmentation_config):
     print(f"正在处理块:{blockName}")
     # if blockName!="L125X75X7" or insert[1]>-36900:
     #     return [],[],[]
@@ -460,11 +460,13 @@ def process_block(T_is_contained,block_datas,blockName,scales,rotation,insert,at
             continue
         if ele["type"]=="line":
            
-           
+            ele_linetype=ele["linetype"].upper()
+            if ele_linetype =="BYBLOCK":
+                ele_linetype=block_linetype.upper()
             
             if ele.get("layerName") is not None and ele["layerName"] in layname:
                 if ele["layerName"] in segmentation_config.stiffener_name:
-                    e=DLine(DPoint(ele["start"][0],ele["start"][1]),DPoint(ele["end"][0],ele["end"][1]),ele["linetype"],ele["color"],ele["handle"],meta=block_meta_data)
+                    e=DLine(DPoint(ele["start"][0],ele["start"][1]),DPoint(ele["end"][0],ele["end"][1]),ele_linetype,ele["color"],ele["handle"],meta=block_meta_data)
                     stiffeners.append(DSegment(e.start_point,e.end_point,e))
                 if ele["layerName"] in segmentation_config.remove_layername:
                     continue
@@ -474,18 +476,19 @@ def process_block(T_is_contained,block_datas,blockName,scales,rotation,insert,at
             # 颜色过滤
             # if ele["color"] not in color:
             #     continue
-            e=DLine(DPoint(ele["start"][0],ele["start"][1]),DPoint(ele["end"][0],ele["end"][1]),ele["linetype"],ele["color"],ele["handle"],meta=block_meta_data)
-    
+            e=DLine(DPoint(ele["start"][0],ele["start"][1]),DPoint(ele["end"][0],ele["end"][1]),ele_linetype,ele["color"],ele["handle"],meta=block_meta_data)
             elements.append(e)
             segments.append(DSegment(e.start_point,e.end_point,e))
         elif ele["type"] == "arc":
             # 颜色过滤
             # if ele["color"] not in color:
             #     continue
-            
+            ele_linetype=ele["linetype"].upper()
+            if ele_linetype =="BYBLOCK":
+                ele_linetype=block_linetype.upper()
             if ele.get("layerName") is not None and ele["layerName"] in layname:
                 if ele["layerName"] in segmentation_config.stiffener_name:
-                    e = DArc(DPoint(ele["center"][0], ele["center"][1]), ele["radius"], ele["startAngle"], ele["endAngle"],ele["linetype"],ele["color"],ele["handle"],meta=block_meta_data)
+                    e = DArc(DPoint(ele["center"][0], ele["center"][1]), ele["radius"], ele["startAngle"], ele["endAngle"],ele_linetype,ele["color"],ele["handle"],meta=block_meta_data)
                     stiffeners.append(DSegment(e.start_point,e.end_point,e))
                 if ele["layerName"] in segmentation_config.remove_layername:
                     continue
@@ -493,7 +496,8 @@ def process_block(T_is_contained,block_datas,blockName,scales,rotation,insert,at
             # if ele.get("linetype") is not None and ele["linetype"] in linetype:
             #     continue
             # 创建DArc对象
-            e = DArc(DPoint(ele["center"][0], ele["center"][1]), ele["radius"], ele["startAngle"], ele["endAngle"],ele["linetype"],ele["color"],ele["handle"],meta=block_meta_data)
+            e = DArc(DPoint(ele["center"][0], ele["center"][1]), ele["radius"], ele["startAngle"], ele["endAngle"],ele_linetype,ele["color"],ele["handle"],meta=block_meta_data)
+
             elements.append(e)
             arcs.append(e)
             continue
@@ -514,17 +518,19 @@ def process_block(T_is_contained,block_datas,blockName,scales,rotation,insert,at
             # Apply line simplification
             simplified_ps = rdp(ps, epsilon=5.0)  # Adjust epsilon for simplification level
 
-
+            ele_linetype=ele["linetype"].upper()
+            if ele_linetype =="BYBLOCK":
+                ele_linetype=block_linetype.upper()
             if ele.get("layerName") is not None and ele["layerName"] in layname:
                 if ele["layerName"] in segmentation_config.stiffener_name:
-                    e = DLwpolyline(simplified_ps,ele["linetype"], ele["color"], False,ele["handle"],meta=block_meta_data)
+                    e = DLwpolyline(simplified_ps,ele_linetype, ele["color"], False,ele["handle"],meta=block_meta_data)
                     for i in range(l - 1):
                     # if simplified_ps[i].y>-48500 or simplified_ps[i+1].y>-48500:
                         stiffeners.append(DSegment(simplified_ps[i], simplified_ps[i + 1], e))
                 if ele["layerName"] in segmentation_config.remove_layername:
                     continue
 
-            e = DLwpolyline(simplified_ps,ele["linetype"], ele["color"], False,ele["handle"],meta=block_meta_data)
+            e = DLwpolyline(simplified_ps,ele_linetype, ele["color"], False,ele["handle"],meta=block_meta_data)
             elements.append(e)
             l = len(simplified_ps)
             for i in range(l - 1):
@@ -542,7 +548,10 @@ def process_block(T_is_contained,block_datas,blockName,scales,rotation,insert,at
             #     continue
             vs = ele["vertices"]
             vs_type=ele["verticesType"]
-            lwe,lwa,lws=process_lwpoline(vs,vs_type,ele["color"],ele["handle"],block_meta_data,ele["isClosed"],ele["hasArc"],ele["linetype"])
+            ele_linetype=ele["linetype"].upper()
+            if ele_linetype =="BYBLOCK":
+                ele_linetype=block_linetype.upper()
+            lwe,lwa,lws=process_lwpoline(vs,vs_type,ele["color"],ele["handle"],block_meta_data,ele["isClosed"],ele["hasArc"],ele_linetype)
             if ele.get("layerName") is not None and ele["layerName"] in layname:
                 if ele["layerName"] in segmentation_config.stiffener_name:
                     
@@ -590,12 +599,14 @@ def process_block(T_is_contained,block_datas,blockName,scales,rotation,insert,at
             # Apply line simplification
             simplified_ps = rdp(ps, epsilon=5.0)  # Adjust epsilon for simplification level
             #print(simplified_ps)
-
+            ele_linetype=ele["linetype"].upper()
+            if ele_linetype =="BYBLOCK":
+                ele_linetype=block_linetype.upper()
 
             if ele.get("layerName") is not None and ele["layerName"] in layname:
                 if ele["layerName"] in segmentation_config.stiffener_name:
                     
-                    e = DLwpolyline(simplified_ps,ele["linetype"], ele["color"], ele["isClosed"],ele["handle"],meta=block_meta_data)
+                    e = DLwpolyline(simplified_ps,ele_linetype, ele["color"], ele["isClosed"],ele["handle"],meta=block_meta_data)
                     l = len(simplified_ps)
                     for i in range(l - 1):
                         # if simplified_ps[i].y>-48500 or simplified_ps[i+1].y>-48500:
@@ -605,7 +616,7 @@ def process_block(T_is_contained,block_datas,blockName,scales,rotation,insert,at
                         stiffeners.append(DSegment(simplified_ps[-1], simplified_ps[0], e))
                 if ele["layerName"] in segmentation_config.remove_layername:
                     continue
-            e = DLwpolyline(simplified_ps,ele["linetype"], ele["color"], ele["isClosed"],ele["handle"],meta=block_meta_data)
+            e = DLwpolyline(simplified_ps,ele_linetype, ele["color"], ele["isClosed"],ele["handle"],meta=block_meta_data)
             elements.append(e)
             l = len(simplified_ps)
             for i in range(l - 1):
@@ -628,13 +639,16 @@ def process_block(T_is_contained,block_datas,blockName,scales,rotation,insert,at
                 sub_attribs=ele['attribs']
                 sub_block_data=block_datas[sub_blockName]
                 sub_bound=ele["bound"]
+                ele_linetype=ele["linetype"].upper() if ele.get("linetype") is not None else "CONTINUOUS"
+                if ele_linetype =="BYBLOCK":
+                    ele_linetype=block_linetype.upper()
                 #pre-check
                 sub_T_is_contained=False
                 for sube in sub_block_data:
                     if sube.get("layerName") is not None and sube["layerName"]=="T":
                         sub_T_is_contained=True
                         break
-                sub_elements,sub_segments,sub_arc_splits,sub_ori_segments,sub_stiffeners=process_block(sub_T_is_contained,block_datas,sub_blockName,sub_scales,sub_rotation,sub_insert,sub_attribs,sub_bound,sub_block_data,segmentation_config)
+                sub_elements,sub_segments,sub_arc_splits,sub_ori_segments,sub_stiffeners=process_block(sub_T_is_contained,block_datas,sub_blockName,sub_scales,sub_rotation,sub_insert,ele_linetype,sub_attribs,sub_bound,sub_block_data,segmentation_config)
                 for sube in sub_elements:
                     sube.meta=block_meta_data
                 elements.extend(sub_elements)
@@ -642,7 +656,7 @@ def process_block(T_is_contained,block_datas,blockName,scales,rotation,insert,at
                 arc_splits.extend(sub_arc_splits)
                 ori_segments.extend(sub_ori_segments)
                 stiffeners.extend(sub_stiffeners)
-        elif ele["type"]=="text" and blockName=="TOP":
+        elif ele["type"]=="text":
                 if ele.get("layerName") is not None and ele["layerName"] in layname:
                     continue
                 # 虚线过滤
@@ -650,7 +664,7 @@ def process_block(T_is_contained,block_datas,blockName,scales,rotation,insert,at
                 #     continue
                 e=DText(ele["bound"],ele["insert"], ele["color"],ele["content"].strip(),ele["height"],ele["handle"],meta=block_meta_data)
                 elements.append(e)
-        elif  ele["type"]=="mtext" and blockName=="TOP":
+        elif  ele["type"]=="mtext":
             if ele.get("layerName") is not None and ele["layerName"] in layname:
                     continue
             # 虚线过滤
@@ -660,7 +674,7 @@ def process_block(T_is_contained,block_datas,blockName,scales,rotation,insert,at
             cleaned_string = re.sub(r"^\\A1;", "", string)
             e=DText(ele["bound"],ele["insert"], ele["color"],cleaned_string,ele["width"],ele["handle"],meta=block_meta_data,is_mtext=True)
             elements.append(e)
-        elif ele["type"]=="dimension" and blockName=="TOP":
+        elif ele["type"]=="dimension":
             if ele.get("layerName") is not None and ele["layerName"] in layname:
                 continue
             # 虚线过滤
@@ -730,7 +744,7 @@ def readJson(path,segmentation_config):
         with open(path, 'r', encoding='utf-8') as file:  
             data_list = json.load(file)
         block_datas=data_list[1]
-        elements,segments,arc_splits,ori_segments,stiffeners=process_block(False,block_datas,"TOP",[1.0,1.0],0,[0,0],[],None,data_list[0],segmentation_config)
+        elements,segments,arc_splits,ori_segments,stiffeners=process_block(False,block_datas,"TOP",[1.0,1.0],0,[0,0],"CONTINUOUS",[],None,data_list[0],segmentation_config)
         new_segments=[]
         new_arc_splits=[]
 
@@ -2357,7 +2371,7 @@ def outputLines(segmentation_config,segments,point_map,polys,cornor_holes,star_p
     if segmentation_config.draw_texts:
         for p,t in text_map.items():
             plt.plot(p.x, p.y, 'g.')
-            plt.text(p.x, p.y, [(tt[0].content,tt[1]["Type"],tt[2]) for tt in t], fontsize=10)
+            plt.text(p.x, p.y, [tt[0].content for tt in t], fontsize=10)
         for d_t in dimensions:
             p=d_t[1]
             d=d_t[0]
@@ -3083,7 +3097,7 @@ def findClosedPolys_via_BFS(elements,texts,dimensions,segments,segmentation_conf
     if verbose:
         print(f"封闭多边形个数:{len(polys)}")
     #outputPolysAndGeometry(filtered_point_map,polys,segmentation_config.poly_image_dir,segmentation_config.draw_polys,segmentation_config.draw_geometry,segmentation_config.draw_poly_nums)
-    if segmentation_config.draw_line_image:
+    if segmentation_config.draw_line_image and segmentation_config.mode=="dev":
         outputLines(segmentation_config,filtered_segments,filtered_point_map,closed_polys,cornor_holes,star_pos ,texts,text_map,dimensions,replines,segmentation_config.line_image_path,segmentation_config.draw_intersections,segmentation_config.draw_segments,segmentation_config.line_image_drawPolys,)
     
     return polys, new_segments, point_map,star_pos_map,cornor_holes,text_map

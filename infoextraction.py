@@ -847,7 +847,6 @@ def outputPolyInfo(poly, segments, segmentation_config, point_map, index,star_po
     if segmentation_config.mode=="dev":
         plot_info_poly(polygon,poly_refs, os.path.join(segmentation_config.poly_info_dir, f'infopoly{index}.png'),tis,ds,sfs,others)
     if len(free_edges) > 1:
-        print(free_edges)
         print(f"回路{index}超过两条自由边！")
         #return poly_refs
         return None

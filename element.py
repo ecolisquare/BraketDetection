@@ -256,10 +256,10 @@ class DArc(DElement):
   
 
 class DText(DElement):  
-    def __init__(self,bound,insert: DPoint=DPoint(0,0),color=7,content="",height=100,handle="",meta=None,is_mtext=False):  
+    def __init__(self,bound,insert=[0,0],color=7,content="",height=100,handle="",meta=None,is_mtext=False):  
         super().__init__()
         self.bound=bound
-        self.insert=insert
+        self.insert=DPoint(insert[0],insert[1])
         
         self.color=color
         self.content=content.strip()
@@ -269,10 +269,8 @@ class DText(DElement):
         self.meta=meta
         self.is_mtext=is_mtext
         if is_mtext:
-            self.bound["x1"]=self.insert[0]
-            self.bound["x2"]=self.insert[0]
-            self.bound["y1"]=self.insert[1]
-            self.bound["y2"]=self.insert[1]
+            new_bound={"x1":self.insert.x,"x2":self.insert.x,"y1":self.insert.y,"y2":self.insert.y}
+            self.bound=new_bound
   
     def __repr__(self):  
         return f"Text({self.insert}, color:{self.color},content:{self.content},height:{self.height},handle:{self.handle})"  
@@ -285,21 +283,28 @@ class DText(DElement):
         return hash((self.content,self.height,self.handle))
     def transform(self):
         self.insert=self.transform_point(self.insert,self.meta)
-        self.height=math.fabs(self.meta.scales[0])
+        self.height=math.fabs(self.meta.scales[0])*self.height
         if self.is_mtext:
-            self.bound["x1"]=self.insert[0]
-            self.bound["x2"]=self.insert[0]
-            self.bound["y1"]=self.insert[1]
-            self.bound["y2"]=self.insert[1]
+            new_bound={"x1":self.insert.x,"x2":self.insert.x,"y1":self.insert.y,"y2":self.insert.y}
+            self.bound=new_bound
         else:
-            lb=DPoint(self.bound["x1"],self.bound["y1"])
-            rt=DPoint(self.bound["x2"],self.bound["y2"])
+            x1,x2,y1,y2=self.bound["x1"],self.bound["x2"],self.bound["y1"],self.bound["y2"]
+            lb=DPoint(x1,y1)
+            lt=DPoint(x1,y2)
+            rt=DPoint(x2,y2)
+            rb=DPoint(x2,y1)
             lb=self.transform_point(lb,self.meta)
+            lt=self.transform_point(lt,self.meta)
             rt=self.transform_point(rt,self.meta)
-            self.bound["x1"]=lb.x
-            self.bound["x2"]=rt.x
-            self.bound["y1"]=lb.y
-            self.bound["y2"]=rt.y
+            rb=self.transform_point(rb,self.meta)
+
+            x_min,x_max,y_min,y_max=float("inf"),float("-inf"),float("inf"),float("-inf")
+            x_min=min(lb.x,lt.x,rb.x,rt.x,x_min)
+            x_max=max(lb.x,lt.x,rb.x,rt.x,x_max)
+            y_min=min(lb.y,lt.y,rb.y,rt.y,y_min)
+            y_max=max(lb.y,lt.y,rb.y,rt.y,y_max)
+            new_bound={"x1":x_min,"x2":x_max,"y1":y_min,"y2":y_max}
+            self.bound=new_bound
 
 class DDimension(DElement):
     def __init__(self,textpos: DPoint=DPoint(0,0),color=7,text="",measurement=100,defpoints=[],dimtype=32,handle="",meta=None):  
@@ -325,7 +330,9 @@ class DDimension(DElement):
         return f"Dimension(pos:{self.textpos}, text:{self.text},color:{self.color},measurement:{self.measurement},defpoints:{self.defpoints},dimtype:{self.dimtype},handle:{self.handle})"  
 
     def transform(self):
-        pass
+        self.textpos=self.transform_point(self.textpos,self.meta)
+        for i in range(len(self.defpoints)):
+            self.defpoints[i]=self.transform_point(self.defpoints[i],self.meta)
 class DCornorHole:
     cornor_hole_id=0
     def __init__(self,segments=[]):

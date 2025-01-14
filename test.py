@@ -119,8 +119,8 @@ def process_json_data(json_path, output_path, training_data_output_folder, train
             classi_res.append(res[1])
 
     print("结构化信息输出完毕，保存于:", segmentation_config.poly_info_dir)
-
-    outputRes(stiffeners, point_map, polys_info, segmentation_config.res_image_path,segmentation_config.draw_intersections,segmentation_config.draw_segments,segmentation_config.line_image_drawPolys)
+    if segmentation_config.mode=="dev":
+        outputRes(stiffeners, point_map, polys_info, segmentation_config.res_image_path,segmentation_config.draw_intersections,segmentation_config.draw_segments,segmentation_config.line_image_drawPolys)
 
     #将检测到的肘板标注在原本的dxf文件中
     bboxs = []

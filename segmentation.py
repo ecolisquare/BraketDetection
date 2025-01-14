@@ -31,6 +31,7 @@ if __name__ == '__main__':
 
 
     texts ,dimensions=findAllTextsAndDimensions(elements)
+    
     ori_dimensions=dimensions
     dimensions=processDimensions(dimensions)
     texts=processTexts(texts)
@@ -71,8 +72,8 @@ if __name__ == '__main__':
             classi_res.append(res[1])
     pbar.close()
     print("结构化信息输出完毕，保存于:", segmentation_config.poly_info_dir)
-
-    outputRes(ori_segments, point_map, polys_info, segmentation_config.res_image_path,segmentation_config.draw_intersections,segmentation_config.draw_segments,segmentation_config.line_image_drawPolys)
+    if segmentation_config.mode=="dev":
+        outputRes(ori_segments, point_map, polys_info, segmentation_config.res_image_path,segmentation_config.draw_intersections,segmentation_config.draw_segments,segmentation_config.line_image_drawPolys)
 
     #将检测到的肘板标注在原本的dxf文件中
     bboxs = []

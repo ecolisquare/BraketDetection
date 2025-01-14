@@ -70,7 +70,7 @@ def calculate_total_covered_area(gt_poly, test_polys):
         total_inter_area += inter_area
     # 计算总覆盖比例
     gt_area = gt_polygon.area
-    print(total_inter_area / gt_area)
+    # print(total_inter_area / gt_area)
     if gt_area > 0:
 
         return total_inter_area / gt_area
@@ -133,7 +133,7 @@ if __name__ == '__main__':
     # gt_bracket_layer = input("请输人工标记图纸中肘板标记所在图层名：")
 
     print("----------------测试开始---------------")
-    # sys.stdout = io.StringIO()
+    sys.stdout = io.StringIO()
 
     # 将两个dxf文件转为json
     dxf2json(os.path.dirname(test_dxf_path),os.path.basename(test_dxf_path),os.path.dirname(test_dxf_path))
@@ -192,7 +192,7 @@ if __name__ == '__main__':
     classification_precision = successful_classifications / gt_total_with_labels if gt_total_with_labels > 0 else 1
 
     # 输出评估结果
-    # sys.stdout = sys.__stdout__
+    sys.stdout = sys.__stdout__
     print("----------------测试完毕---------------")
     print(f"肘板检出率: {detection_precison:.2f}")
     print(f"肘板分类正确率: {classification_precision:.2f}")
