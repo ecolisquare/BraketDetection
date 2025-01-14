@@ -2,8 +2,8 @@
   "type_1": {
     "free_edges": ["line", "line"],
     "non_free_edges": [
-      {"type": "constraint", "edges": [["line", "arc"]]},
-      {"type": "cornerhole", "edges": ["arc"]},
+      {"type": "constraint", "edges": ["line"]},
+      {"type": "cornerhole", "edges": [["arc", "line"]]},
       {"type": "constraint", "edges": ["line"]},
       {"type": "constraint", "edges": ["line"]}
     ]

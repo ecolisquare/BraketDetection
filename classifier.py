@@ -114,7 +114,7 @@ def conerhole_free_classifier(classification_table, conerhole_num, free_edges_se
     reversed_non_conerhole_edges = []
     conerhole_count = {}
     unrestricted_cornerhole_count = {}
-    unrestricted_cornerhole_type = ["line", "arc"]
+    unrestricted_cornerhole_type = [["line"], ["arc"]]
     unrestricted_cornerhole_num = 0
     # 去掉非自由边轮廓中的角隅孔，只保留固定边
     for i in range(len(edges_sequence)):
