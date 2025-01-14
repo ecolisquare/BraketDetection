@@ -1033,7 +1033,7 @@ def outputPolyInfo(poly, segments, segmentation_config, point_map, index,star_po
     classification_res = poly_classifier(poly_refs, cornerhole_index - 1, free_edges, edges, 
                                          segmentation_config.type_path, segmentation_config.json_output_path, 
                                          f"{os.path.splitext(os.path.basename(segmentation_config.json_path))[0]}_infopoly{index}",
-                                         is_output_json=True)
+                                         is_output_json=False)
     
     log_to_file(file_path, f"肘板类别为{classification_res}")
     if classification_res == "Unclassified":
