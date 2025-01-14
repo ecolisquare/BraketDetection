@@ -117,6 +117,13 @@ def process_json_data(json_path, output_path):
         bbox = [[min_x, min_y], [max_x, max_y]]
         bboxs.append(bbox)
     
+    try:
+        dxf_path = os.path.splitext(segmentation_config.json_path)[0] + '.dxf'
+        dxf_output_folder = segmentation_config.dxf_output_folder
+        draw_rectangle_in_dxf(dxf_path, dxf_output_folder, bboxs, classi_res)
+    except Exception as e:
+        print("子图dxf生成错误:", e)
+    
     return bboxs, classi_res
 
 
