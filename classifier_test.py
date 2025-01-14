@@ -31,7 +31,7 @@ def poly_classifier(classification_file_path, polygons_file_path, output_file_pa
 
     # Iterate over each polygon and classify
     for keyname, polygon_data in polygons.items():
-        cornerhole_num = polygon_data["cornerhole_num"]
+        cornerhole_num = 0
         free_edges_sequence = polygon_data["free_edges_sequence"]
         reversed_free_edges_sequence = free_edges_sequence[::-1]
         edges_sequence = polygon_data["non_free_edges_sequence"]
@@ -70,5 +70,5 @@ def poly_classifier(classification_file_path, polygons_file_path, output_file_pa
 if __name__ == '__main__':
     classification_file_path = "./type.json"
     polygons_file_path = "./output/bracket.json"
-    output_file_path = "./output/classifier_res1.txt"
-    poly_classifier(classification_file_path, polygons_file_path, output_file_path, strategy="unrestricted")
+    output_file_path = "./output/classifier_res.txt"
+    poly_classifier(classification_file_path, polygons_file_path, output_file_path, strategy="conerhole_free")

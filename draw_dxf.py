@@ -78,8 +78,9 @@ def draw_rectangle_in_dxf(file_path, folder, bbox_list, classi_res):
         msp.add_lwpolyline(rectangle_points, close=True, dxfattribs={"layer": "Braket"})
 
         # 添加文本
-        text = msp.add_text(classification, dxfattribs={"layer": "Braket", "height": 50})
-        text.dxf.insert = ((x1 + x2) / 2, y2)
+        if classification != "Unclassified":
+            text = msp.add_text(classification, dxfattribs={"layer": "Braket", "height": 50})
+            text.dxf.insert = ((x1 + x2) / 2, y2)
 
     # 保存修改后的 DXF 文件
     file_name = os.path.basename(file_path)[:-4]

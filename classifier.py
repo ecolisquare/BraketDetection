@@ -102,13 +102,20 @@ def unrestricted_classifier(classification_table, conerhole_num, free_edges_sequ
 
 def generate_key(edge):
     # Generate a key that considers both original and reversed order
-    return min(tuple(edge), tuple(reversed(edge)))
+    if isinstance(edge[0], list):
+        new_edge = edge[0]
+    else:
+        new_edge = edge
+    return min(tuple(new_edge), tuple(reversed(new_edge)))
 
 def conerhole_free_classifier(classification_table, conerhole_num, free_edges_sequence, reversed_free_edges_sequence, edges_sequence, reversed_edges_sequence):
     matched_type = None
     non_conerhole_edges = []
     reversed_non_conerhole_edges = []
     conerhole_count = {}
+    unrestricted_cornerhole_count = {}
+    unrestricted_cornerhole_type = [["line"], ["arc"]]
+    unrestricted_cornerhole_num = 0
     # 去掉非自由边轮廓中的角隅孔，只保留固定边
     for i in range(len(edges_sequence)):
         if(edges_sequence[i][0] != "cornerhole"):
@@ -117,8 +124,14 @@ def conerhole_free_classifier(classification_table, conerhole_num, free_edges_se
         else:
             key = generate_key(edges_sequence[i][1])
             conerhole_count[key] = conerhole_count.get(key, 0) + 1
+            if edges_sequence[i][1] not in unrestricted_cornerhole_type:
+                unrestricted_cornerhole_count[key] = unrestricted_cornerhole_count.get(key, 0) + 1
+            else:
+                unrestricted_cornerhole_num += 1
         if(reversed_edges_sequence[i][0] != "conerhole"):
             reversed_non_conerhole_edges.append(reversed_edges_sequence[i][1])
+
+    # 考虑趾端和角隅孔各类型数量的严格匹配
     for key_name, row in classification_table.items():
         # step1: 自由边轮廓严格匹配
         if row["free_edges"] != free_edges_sequence and row["free_edges"] != reversed_free_edges_sequence:
@@ -143,6 +156,111 @@ def conerhole_free_classifier(classification_table, conerhole_num, free_edges_se
             continue
 
         matched_type = key_name if matched_type is None else f"{matched_type}, {key_name}"
+    
+    # 参考趾端和角隅孔各类型数量的不严格匹配
+    if matched_type is None:
+        for key_name, row in classification_table.items():
+            # step1: 自由边轮廓严格匹配
+            if row["free_edges"] != free_edges_sequence and row["free_edges"] != reversed_free_edges_sequence:
+                continue
+
+            # step2: 非自由边轮廓去除角隅孔后严格匹配
+            temp_sequence = []
+            temp_conerhole_count = {}
+            temp_unrestricted_cornerhole_num = 0
+            for i, non_free in enumerate(row["non_free_edges"]):
+                # Check if the type and edges of the current non-free match in sequence
+                if non_free["type"] == "constraint":
+                    temp_sequence.append(non_free["edges"])
+                elif non_free["type"] == "cornerhole":
+                    if not (not isinstance(non_free["edges"][0], list) and (non_free["edges"] in unrestricted_cornerhole_type)):
+                        key = generate_key(non_free["edges"])
+                        temp_conerhole_count[key] = temp_conerhole_count.get(key, 0) + 1
+                    else:
+                        temp_unrestricted_cornerhole_num += 1
+
+            if temp_sequence != non_conerhole_edges and temp_sequence != reversed_non_conerhole_edges:
+                continue
+
+            # step3: 角隅孔计数匹配
+            if temp_conerhole_count != unrestricted_cornerhole_count:
+                continue
+
+            matched_type = key_name if matched_type is None else f"{matched_type}, {key_name}"
+
+    # 仅参考角隅孔各类型数量的严格匹配
+
+    # 去除趾板类型
+    free_edges_sequence_without_toe = []
+    reversed_free_edges_sequence_without_toe = []
+    for i in range(len(free_edges_sequence)):
+        if free_edges_sequence[i] == "toe":
+            edge = "line"
+        else:
+            edge = free_edges_sequence[i]
+        free_edges_sequence_without_toe.append(edge)
+        if reversed_free_edges_sequence[i] == "toe":
+            edge = "line"
+        else:
+            edge = reversed_free_edges_sequence[i]
+        reversed_free_edges_sequence_without_toe.append(edge)
+
+    if matched_type is None:
+        for key_name, row in classification_table.items():
+            # step1: 自由边轮廓严格匹配
+            if row["free_edges"] != free_edges_sequence_without_toe and row["free_edges"] != reversed_free_edges_sequence_without_toe:
+                continue
+
+            # step2: 非自由边轮廓去除角隅孔后严格匹配
+            temp_sequence = []
+            temp_conerhole_count = {}
+            for i, non_free in enumerate(row["non_free_edges"]):
+                # Check if the type and edges of the current non-free match in sequence
+                if non_free["type"] == "constraint":
+                    temp_sequence.append(non_free["edges"])
+                elif non_free["type"] == "cornerhole":
+                    key = generate_key(non_free["edges"])
+                    temp_conerhole_count[key] = temp_conerhole_count.get(key, 0) + 1
+
+            if temp_sequence != non_conerhole_edges and temp_sequence != reversed_non_conerhole_edges:
+                continue
+
+            # step3: 角隅孔计数匹配
+            if temp_conerhole_count != conerhole_count:
+                continue
+
+            matched_type = key_name if matched_type is None else f"{matched_type}, {key_name}"
+
+    # 仅参考角隅孔各类型数量的不严格匹配
+    if matched_type is None:
+        for key_name, row in classification_table.items():
+            # step1: 自由边轮廓严格匹配
+            if row["free_edges"] != free_edges_sequence_without_toe and row["free_edges"] != reversed_free_edges_sequence_without_toe:
+                continue
+
+            # step2: 非自由边轮廓去除角隅孔后严格匹配
+            temp_sequence = []
+            temp_conerhole_count = {}
+            temp_unrestricted_cornerhole_num = 0
+            for i, non_free in enumerate(row["non_free_edges"]):
+                # Check if the type and edges of the current non-free match in sequence
+                if non_free["type"] == "constraint":
+                    temp_sequence.append(non_free["edges"])
+                elif non_free["type"] == "cornerhole":
+                    if not (not isinstance(non_free["edges"][0], list) and (non_free["edges"] in unrestricted_cornerhole_type)):
+                        key = generate_key(non_free["edges"])
+                        temp_conerhole_count[key] = temp_conerhole_count.get(key, 0) + 1
+                    else:
+                        temp_unrestricted_cornerhole_num += 1
+
+            if temp_sequence != non_conerhole_edges and temp_sequence != reversed_non_conerhole_edges:
+                continue
+
+            # step3: 角隅孔计数匹配
+            if temp_conerhole_count != unrestricted_cornerhole_count:
+                continue
+
+            matched_type = key_name if matched_type is None else f"{matched_type}, {key_name}"
 
     return matched_type if matched_type is not None else "Unclassified"
 
