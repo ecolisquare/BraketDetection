@@ -155,7 +155,7 @@ def calculate_poly_refs(poly,segmentation_config):
             if len(refs) != 0:
                 last_segment = refs[-1]
                 # 判断是否平行
-                if is_parallel(last_segment, segment,segmentation_config.is_parallel_tolerance):
+                if is_parallel(last_segment, segment,segmentation_config.is_parallel_tolerance) and not isinstance(last_segment.ref, DArc):
                     seg=last_segment if last_segment.length()>segment.length() else segment
                     new_segment = DSegment(
                         start_point=last_segment.start_point,
@@ -342,52 +342,67 @@ def outputPolyInfo(poly, segments, segmentation_config, point_map, index,star_po
             for ss in star_pos_map[s]:
                 star_set.add(ss)
     stars_pos=list(star_set)
-    for p in stars_pos:
-        x,y=p.x,p.y
-        lines=[]
-        lines.append(DSegment(DPoint(x,y),DPoint(x-5000,y)))
-        lines.append(DSegment(DPoint(x,y),DPoint(x+5000,y)))
-        lines.append(DSegment(DPoint(x,y),DPoint(x,y+5000)))
-        lines.append(DSegment(DPoint(x,y),DPoint(x,y-5000)))
-        cornor=[]
-        for i, seg1 in enumerate(lines):
-            dist=None
-            s=None
-            for j, seg2 in enumerate(poly_refs):
-                p1, p2 = seg1.start_point, seg1.end_point
-                q1, q2 = seg2.start_point, seg2.end_point
-                intersection = segment_intersection(p1, p2, q1, q2)
-                if intersection:
-                    if dist is None:
-                        dist=(intersection[0]-p1.x)*(intersection[0]-p1.x)+(intersection[1]-p1.y)*(intersection[1]-p1.y)
-                        s=seg2
-                    else:
-                        if dist>(intersection[0]-p1.x)*(intersection[0]-p1.x)+(intersection[1]-p1.y)*(intersection[1]-p1.y):
-                            dist=(intersection[0]-p1.x)*(intersection[0]-p1.x)+(intersection[1]-p1.y)*(intersection[1]-p1.y)
-                            s=seg2
-            if s is not None:
-               cornor.append((dist,s,p))
-        cornor=sorted(cornor,key=lambda p:p[0])
-        if len(cornor)>=2:
-            cornor[0][1].isConstraint=True
-            cornor[0][1].isCornerhole=False
-            cornor[0][1].StarCornerhole=cornor[0][2]
-            cornor[1][1].isConstraint=True
-            cornor[1][1].isCornerhole=False
-            cornor[1][1].StarCornerhole=cornor[1][2]
+    # for p in stars_pos:
+    #     x,y=p.x,p.y
+    #     lines=[]
+    #     lines.append(DSegment(DPoint(x,y),DPoint(x-5000,y)))
+    #     lines.append(DSegment(DPoint(x,y),DPoint(x+5000,y)))
+    #     lines.append(DSegment(DPoint(x,y),DPoint(x,y+5000)))
+    #     lines.append(DSegment(DPoint(x,y),DPoint(x,y-5000)))
+    #     cornor=[]
+    #     for i, seg1 in enumerate(lines):
+    #         dist=None
+    #         s=None
+    #         for j, seg2 in enumerate(poly_refs):
+    #             p1, p2 = seg1.start_point, seg1.end_point
+    #             q1, q2 = seg2.start_point, seg2.end_point
+    #             intersection = segment_intersection(p1, p2, q1, q2)
+    #             if intersection:
+    #                 if dist is None:
+    #                     dist=(intersection[0]-p1.x)*(intersection[0]-p1.x)+(intersection[1]-p1.y)*(intersection[1]-p1.y)
+    #                     s=seg2
+    #                 else:
+    #                     if dist>(intersection[0]-p1.x)*(intersection[0]-p1.x)+(intersection[1]-p1.y)*(intersection[1]-p1.y):
+    #                         dist=(intersection[0]-p1.x)*(intersection[0]-p1.x)+(intersection[1]-p1.y)*(intersection[1]-p1.y)
+    #                         s=seg2
+    #         if s is not None:
+    #            cornor.append((dist,s,p))
+    #     cornor=sorted(cornor,key=lambda p:p[0])
+    #     if len(cornor)>=2:
+    #         cornor[0][1].isConstraint=True
+    #         cornor[0][1].isCornerhole=False
+    #         cornor[0][1].StarCornerhole=cornor[0][2]
+    #         cornor[1][1].isConstraint=True
+    #         cornor[1][1].isCornerhole=False
+    #         cornor[1][1].StarCornerhole=cornor[1][2]
     
 
    
     # step4: 标记固定边
     for i, segment in enumerate(poly_refs):
         # 颜色确定
-        if segment.ref.color in segmentation_config.constraint_color:
+        if segment.ref.color in segmentation_config.constraint_color and segment.length()>segmentation_config.toe_length:
             segment.isConstraint = True
             poly_refs[i].isConstraint = True
         # 角隅孔确定
         elif poly_refs[(i - 1) % len(poly_refs)].isCornerhole or poly_refs[(i + 1) % len(poly_refs)].isCornerhole:
             segment.isConstraint = True
             poly_refs[i].isConstraint = True
+        elif isinstance(segment.ref,DLine):
+            o_vs,o_ve=segment.ref.start_point,segment.ref.end_point
+            vs,ve=segment.start_point,segment.end_point
+            pairs=[(o_vs,vs),(o_vs,ve),(o_ve,vs),(o_ve,ve)]
+            flag=True
+            for pair in pairs:
+                if DSegment(pair[0],pair[1]).length()<20:
+                    flag=False
+                    break
+            if flag:
+                segment.isConstraint = True
+                poly_refs[i].isConstraint = True
+        # elif isinstance(segment.ref,DLine) and segment.length()<0.85*DSegment(segment.ref.start_point,segment.ref.end_point).length():
+        #     segment.isConstraint = True
+        #     poly_refs[i].isConstraint = True
         # 平行线确定
         # else:
         #     dx_1 = segment.end_point.x - segment.start_point.x
@@ -628,7 +643,7 @@ def outputPolyInfo(poly, segments, segmentation_config, point_map, index,star_po
                 is_inside=True
             else:
                 is_inside=False
-            if distance < segmentation_config.parallel_max_distance and is_inside==False and not isinstance(segment.ref,DArc) and l1>=segmentation_config.constraint_min_length:
+            if distance < segmentation_config.parallel_max_distance and is_inside==False and not isinstance(segment.ref,DArc) and l1>=segmentation_config.constraint_min_length and l1 > segmentation_config.toe_length:
                 #contraint
                 # print(1)
                 others.add(other)
@@ -636,7 +651,7 @@ def outputPolyInfo(poly, segments, segmentation_config, point_map, index,star_po
                 poly_refs[i].isPart=True
                 segment.isConstraint = True
                 poly_refs[i].isConstraint = True
-            elif l1<l2 *segmentation_config.contraint_factor and is_inside==False and not isinstance(segment.ref,DArc) and l1>=segmentation_config.constraint_min_length:
+            elif l1<l2 *segmentation_config.contraint_factor and is_inside==False and not isinstance(segment.ref,DArc) and l1>=segmentation_config.constraint_min_length and l1 > segmentation_config.toe_length:
                 #constraint
                 # print(2)
                 others.add(other)
@@ -644,14 +659,14 @@ def outputPolyInfo(poly, segments, segmentation_config, point_map, index,star_po
                 poly_refs[i].isPart=True
                 segment.isConstraint = True
                 poly_refs[i].isConstraint = True
-            elif l1<segmentation_config.free_edge_min_length and is_inside==False and not isinstance(segment.ref,DArc) and l1>=segmentation_config.constraint_min_length:
+            elif l1<segmentation_config.free_edge_min_length and is_inside==False and not isinstance(segment.ref,DArc) and l1>=segmentation_config.constraint_min_length and l1 > segmentation_config.toe_length:
                 # print(3)
                 others.add(other)
                 segment.isPart=True
                 poly_refs[i].isPart=True
                 segment.isConstraint = True
                 poly_refs[i].isConstraint = True
-            elif l1<l2 *segmentation_config.contraint_factor*0.5 and is_inside==False and not isinstance(segment.ref,DArc) and l1<segmentation_config.constraint_min_length:
+            elif l1<l2 *segmentation_config.contraint_factor*0.5 and is_inside==False and not isinstance(segment.ref,DArc) and l1<segmentation_config.constraint_min_length and l1 > segmentation_config.toe_length:
                 # print(l2)
                 others.add(other)
                 segment.isPart=True
@@ -859,6 +874,28 @@ def outputPolyInfo(poly, segments, segmentation_config, point_map, index,star_po
         #return poly_refs
         return None
     #分割固定边
+    new_edges=[]
+    for edge_ in edges:
+        if edge_[0].isConstraint and not edge_[0].isCornerhole:
+
+    
+            angles=[0]
+            constarint_edge=edge_
+            for i in range(len(constarint_edge)-1):
+                angles.append(conpute_angle_of_two_segments(constarint_edge[i],constarint_edge[i+1]))
+            edge=[]
+            for i,angle in enumerate(angles):
+                if angle<=segmentation_config.constraint_split_angle:
+                    edge.append(constarint_edge[i])
+                else:
+                    new_edges.append(edge)
+                    edge=[]
+                    edge.append(constarint_edge[i])
+            new_edges.append(edge)
+        else:
+            new_edges.append(edge_)
+    edges=new_edges
+
     new_constraint_edges=[]
     for constarint_edge in constraint_edges:
         angles=[0]
@@ -1043,13 +1080,16 @@ def outputPolyInfo(poly, segments, segmentation_config, point_map, index,star_po
             cornerhole_index += 1
 
     # step12 对肘板进行分类：
-    classification_res = poly_classifier(poly_refs, cornerhole_index - 1, free_edges, edges, 
+    classification_res = poly_classifier(poly_refs, tis,ds,cornerhole_index - 1, free_edges, edges, 
                                          segmentation_config.type_path, segmentation_config.json_output_path, 
                                          f"{os.path.splitext(os.path.basename(segmentation_config.json_path))[0]}_infopoly{index}",
-                                         is_output_json=False)
+                                         is_output_json=True)
     
     log_to_file(file_path, f"肘板类别为{classification_res}")
     if classification_res == "Unclassified":
+        log_to_file("./output/Unclassified.txt", f"{os.path.splitext(os.path.basename(segmentation_config.json_path))[0]}_infopoly{index}")
         return poly_refs, classification_res
-
+    else:
+        if len(classification_res.split(","))>1:
+            log_to_file("./output/duplicate_class.txt",f"{os.path.splitext(os.path.basename(segmentation_config.json_path))[0]}_infopoly{index}")
     return poly_refs, classification_res

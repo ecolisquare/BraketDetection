@@ -976,25 +976,25 @@ def dxf2json(dxfpath,dxfname,output_folder):
 
 if __name__ == "__main__":
     
-    dxfpath = './data'
-    dxfname = 'ddd.dxf'
-    dxf2json(dxfpath,dxfname, dxfpath)
-    # folder_path = './data/text_data'
-    # output_foler='./data/text_data'
-    # for filename in os.listdir(folder_path):
-    #     # 检查文件是否是JSON文件
-    #     if filename.endswith('.dxf'):
-    #         file_path = os.path.join(folder_path, filename)
-    #         name = os.path.splitext(filename)[0]
-    #         output_path = os.path.join(output_foler, name)
-    #         # training_data_output_path = os.path.join(training_data_output_folder, name)
-    #         print(f"正在处理文件: {file_path}")
+    # dxfpath = './data'
+    # dxfname = 'ddd.dxf'
+    # dxf2json(dxfpath,dxfname, dxfpath)
+    folder_path = './data/dimension_data'
+    output_foler='./data/dimension_data'
+    for filename in os.listdir(folder_path):
+        # 检查文件是否是JSON文件
+        if filename.endswith('.dxf'):
+            file_path = os.path.join(folder_path, filename)
+            name = os.path.splitext(filename)[0]
+            output_path = os.path.join(output_foler, name)
+            # training_data_output_path = os.path.join(training_data_output_folder, name)
+            print(f"正在处理文件: {file_path}")
             
-    #         # 打开并读取JSON文件内容
-    #         try:
-    #             dxf2json(folder_path,filename, output_foler)
-    #         except Exception as e:
-    #             print(f"处理文件 {file_path} 时出错: {e}")
+            # 打开并读取JSON文件内容
+            try:
+                dxf2json(folder_path,filename, output_foler)
+            except Exception as e:
+                print(f"处理文件 {file_path} 时出错: {e}")
 
 
     # dxfpath = './split'

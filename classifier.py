@@ -1,6 +1,8 @@
 import json
 from element import *
 
+def find_anno_info(cluster_name,poly_refs, texts,dimensions,conerhole_num, poly_free_edges, edges):
+    return None
 def load_classification_table(file_path):
     """
     Load the classification table from a JSON file.
@@ -114,7 +116,8 @@ def conerhole_free_classifier(classification_table, conerhole_num, free_edges_se
     reversed_non_conerhole_edges = []
     conerhole_count = {}
     unrestricted_cornerhole_count = {}
-    unrestricted_cornerhole_type = [["line"], ["arc"]]
+    # unrestricted_cornerhole_type = [["line"], ["arc"]]
+    unrestricted_cornerhole_type = [["line"]]
     unrestricted_cornerhole_num = 0
     # 去掉非自由边轮廓中的角隅孔，只保留固定边
     for i in range(len(edges_sequence)):
@@ -264,7 +267,7 @@ def conerhole_free_classifier(classification_table, conerhole_num, free_edges_se
 
     return matched_type if matched_type is not None else "Unclassified"
 
-def poly_classifier(poly_refs, conerhole_num, poly_free_edges, edges, classification_file_path, info_json_path, keyname, is_output_json = False):
+def poly_classifier(poly_refs, texts,dimensions,conerhole_num, poly_free_edges, edges, classification_file_path, info_json_path, keyname, is_output_json = False):
     classification_table = load_classification_table(classification_file_path)
 
     # Step 1: 获取角隅孔数
@@ -347,4 +350,15 @@ def poly_classifier(poly_refs, conerhole_num, poly_free_edges, edges, classifica
 
 
     # Step 5: 遍历每个肘板类型，进行匹配
-    return conerhole_free_classifier(classification_table, conerhole_num, free_edges_sequence, reversed_free_edges_sequence, edges_sequence, reversed_edges_sequence)
+    matched_type= conerhole_free_classifier(classification_table, conerhole_num, free_edges_sequence, reversed_free_edges_sequence, edges_sequence, reversed_edges_sequence)
+    
+    #TODO
+    #for each mixed type, use the first type name as key(cluster_name),find the annoation
+    cluster_name="KL(R)"
+    anno=find_anno_info(cluster_name,poly_refs, texts,dimensions,conerhole_num, poly_free_edges, edges)
+    if anno is None:
+        #default type of the mixed type
+        return matched_type
+    else:
+        #classify inner mixed type by annotation
+        return matched_type

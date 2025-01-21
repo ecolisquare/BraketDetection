@@ -474,8 +474,8 @@ def process_block(T_is_contained,block_datas,blockName,scales,rotation,insert,bl
             # if ele.get("linetype") is not None and ele["linetype"] in linetype:
             #     continue
             # 颜色过滤
-            # if ele["color"] not in color:
-            #     continue
+            if ele["color"]  in color:
+                continue
             e=DLine(DPoint(ele["start"][0],ele["start"][1]),DPoint(ele["end"][0],ele["end"][1]),ele_linetype,ele["color"],ele["handle"],meta=block_meta_data)
             elements.append(e)
             segments.append(DSegment(e.start_point,e.end_point,e))
@@ -492,6 +492,8 @@ def process_block(T_is_contained,block_datas,blockName,scales,rotation,insert,bl
                     stiffeners.append(DSegment(e.start_point,e.end_point,e))
                 if ele["layerName"] in segmentation_config.remove_layername:
                     continue
+            if ele["color"]  in color:
+                continue
             # 虚线过滤
             # if ele.get("linetype") is not None and ele["linetype"] in linetype:
             #     continue
@@ -529,7 +531,8 @@ def process_block(T_is_contained,block_datas,blockName,scales,rotation,insert,bl
                         stiffeners.append(DSegment(simplified_ps[i], simplified_ps[i + 1], e))
                 if ele["layerName"] in segmentation_config.remove_layername:
                     continue
-
+            if ele["color"]  in color:
+                continue
             e = DLwpolyline(simplified_ps,ele_linetype, ele["color"], False,ele["handle"],meta=block_meta_data)
             elements.append(e)
             l = len(simplified_ps)
@@ -563,7 +566,8 @@ def process_block(T_is_contained,block_datas,blockName,scales,rotation,insert,bl
                 if ele["layerName"] in segmentation_config.remove_layername:
                     continue
             
-            
+            if ele["color"]  in color:
+                continue
             elements.extend(lwe)
             arcs.extend(lwa)
             segments.extend(lws)
@@ -616,6 +620,8 @@ def process_block(T_is_contained,block_datas,blockName,scales,rotation,insert,bl
                         stiffeners.append(DSegment(simplified_ps[-1], simplified_ps[0], e))
                 if ele["layerName"] in segmentation_config.remove_layername:
                     continue
+            if ele["color"]  in color:
+                continue
             e = DLwpolyline(simplified_ps,ele_linetype, ele["color"], ele["isClosed"],ele["handle"],meta=block_meta_data)
             elements.append(e)
             l = len(simplified_ps)
@@ -784,6 +790,7 @@ def remove_duplicates(input_list):
 # Helper function to compute intersection between two segments
 def segment_intersection(p1, p2, q1, q2, epsilon=1e-9):
     """ Returns the intersection point between two line segments, or None if they don't intersect. """
+    ###TODO: if two segments are colinear or in the same line,get the intersection within a unique method  
     def cross_product(v1, v2):
         return v1[0] * v2[1] - v1[1] * v2[0]
 
@@ -798,7 +805,7 @@ def segment_intersection(p1, p2, q1, q2, epsilon=1e-9):
     t = cross_product((q1.x - p1.x, q1.y - p1.y), s) / denominator
     u = cross_product((q1.x - p1.x, q1.y - p1.y), r) / denominator
 
-    if 0 <= t <= 1 and 0 <= u <= 1:  # Intersection occurs within both segments
+    if -epsilon <= t <= 1+epsilon and -epsilon <= u <= 1+epsilon:  # Intersection occurs within both segments
         intersect_x = p1.x + t * r[0]
         intersect_y = p1.y + t * r[1]
         return DPoint(intersect_x, intersect_y)
@@ -1166,9 +1173,25 @@ def calculate_angle(p1, p2, p3):
     # Ensure the angle is in the range [0, 360]
     if angle_deg < 0:
         angle_deg += 360
-
+    # if p2==DPoint(747,1121):
+    #     print(angle_deg)
     return angle_deg
 
+
+
+def calculate_prior_angle(p1,p2,p3):
+    angle=calculate_angle(p3,p2,p1)
+    if angle>=10 and angle<=170:
+        angle+=180
+    elif angle<=350 and angle>=190:
+        angle-=160
+    elif angle>=170 and angle <=190:
+        angle=10
+    else:
+        angle=0
+    # if p2==DPoint(747,1121):
+    #     print(angle)
+    return angle
 def dfs_paths_with_repline(visited_edges,graph, repline, max_length, timeout=5):
     """
     Perform DFS to find a closed loop starting at repline.start_point,
@@ -2385,6 +2408,11 @@ def outputLines(segmentation_config,segments,point_map,polys,cornor_holes,star_p
                 else:
                     x=p_minus(p_add(d.defpoints[1],l0),p_mul(l0,d10/d00))
                 d1,d2,d3,d4=d.defpoints[0], x,d.defpoints[1],d.defpoints[2]
+
+                for i,p in enumerate([d1,d2,d3,d4]):
+                    if p!=DPoint(0,0):
+                        plt.text(p.x, p.y, str(i+1),color="#EE0000", fontsize=15)
+                        plt.plot(p.x, p.y, 'b.')
                 ss=[DSegment(d1,d4),DSegment(d4,d3),DSegment(d3,d2)]
                 sss=[DSegment(d2,d1)]
                 ss=expandFixedLength(ss,25,True,False,True)
@@ -3022,7 +3050,7 @@ def findClosedPolys_via_BFS(elements,texts,dimensions,segments,segmentation_conf
         sampled_lines.append(DSegment(s.end_point,s.start_point,s.ref))
     
     if verbose:
-        pbar=tqdm(desc="sampled_lines",total=len(sampled_lines))
+        pbar=tqdm(desc="sampled_lines(all the cornor holes)",total=len(sampled_lines))
     for sampled_line in sampled_lines:
         if verbose:
             pbar.update()
@@ -3033,6 +3061,23 @@ def findClosedPolys_via_BFS(elements,texts,dimensions,segments,segmentation_conf
             closed_polys.append(path)
             repline_has_visited.add(sampled_line)
             repline_has_visited.add(DSegment(sampled_line.end_point,sampled_line.start_point))
+    if verbose:
+        pbar.close()
+    sampled_lines=[]
+    for s in filtered_segments:
+        sampled_lines.append(DSegment(s.start_point,s.end_point,s.ref))
+        sampled_lines.append(DSegment(s.end_point,s.start_point,s.ref))
+    
+    if verbose:
+        pbar=tqdm(desc="sampled_lines(all the segments)",total=len(sampled_lines))
+    for sampled_line in sampled_lines:
+        if verbose:
+            pbar.update()
+        visited_edges=set()
+        visited_edges.add((sampled_line[0],sampled_line[1]))
+        path=process_repline_with_repline_dfs(visited_edges,sampled_line,graph,segmentation_config)
+        if(len(path)>=segmentation_config.path_min_length):
+            closed_polys.append(path)
     if verbose:
         pbar.close()
     

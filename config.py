@@ -2,7 +2,7 @@ class SegmentationConfig:
     def __init__(self):
         self.verbose=True
         # self.mode="dev"
-        self.mode="pro"
+        self.mode="dev"
         self.bracket_layer=None
         self.json_path=""
         
@@ -61,7 +61,7 @@ class SegmentationConfig:
         self.path_max_length = 30
         self.path_min_length = 3
 
-        self.dfs_path_max_length=40
+        self.dfs_path_max_length=100
         self.dfs_path_min_length=3
         #compute cornor_hole
         self.repline_neighbor_min_length=14
@@ -98,7 +98,7 @@ class SegmentationConfig:
         self.contraint_factor=0.96
         self.free_edge_min_length=130
         self.constraint_min_length=52
-
+        self.toe_length=26
         #bracket bounding box
         self.bracket_bbox_expand_length=50
         self.bracket_bbox_expand_ratio=0.25
@@ -112,7 +112,7 @@ class SegmentationConfig:
         self.is_parallel_tolerance=0.15
         #readJson
         self.line_type=["BYLAYER","CONTINUOUS","BYBLOCK"]
-        self.color=[3, 7, 8, 4,2,140,254,1,5]
+        self.color=[6]
         self.constraint_color=[1,3]
         self.element_type=["line","arc","lwpolyline","polyline","spline"]
 
@@ -120,12 +120,12 @@ class SegmentationConfig:
         # self.remove_layername=["Stiffener_Invisible","Stiffener_Visible","Plate_Invisible","Plate_Visible"]
         self.remove_linetype=[]
 
-        self.remove_layername=["分段总段划分"]
+        self.remove_layername=["分段总段划分","braket","split","holes","肘板标注"]
         self.remove_layername.extend(self.stiffener_name)
         #check is bracket
         #偏离凸多边形的程度
         self.near_convex_tolerance=0.05
-        self.near_rectangle_tolerance = 0.05
+        self.near_rectangle_tolerance = 0.01
         #自由边角度下限
         self.min_angle_in_free_edge=45
         #自由边占比

@@ -125,6 +125,10 @@ def plot_info_poly(polygon,segments, path,texts,dimensions,stifferners,others=[]
         d=d_t[0]
         pos=d_t[1]
         content=d.text
+        # for i,p in enumerate(d.defpoints):
+        #     if p!=DPoint(0,0):
+        #         ax.text(p.x, p.y, str(i),color="#EEEE00", fontsize=15)
+        #         ax.plot(p.x, p.y, 'b.')
         if  d.dimtype==32 or d.dimtype==33 or d.dimtype==161 or d.dimtype==160:
             l0=p_minus(d.defpoints[0],d.defpoints[2])
             l1=p_minus(d.defpoints[1],d.defpoints[2])
@@ -135,6 +139,7 @@ def plot_info_poly(polygon,segments, path,texts,dimensions,stifferners,others=[]
             else:
                 x=p_minus(p_add(d.defpoints[1],l0),p_mul(l0,d10/d00))
             d1,d2,d3,d4=d.defpoints[0], x,d.defpoints[1],d.defpoints[2]
+          
             ss=[DSegment(d1,d4),DSegment(d4,d3),DSegment(d3,d2)]
             sss=[DSegment(d2,d1)]
             ss=expandFixedLengthGeo(ss,25,True)
@@ -150,6 +155,9 @@ def plot_info_poly(polygon,segments, path,texts,dimensions,stifferners,others=[]
             perp_vx, perp_vy = sss[0].start_point.x - sss[0].end_point.x, sss[0].start_point.y-sss[0].end_point.y
             rotation_angle = np.arctan2(-perp_vy, -perp_vx) * (180 / np.pi)
             ax.text(q.x, q.y, d.text,rotation=rotation_angle,color="#EEC933", fontsize=15)
+            
+
+
         
         elif d.dimtype==37:
             a,b,o=d.defpoints[1],d.defpoints[2],d.defpoints[3]
