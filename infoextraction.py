@@ -742,6 +742,12 @@ def outputPolyInfo(poly, segments, segmentation_config, point_map, index,star_po
      
      
      # 属于同一参考线的边只要有一个是固定边，则所有都是固定边
+   
+    for i,segment in enumerate(poly_refs):
+        if not segment.isCornerhole and poly_refs[(i-1+len(poly_refs))%len(poly_refs)].isConstraint and poly_refs[(i+1+len(poly_refs))%len(poly_refs)].isConstraint:
+            segment.isConstraint = True
+            poly_refs[i].isConstraint = True
+
     # for a in range(len(poly_refs)):
     #     for b in range(len(poly_refs)):
     #         if isinstance(poly_refs[a].ref, DLwpolyline) and isinstance(poly_refs[b].ref, DLwpolyline):
