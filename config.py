@@ -71,7 +71,7 @@ class SegmentationConfig:
         #is_repline
         self.arc_repline_min_length=20
         self.arc_repline_max_length=200
-        self.line_repline_min_length=13
+        self.line_repline_min_length=12
         self.line_repline_max_length=70
 
         #filter cornor_hole
@@ -95,14 +95,14 @@ class SegmentationConfig:
 
         self.parallel_max_distance_relax=60
         self.parallel_min_distance_relax=5
-        self.contraint_factor=0.96
+        self.contraint_factor=0.98
         self.free_edge_min_length=130
         self.constraint_min_length=52
         self.toe_length=26
         #bracket bounding box
-        self.bracket_bbox_expand_length=50
+        self.bracket_bbox_expand_length=250
         self.bracket_bbox_expand_ratio=0.25
-        self.bracket_bbox_expand_is_ratio=True
+        self.bracket_bbox_expand_is_ratio=False
 
 
         #is_parallel_tolerance

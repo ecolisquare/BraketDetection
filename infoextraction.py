@@ -1,5 +1,5 @@
 from  element import *
-from plot_geo import plot_geometry,plot_polys, plot_info_poly
+from plot_geo import plot_geometry,plot_polys, plot_info_poly,p_minus,p_add,p_mul
 import os
 from utils import segment_intersection,computeBoundingBox,is_parallel,conpute_angle_of_two_segments
 from classifier import poly_classifier
@@ -301,6 +301,58 @@ def dimensionsInPoly(dimensions,poly,segmentation_config):
         if x_min <= pos.x and pos.x <=x_max and y_min <=pos.y and y_max>=pos.y:
             ds.append([d,pos])
     return ds
+def match_r_anno(r_anno,poly_refs):
+    r_map={}
+    for r_t in r_anno:
+        pos,content=r_t
+        min_distance=float("inf")
+        target=None
+        for s in poly_refs:
+            if isinstance(s.ref,DArc):
+                center=s.ref.center
+                distance=DSegment(center,pos).length()
+                if target is None:
+                    target=s
+                    min_distance=min(min_distance,distance)
+                else:
+                    if distance<min_distance:
+                        min_distance=distance
+                        target=s
+        if target is not None:
+            r_map[target]=content
+    # print(str(r_map))
+    # print(r_anno)
+    return r_map
+
+def computeDistance(s,v1,v2):
+    vs,ve=s.start_point,s.end_point
+    d1,d2=DSegment(vs,v1).length(),DSegment(vs,v2).length()
+    if d1<d2:
+        distance=d1+DSegment(ve,v2).length()
+    else:
+        distance=d2+DSegment(ve,v1).length()
+    return distance
+def match_l_anno(l_anno,poly_refs):
+    l_map={}
+    for l_t in l_anno:
+        v1,v2,content=l_t
+        min_distance=float("inf")
+        target=None
+        for s in poly_refs:
+            if not isinstance(s.ref,DArc):
+                distance=computeDistance(s,v1,v2)
+                if target is None:
+                    target=s
+                    min_distance=min(min_distance,distance)
+                else:
+                    if distance<min_distance:
+                        min_distance=distance
+                        target=s
+        
+        if min_distance<50 and target is not None:
+            l_map[target]=content
+    return l_map
+
 def outputPolyInfo(poly, segments, segmentation_config, point_map, index,star_pos_map,cornor_holes,texts,dimensions,text_map,stiffeners):
     # step1: 计算几何中心坐标
     poly_centroid = calculate_poly_centroid(poly)
@@ -980,6 +1032,32 @@ def outputPolyInfo(poly, segments, segmentation_config, point_map, index,star_po
     # step6: 绘制对边分类后的几何图像
     plot_info_poly(polygon,poly_refs, os.path.join(segmentation_config.poly_info_dir, f'infopoly{index}.png'),tis,ds,sfs,others)
 
+
+
+    #标注匹配
+    r_anno=[]
+    l_anno=[]
+    for i,t_t in enumerate(tis):
+        if t_t[2]["Type"]=="R":
+            r_anno.append((t_t[1],t_t[0].content))
+    for i,d_t in enumerate(ds):
+        d=d_t[0]
+        pos=d_t[1]
+        if  d.dimtype==32 or d.dimtype==33 or d.dimtype==161 or d.dimtype==160:
+            l0=p_minus(d.defpoints[0],d.defpoints[2])
+            l1=p_minus(d.defpoints[1],d.defpoints[2])
+            d10=l0.x*l1.x+l0.y*l1.y
+            d00=l0.x*l0.x+l0.y*l0.y
+            if d00 <1e-4:
+                x=d.defpoints[1]
+            else:
+                x=p_minus(p_add(d.defpoints[1],l0),p_mul(l0,d10/d00))
+            d1,d2,d3,d4=d.defpoints[0], x,d.defpoints[1],d.defpoints[2]
+            d4=p_minus(p_add(d1,d3),d2)
+            l_anno.append((d3,d4,d.text))
+
+    r_map=match_r_anno(r_anno,poly_refs)
+    l_map=match_l_anno(l_anno,poly_refs)
     # step7: 输出几何中心和边界信息
     file_path = os.path.join(segmentation_config.poly_info_dir, f'info{index}.txt')
     clear_file(file_path)
@@ -991,17 +1069,21 @@ def outputPolyInfo(poly, segments, segmentation_config, point_map, index,star_po
         log_to_file(file_path, f"边界轮廓{i + 1}: ")
         for seg in edge:
             if isinstance(seg.ref, DArc):
-                log_to_file(file_path, f"起点：{seg.ref.start_point}、终点：{seg.ref.end_point}、圆心：{seg.ref.center}、半径：{seg.ref.radius}（圆弧）、句柄: {seg.ref.handle}")
+                actual_radius= seg.ref.radius if seg not in r_map else r_map[seg].lstrip("R")
+                log_to_file(file_path, f"起点：{seg.ref.start_point}、终点：{seg.ref.end_point}、圆心：{seg.ref.center}、半径：{seg.ref.radius}[实际半径:{actual_radius}]（圆弧）、句柄: {seg.ref.handle}")
             else:
-                log_to_file(file_path, f"起点：{seg.start_point}、终点{seg.end_point}（直线）、句柄: {seg.ref.handle}")
+                actual_length=seg.length() if seg not in l_map else l_map[seg]
+                log_to_file(file_path, f"起点：{seg.start_point}、终点{seg.end_point}、长度：{seg.length()}[实际长度:{actual_length}]（直线）、句柄: {seg.ref.handle}")
 
     # step8: 输出自由边信息
     log_to_file(file_path, "自由边轮廓：")
     for seg in free_edges[0]:
         if isinstance(seg.ref, DArc):
-            log_to_file(file_path, f"起点：{seg.ref.start_point}、终点：{seg.ref.end_point}、圆心：{seg.ref.center}、半径：{seg.ref.radius}（圆弧）、句柄: {seg.ref.handle}")
+            actual_radius= seg.ref.radius if seg not in r_map else r_map[seg].lstrip("R")
+            log_to_file(file_path, f"起点：{seg.ref.start_point}、终点：{seg.ref.end_point}、圆心：{seg.ref.center}、半径：{seg.ref.radius}[实际半径:{actual_radius}]（圆弧）、句柄: {seg.ref.handle}")
         else:
-            log_to_file(file_path, f"起点：{seg.start_point}、终点{seg.end_point}（直线）、句柄: {seg.ref.handle}")
+            actual_length=seg.length() if seg not in l_map else l_map[seg]
+            log_to_file(file_path, f"起点：{seg.start_point}、终点{seg.end_point}、长度：{seg.length()}[实际长度:{actual_length}]（直线）、句柄: {seg.ref.handle}")
 
     # step9: 输出角隅孔信息
     cornerhole_index = 1
@@ -1011,9 +1093,11 @@ def outputPolyInfo(poly, segments, segmentation_config, point_map, index,star_po
             log_to_file(file_path, f"角隅孔{cornerhole_index}轮廓：")
             for seg in edge:
                 if isinstance(seg.ref, DArc):
-                    log_to_file(file_path, f"起点：{seg.ref.start_point}、终点：{seg.ref.end_point}、圆心：{seg.ref.center}、半径：{seg.ref.radius}（圆弧）、句柄: {seg.ref.handle}")
+                    actual_radius= seg.ref.radius if seg not in r_map else r_map[seg].lstrip("R")
+                    log_to_file(file_path, f"起点：{seg.ref.start_point}、终点：{seg.ref.end_point}、圆心：{seg.ref.center}、半径：{seg.ref.radius}[实际半径:{actual_radius}]（圆弧）、句柄: {seg.ref.handle}")
                 else:
-                    log_to_file(file_path, f"起点：{seg.start_point}、终点{seg.end_point}（直线）、句柄: {seg.ref.handle}")
+                    actual_length=seg.length() if seg not in l_map else l_map[seg]
+                    log_to_file(file_path, f"起点：{seg.start_point}、终点{seg.end_point}、长度：{seg.length()}[实际长度:{actual_length}]（直线）、句柄: {seg.ref.handle}")
             cornerhole_index += 1
         # 星形角隅孔
         if seg.StarCornerhole is not None:

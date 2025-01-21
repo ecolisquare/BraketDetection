@@ -58,10 +58,13 @@
 
 
 
-from utils import calculate_prior_angle
-from element import *
-a1=calculate_prior_angle(DPoint(1233,1241),DPoint(747,1121),DPoint(739,1078))
-a2=calculate_prior_angle(DPoint(1233,1241),DPoint(747,1121),DPoint(723,1085))
-a3=calculate_prior_angle(DPoint(3099,1347),DPoint(3099,1721),DPoint(3070,1730))
-a4=calculate_prior_angle(DPoint(3099,1347),DPoint(3099,1721),DPoint(3099,1771))
-print(a1,a2,a3,a4)
+# from utils import calculate_prior_angle
+# from element import *
+# a1=calculate_prior_angle(DPoint(1233,1241),DPoint(747,1121),DPoint(739,1078))
+# a2=calculate_prior_angle(DPoint(1233,1241),DPoint(747,1121),DPoint(723,1085))
+# a3=calculate_prior_angle(DPoint(3099,1347),DPoint(3099,1721),DPoint(3070,1730))
+# a4=calculate_prior_angle(DPoint(3099,1347),DPoint(3099,1721),DPoint(3099,1771))
+# print(a1,a2,a3,a4)
+from bracket_parameter_extraction import *
+print(parse_elbow_plate("12x150.0 %%% F3","top",False))
+print(is_useful_text("12x150.0 %%% F3"))
