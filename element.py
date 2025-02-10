@@ -324,7 +324,13 @@ class DDimension(DElement):
                 self.text="Φ"+str(round(self.measurement))
             else:
                 self.text=str(round(round(self.measurement)))
-
+    def  __eq__(self,other):
+        if not isinstance(other,DDimension):
+            return False
+        else:
+            return (self.text,self.dimtype,self.handle)==(other.text,other.dimtype,other.handle)
+    def __hash__(self):
+        return hash((self.text,self.dimtype,self.handle))
   
     def __repr__(self):  
         return f"Dimension(pos:{self.textpos}, text:{self.text},color:{self.color},measurement:{self.measurement},defpoints:{self.defpoints},dimtype:{self.dimtype},handle:{self.handle})"  

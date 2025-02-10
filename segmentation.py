@@ -61,10 +61,15 @@ if __name__ == '__main__':
 
         #     print(e)
         # segments_nearby,blocks=segments_near_poly(poly,grid,meta)
-        segments_nearby=ori_block.segments_near_poly(poly)
+        
         # visualize_grid_and_segment(segments_nearby, poly,meta[0],meta[1],meta[2], blocks)
         # print(len(segments_nearby))
-        res = outputPolyInfo(poly, segments_nearby, segmentation_config, point_map, i, star_pos_map, cornor_holes,texts,dimensions,text_map,stiffeners)
+        try:
+            segments_nearby=ori_block.segments_near_poly(poly)
+            res = outputPolyInfo(poly, segments_nearby, segmentation_config, point_map, i, star_pos_map, cornor_holes,texts,dimensions,text_map,stiffeners)
+        except Exception as e:
+            res=None
+        
         pbar.update()
         if res is not None:
             # print(res)

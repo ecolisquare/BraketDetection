@@ -1,7 +1,7 @@
 from  element import *
 from plot_geo import plot_geometry,plot_polys, plot_info_poly,p_minus,p_add,p_mul
 import os
-from utils import segment_intersection,computeBoundingBox,is_parallel,conpute_angle_of_two_segments
+from utils import segment_intersection,computeBoundingBox,is_parallel,conpute_angle_of_two_segments,point_segment_position,shrinkFixedLength,check_points_against_segments,check_parallel_anno,check_vertical_anno
 from classifier import poly_classifier
 from scipy.spatial import ConvexHull
 import matplotlib.pyplot as plt
@@ -332,26 +332,146 @@ def computeDistance(s,v1,v2):
     else:
         distance=d2+DSegment(ve,v1).length()
     return distance
-def match_l_anno(l_anno,poly_refs):
+def tidy_anno_output(edge_anno):
+    s=""
+    for t in edge_anno:
+        ty,l=t
+        s+=f" {ty}, {l.text} "
+    return s
+def tidy_anno_output2(edge_anno):
+    s=""
+    for t in edge_anno:
+        s+=f" {t.text} "
+    return s
+def match_l_anno(l_anno,poly_refs,constraint_edges,free_edges,segmentation_config):
     l_map={}
-    for l_t in l_anno:
-        v1,v2,content=l_t
-        min_distance=float("inf")
-        target=None
-        for s in poly_refs:
-            if not isinstance(s.ref,DArc):
-                distance=computeDistance(s,v1,v2)
-                if target is None:
-                    target=s
-                    min_distance=min(min_distance,distance)
-                else:
-                    if distance<min_distance:
-                        min_distance=distance
-                        target=s
+    l_para_map={}
+    l_para_single_map={}
+    l_ver_map={}
+    l_ver_single_map={}
+    s_constraint_edges=[]
+    ori_cons_edges=[]
+    for constraint_edge in constraint_edges:
         
-        if min_distance<50 and target is not None:
-            l_map[target]=content
-    return l_map
+        s_constraint_edge=shrinkFixedLength(constraint_edge,10)
+        s_constraint_edges.extend(s_constraint_edge)
+        ori_cons_edges.extend(constraint_edge)
+    s_free_edges=free_edges[0]
+    for l_t in l_anno:
+        v1,v2,l=l_t
+        
+        ty,idx=check_points_against_segments(v1,v2,s_constraint_edges)
+        if ty is not None:
+            edge=ori_cons_edges[idx]
+            if edge not in l_map:
+                l_map[edge]=[]    
+            l_map[edge].append((ty,l))
+            continue
+        key=check_parallel_anno(v1,v2,ori_cons_edges,s_free_edges)
+        if key is not None:
+            constraint_edge,free_edge=key
+            if key not in l_para_map:
+                l_para_map[key]=[]
+            l_para_map[key].append(l)
+            if constraint_edge not in l_para_single_map:
+                l_para_single_map[constraint_edge]=[]
+            if free_edge not in l_para_single_map:
+                l_para_single_map[free_edge]=[]
+            l_para_single_map[constraint_edge].append(l)
+            l_para_single_map[free_edge].append(l)
+            continue 
+        key=check_vertical_anno(v1,v2,ori_cons_edges)
+        if key is not None:
+            start_edge,end_edge=key
+            if key not in l_ver_map:
+                l_ver_map[key]=[]
+            l_ver_map[key].append(l)
+            if start_edge not in l_ver_single_map:
+                l_ver_single_map[start_edge]=[]
+            if end_edge not in l_ver_single_map:
+                l_ver_single_map[end_edge]=[]
+            l_ver_single_map[start_edge].append(l)
+            l_ver_single_map[end_edge].append(l)
+            continue 
+
+    return l_map,l_para_map,l_para_single_map,l_ver_map,l_ver_single_map
+
+    # whole_map={}
+    
+    # for l_t in l_anno:
+    #     v1,v2,content=l_t
+    #     anno_line=DSegment(v1,v2)
+    #     for s in poly_refs:
+    #         vs,ve=s.start_point,s.end_point
+    #         pairs=[(v1,vs),(v1,ve),(v2,vs),(v2,ve)]
+    #         the_other=[(v2,ve),(v2,vs),(v1,ve),(v1,vs)]
+    #         min_l=float("inf")
+    #         pair1,pair2=None,None
+    #         for i,pair in enumerate(pairs):
+    #             l=DSegment(pair[0],pair[1]).length()
+    #             if l<min_l:
+    #                 min_l=l
+    #                 pair1=pair
+    #                 pair2=the_other[i]
+    #         s1,s2=DSegment(pair1[0],pair1[1]),DSegment(pair2[0],pair2[1])
+    #         if s1.length()<201 and s2.length() <201 and is_parallel(anno_line, s,segmentation_config.is_parallel_tolerance):
+    #             #whole edge
+    #             d=s1.length()+s2.length()
+    #             if s not in whole_map:
+    #                 whole_map[s]=(l_t,d)
+    #             else:
+    #                 if whole_map[s][1]>d:
+    #                     whole_map[s]=(l_t,d)
+
+
+    # new_whole_map={}
+    # removed_l_anno=set()
+    # for s,t in whole_map.items():
+    #     new_whole_map[s]=t[0]
+    #     removed_l_anno.add(t[0])
+    # new_l_anno=[]
+    # for l in l_anno:
+    #     if l not in removed_l_anno:
+    #         new_l_anno.append(l)
+    
+
+    # half_map={}
+    # for l_t in new_l_anno:
+    #     v1,v2,content=l_t
+    #     anno_line=DSegment(v1,v2)
+    #     for s in poly_refs:
+    #         vs,ve=s.start_point,s.end_point
+    #         pairs=[(v1,vs),(v1,ve),(v2,vs),(v2,ve)]
+    #         the_other=[(v2,ve),(v2,vs),(v1,ve),(v1,vs)]
+    #         min_l=float("inf")
+    #         pair1,pair2=None,None
+    #         for i,pair in enumerate(pairs):
+    #             l=DSegment(pair[0],pair[1]).length()
+    #             if l<min_l:
+    #                 min_l=l
+    #                 pair1=pair
+    #                 pair2=the_other[i]
+    #         s1,s2=DSegment(pair1[0],pair1[1]),DSegment(pair2[0],pair2[1])
+    #         if (s1.length()<201 or s2.length() <201) and is_parallel(anno_line, s,segmentation_config.is_parallel_tolerance):
+    #             print(s1.length(),s2.length())
+    #             if s not in half_map:
+    #                 half_map[s]=[]
+    #                 half_map[s].append(l_t)
+    #             else:
+    #                 half_map[s].append(l_t)
+        
+    # removed_l_anno=set()
+    # new_half_map=half_map
+    # for s,lts in half_map.items():
+    #     for l_t in lts:
+    #         removed_l_anno.add(l_t)
+    
+    # final_l_anno=[]
+    # for l in new_l_anno:
+    #     if l not in removed_l_anno:
+    #         final_l_anno.append(l)
+    # parallel_anno=final_l_anno
+    # return new_whole_map,new_half_map,parallel_anno
 
 def outputPolyInfo(poly, segments, segmentation_config, point_map, index,star_pos_map,cornor_holes,texts,dimensions,text_map,stiffeners):
     # step1: 计算几何中心坐标
@@ -1045,7 +1165,7 @@ def outputPolyInfo(poly, segments, segmentation_config, point_map, index,star_po
     l_anno=[]
     for i,t_t in enumerate(tis):
         if t_t[2]["Type"]=="R":
-            r_anno.append((t_t[1],t_t[0].content))
+            r_anno.append((t_t[1],t_t[0]))
     for i,d_t in enumerate(ds):
         d=d_t[0]
         pos=d_t[1]
@@ -1060,10 +1180,15 @@ def outputPolyInfo(poly, segments, segmentation_config, point_map, index,star_po
                 x=p_minus(p_add(d.defpoints[1],l0),p_mul(l0,d10/d00))
             d1,d2,d3,d4=d.defpoints[0], x,d.defpoints[1],d.defpoints[2]
             d4=p_minus(p_add(d1,d3),d2)
-            l_anno.append((d3,d4,d.text))
+            l_anno.append((d3,d4,d))
 
     r_map=match_r_anno(r_anno,poly_refs)
-    l_map=match_l_anno(l_anno,poly_refs)
+    l_map,l_para_map,l_para_single_map,l_ver_map,l_ver_single_map=match_l_anno(l_anno,poly_refs,constraint_edges,free_edges,segmentation_config)
+    
+    # for s,lts in half_map.items():
+    #     print(s, lts)
+    # print("===============")
+    # print(parallel_anno)
     # step7: 输出几何中心和边界信息
     file_path = os.path.join(segmentation_config.poly_info_dir, f'info{index}.txt')
     clear_file(file_path)
@@ -1075,21 +1200,29 @@ def outputPolyInfo(poly, segments, segmentation_config, point_map, index,star_po
         log_to_file(file_path, f"边界轮廓{i + 1}: ")
         for seg in edge:
             if isinstance(seg.ref, DArc):
-                actual_radius= seg.ref.radius if seg not in r_map else r_map[seg].lstrip("R")
+                actual_radius= seg.ref.radius if seg not in r_map else r_map[seg].content.lstrip("R")
                 log_to_file(file_path, f"起点：{seg.ref.start_point}、终点：{seg.ref.end_point}、圆心：{seg.ref.center}、半径：{seg.ref.radius}[实际半径:{actual_radius}]（圆弧）、句柄: {seg.ref.handle}")
             else:
-                actual_length=seg.length() if seg not in l_map else l_map[seg]
-                log_to_file(file_path, f"起点：{seg.start_point}、终点{seg.end_point}、长度：{seg.length()}[实际长度:{actual_length}]（直线）、句柄: {seg.ref.handle}")
-
+                
+                log_to_file(file_path, f"起点：{seg.start_point}、终点{seg.end_point}（直线）、句柄: {seg.ref.handle}")
+                if seg in l_map:
+                    log_to_file(file_path,f"边标注信息:"+tidy_anno_output(l_map[seg]))
+                if seg in l_para_single_map:
+                    log_to_file(file_path,f"边平行标注信息:"+tidy_anno_output2(l_para_single_map[seg]))
+                if seg in l_ver_single_map:
+                    log_to_file(file_path,f"边垂直标注信息:"+tidy_anno_output2(l_ver_single_map[seg]))
     # step8: 输出自由边信息
     log_to_file(file_path, "自由边轮廓：")
     for seg in free_edges[0]:
         if isinstance(seg.ref, DArc):
-            actual_radius= seg.ref.radius if seg not in r_map else r_map[seg].lstrip("R")
+            actual_radius= seg.ref.radius if seg not in r_map else r_map[seg].content.lstrip("R")
             log_to_file(file_path, f"起点：{seg.ref.start_point}、终点：{seg.ref.end_point}、圆心：{seg.ref.center}、半径：{seg.ref.radius}[实际半径:{actual_radius}]（圆弧）、句柄: {seg.ref.handle}")
         else:
-            actual_length=seg.length() if seg not in l_map else l_map[seg]
-            log_to_file(file_path, f"起点：{seg.start_point}、终点{seg.end_point}、长度：{seg.length()}[实际长度:{actual_length}]（直线）、句柄: {seg.ref.handle}")
+            
+            log_to_file(file_path, f"起点：{seg.start_point}、终点{seg.end_point}、长度：{seg.length()}（直线）、句柄: {seg.ref.handle}")
+            if seg in l_para_single_map:
+                log_to_file(file_path,f"边平行标注信息:"+tidy_anno_output2(l_para_single_map[seg]))
+            
 
     # step9: 输出角隅孔信息
     cornerhole_index = 1
@@ -1099,11 +1232,11 @@ def outputPolyInfo(poly, segments, segmentation_config, point_map, index,star_po
             log_to_file(file_path, f"角隅孔{cornerhole_index}轮廓：")
             for seg in edge:
                 if isinstance(seg.ref, DArc):
-                    actual_radius= seg.ref.radius if seg not in r_map else r_map[seg].lstrip("R")
+                    actual_radius= seg.ref.radius if seg not in r_map else r_map[seg].content.lstrip("R")
                     log_to_file(file_path, f"起点：{seg.ref.start_point}、终点：{seg.ref.end_point}、圆心：{seg.ref.center}、半径：{seg.ref.radius}[实际半径:{actual_radius}]（圆弧）、句柄: {seg.ref.handle}")
                 else:
-                    actual_length=seg.length() if seg not in l_map else l_map[seg]
-                    log_to_file(file_path, f"起点：{seg.start_point}、终点{seg.end_point}、长度：{seg.length()}[实际长度:{actual_length}]（直线）、句柄: {seg.ref.handle}")
+                    
+                    log_to_file(file_path, f"起点：{seg.start_point}、终点{seg.end_point}、长度：{seg.length()}（直线）、句柄: {seg.ref.handle}")
             cornerhole_index += 1
         # 星形角隅孔
         if seg.StarCornerhole is not None:
@@ -1137,12 +1270,35 @@ def outputPolyInfo(poly, segments, segmentation_config, point_map, index,star_po
         log_to_file(file_path,str(t_t[2]))
         # log_to_file(file_path,t_t[3])
         k+=1
-    for i,d_t in enumerate(ds):
+    for i,d_t in enumerate(ds): 
         d=d_t[0]
         pos=d_t[1]
         content=d.text
         log_to_file(file_path,f"标注{i+1+k}:")
         log_to_file(file_path,f"位置: {pos}、内容: {content}、颜色: {d.color}、类型： {d.dimtype}、句柄: {d.handle}")
+    # log_to_file(file_path,"全长标注:")
+    # for s,l_t in whole_map.items():
+    #     d=l_t[2]
+    #     content=d.text
+    #     log_to_file(file_path,f"起始点:{l_t[0]}、终止点:{l_t[1]}、内容: {content}、颜色: {d.color}、类型： {d.dimtype}、句柄: {d.handle}")
+    # log_to_file(file_path,"半长标注:")
+    # for s,lts in half_map.items():
+    #     for l_t in lts:
+    #         d=l_t[2]
+    #         content=d.text
+    #         log_to_file(file_path,f"起始点:{l_t[0]}、终止点:{l_t[1]}、内容: {content}、颜色: {d.color}、类型： {d.dimtype}、句柄: {d.handle}")
+    log_to_file(file_path,"平行标注:")
+    for key,annos in l_para_map.items():
+        log_to_file(file_path,f"约束边: {key[0].start_point}->{key[0].end_point}  自由边: {key[1].start_point}->{key[1].end_point} {tidy_anno_output2(annos)}")
+    log_to_file(file_path,"垂直标注:")
+    for key,annos in l_ver_map.items():
+        log_to_file(file_path,f"起始边: {key[0].start_point}->{key[0].end_point}  底边: {key[1].start_point}->{key[1].end_point} {tidy_anno_output2(annos)}")
+
+    # for l_t in parallel_anno:
+    #     d=l_t[2]
+    #     content=d.text
+    #     log_to_file(file_path,f"起始点:{l_t[0]}、终止点:{l_t[1]}、内容: {content}、颜色: {d.color}、类型： {d.dimtype}、句柄: {d.handle}")
+   
 
     # step11: 输出角隅孔和边界之间的关系
     cornerhole_index = 1

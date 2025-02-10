@@ -102,7 +102,138 @@ def is_parallel(seg1, seg2, tolerance=0.05):
     #print(cross_product)
     return are_equal_with_tolerance(cross_product, 0, tolerance)
 
+def point_segment_position(point: DPoint, segment: DSegment, epsilon=0.05):
+    # 向量AB表示线段的方向
+    AB = DPoint(segment.end_point.x - segment.start_point.x, segment.end_point.y - segment.start_point.y)
+    # 向量AP表示从起点到点的方向
+    AP = DPoint(point.x - segment.start_point.x, point.y - segment.start_point.y)
 
+    # 计算叉积，判断点是否在直线上
+    cross_product = (AB.x * AP.y - AB.y * AP.x)/(DSegment(segment.start_point,point).length()*segment.length())
+    if abs(cross_product) > epsilon:
+        return "not_on_line"  # 点不在直线上
+
+    # 计算点积，判断点是否在线段上
+    dot_product = (AB.x * AP.x + AB.y * AP.y)/(DSegment(segment.start_point,point).length()*segment.length())
+    if dot_product < 0:
+        return "before_start"  # 点在线段起点之前
+    elif DSegment(segment.start_point,point).length()>segment.length():
+        return "after_end"  # 点在线段终点之后
+    else:
+        return "on_segment"  # 点在线段上
+
+def point_on_segments(point,segments,epsilon=0.05):
+    segs=[]
+    for i,s in enumerate(segments):
+        pos = point_segment_position(point, s,epsilon=0.05)
+        if pos !="not_on_line":
+            segs.append(s)
+    return segs
+
+def point_on_segments_idx(point,segments,epsilon=0.05):
+    segs=[]
+    for i,s in enumerate(segments):
+        pos = point_segment_position(point, s,epsilon=0.05)
+        if pos !="not_on_line":
+            segs.append((s,i))
+    return segs
+
+def check_parallel_anno(point1: DPoint, point2: DPoint, constraint_edges: list[DSegment],free_edges:list[DSegment], epsilon=0.05):
+    para_set={}
+    cons1=point_on_segments(point1,constraint_edges,epsilon)
+    cons2=point_on_segments(point2,constraint_edges,epsilon)
+    free1=point_on_segments(point1,free_edges,epsilon)
+    free2=point_on_segments(point2,free_edges,epsilon)
+    key=None
+    if len(cons1)==1 and len(cons2)==0 and len(free1)==0 and len(free2)==1:
+        key=(cons1[0],free2[0])
+        
+    if len(cons1)==0 and len(cons2)==1 and len(free1)==1 and len(free2)==0:
+        key=(cons2[0],free1[0])
+    return key
+
+def is_vertical(point1,point2,segment,epsilon=0.05):
+    v1=DPoint(point1.x-point2.x,point1.y-point2.y)
+    v2=DPoint(segment.start_point.x-segment.end_point.x,segment.start_point.y-segment.end_point.y)
+    cross_product=(v1.x*v2.x+v1.y+v2.y)/(DSegment(point1,point2).length()*segment.length())
+    if  abs(cross_product) <epsilon:
+        return True
+    return False 
+def check_vertical_anno(point1: DPoint, point2: DPoint, constraint_edges: list[DSegment], epsilon=0.05):
+    cons1=point_on_segments_idx(point1,constraint_edges,epsilon)
+    cons2=point_on_segments_idx(point2,constraint_edges,epsilon)
+    if len(cons1)==0 or len(cons2)==0:
+        return None
+    if len(cons1)==1 and is_vertical(point1,point2,cons1[0][0],epsilon):
+        flag=False
+        idx1=cons1[0][1]
+        idx2=None
+        for cons in cons2:
+            if (cons[1]+1)%len(constraint_edges)==idx1 or (cons[1]-1+len(constraint_edges))%len(constraint_edges)==idx1:
+                flag=True
+                idx2=cons[1]
+                break
+        if flag:
+            key=(constraint_edges[idx2],constraint_edges[idx1])
+            return key
+    if len(cons2)==1 and is_vertical(point1,point2,cons2[0][0],epsilon):
+        flag=False
+        idx1=cons2[0][1]
+        idx2=None
+        for cons in cons1:
+            if (cons[1]+1)%len(constraint_edges)==idx1 or (cons[1]-1+len(constraint_edges))%len(constraint_edges)==idx1:
+                flag=True
+                idx2=cons[1]
+                break
+        if flag:
+            key=(constraint_edges[idx2],constraint_edges[idx1])
+            return key
+    return None
+
+
+def check_points_against_segments(point1: DPoint, point2: DPoint, segments: list[DSegment], epsilon=0.05):
+    """
+    检查两个点与线段列表中的所有线段的位置关系。
+    返回是否存在一条线段满足以下条件之一：
+    1. 两个点分别在线段的两端。
+    2. 一个点在线段的一端，另一个点在线段上（包括端点）。
+    3. 两个点都在线段的一端。
+
+    :param point1: 第一个点
+    :param point2: 第二个点
+    :param segments: 线段列表
+    :param epsilon: 几何误差阈值
+    :return: 是否存在满足条件的线段
+    """
+    for i,segment in enumerate(segments):
+        # 获取线段的起点和终点
+        start = segment.start_point
+        end = segment.end_point
+
+        # 判断点1和点2与线段的位置关系
+        pos1 = point_segment_position(point1, segment, epsilon)
+        pos2 = point_segment_position(point2, segment, epsilon)
+        # if i==1:
+        #     print(pos1,pos2)
+        #     print(point1,point2)
+        #     print(start,end)
+        # 条件1：两个点分别在线段的两端
+        if (pos1 == "before_start" and pos2 == "after_end" ) or \
+           (pos1 == "after_end" and pos2 == "before_start"):
+            return "whole",i
+
+        # 条件2：一个点在线段的一端，另一个点在线段上（包括端点）
+        if (pos1 == "on_segment" and (pos2 == "before_start" or pos2=="after_end")) or \
+           (pos2 == "on_segment" and (pos1 == "before_start" or pos1=="after_end")):
+            return "half",i
+
+        # 条件3：两个点都在线段的一端
+        if (pos1 == "before_start"  and pos2 == "before_start") or \
+           (pos1 == "after_end"  and pos2 == "after_end"):
+            return "cornor",i
+
+    # 如果遍历完所有线段都没有满足条件的，返回 False
+    return None,None
 def angleOfTwoVectors(A,B):
     lengthA = math.sqrt(A[0]**2 + A[1]**2)  
     lengthB = math.sqrt(B[0]**2 + B[1]**2)  
@@ -334,7 +465,34 @@ def sort_points_on_arc(points, arc):
     else:
         return sorted(points, key=lambda pt: angle_from_center(pt,start_point,arc))
 
+def shrinkFixedLength(segList,dist):
+    
 
+    new_seglist=[] 
+    n=len(segList)
+    # if verbose:
+    #     pbar=tqdm(total=n,desc="Preprocess")
+    for seg in segList:
+        # if verbose:
+        #     pbar.update()
+        p1=seg[0]
+        p2=seg[1]
+        v=(p2[0]-p1[0],p2[1]-p1[1])
+        l=math.sqrt(v[0]*v[0]+v[1]*v[1])
+
+       
+        
+        # elif l<=dist:
+        #     l*=1.5
+        v=(v[0]/l*dist,v[1]/l*dist)
+        if l <=2*dist:
+            l*=2
+        vs=DPoint(p1[0]+v[0],p1[1]+v[1]) 
+        ve=DPoint(p2[0]-v[0],p2[1]-v[1])
+        new_seglist.append(DSegment(vs,ve,seg.ref))
+    # if verbose:
+    #     pbar.close()
+    return new_seglist
 #expand lines by fixed length
 def expandFixedLength(segList,dist,both=True,verbose=True,ignore_length=False):
 

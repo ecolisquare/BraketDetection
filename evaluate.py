@@ -7,7 +7,7 @@ from element import *
 from config import *
 from utils import readJson, findAllTextsAndDimensions, processDimensions, processTexts, findClosedPolys_via_BFS,process_lwpoline
 from shapely.geometry import Polygon, Point
-
+import re
 def read_json(json_path, bracket_layer):
     texts=[]
     polys=[]
