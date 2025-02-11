@@ -1,4 +1,5 @@
 import json
+import random
 from element import *
 
 def find_anno_info(cluster_name,poly_refs, texts,dimensions,conerhole_num, poly_free_edges, edges):
@@ -354,11 +355,164 @@ def poly_classifier(poly_refs, texts,dimensions,conerhole_num, poly_free_edges, 
     
     #TODO
     #for each mixed type, use the first type name as key(cluster_name),find the annoation
-    cluster_name="KL(R)"
-    anno=find_anno_info(cluster_name,poly_refs, texts,dimensions,conerhole_num, poly_free_edges, edges)
+    anno=find_anno_info(matched_type,poly_refs, texts,dimensions,conerhole_num, poly_free_edges, edges)
+    random.seed(13)
     if anno is None:
         #default type of the mixed type
         return matched_type
     else:
         #classify inner mixed type by annotation
+
+        # DAB(VU-KS), DAB-1(VU-KS)
+        cluster_name="DAB(VU-KS)"
+        if cluster_name in matched_type:
+            if anno == "no_angle":
+                matched_type = "DAB(VU-KS)"
+            elif anno == "angl":
+                matched_type = "DAB-1(VU-KS)"
+            else:
+                matched_type = "DAB(VU-KS)"
+
+        # DAC(VU-R), DAC(VUF-R)
+        cluster_name="DAC(VU-R)"
+        if cluster_name in matched_type:
+            if anno == "no_anno":
+                matched_type = "DAC(VU-R)"
+            elif anno == "short_anno":
+                matched_type = "DAC(VUF-R)"
+            else:
+                matched_type = "DAC(VU-R)"
+        
+        # DPK(R), LDPK(R-R), LDPK-1(R-R)
+        cluster_name="DPK(R)"
+        if cluster_name in matched_type:
+            if anno == "long_anno":
+                matched_type = "DPK(R)"
+            elif anno == "short_anno":
+                matched_type = "LDPK(R-R)"
+            elif anno == "short_anno_para":
+                matched_type = "LDPK-1(R-R)"
+            else:
+                matched_type = "DPK(R)"
+        
+        # DAB(R-KS), DAB-1(R-KS)
+        cluster_name="DAB(R-KS)"
+        if cluster_name in matched_type:
+            if anno == "no_angle":
+                matched_type = "DAB(R-KS)"
+            elif anno == "angl":
+                matched_type = "DAB-1(R-KS)"
+            else:
+                matched_type = "DAB(R-KS)"
+
+        # DPKN(KS-KS), LDPKN(KS-KS), DAB-3(KS-KS)
+        cluster_name="DPKN(KS-KS)"
+        if cluster_name in matched_type:
+            if anno == "long_anno":
+                matched_type = "DPKN(KS-KS)"
+            elif anno == "short_anno":
+                matched_type = "LDPKN(KS-KS)"
+            else:
+                matched_type = random.choice(["DPKN(KS-KS)", "DAB-3(KS-KS)"])
+        
+        # DPKN(R-KS), DPKN(KS-R), LDPKN(KS-R)
+        cluster_name="DPKN(R-KS)"
+        if cluster_name in matched_type:
+            if anno == "long_anno":
+                matched_type = random.choice(["DPKN(R-KS)", "DPKN(KS-R)"])
+            elif anno == "short_anno":
+                matched_type = "LDPKN(KS-R)"
+            else:
+                matched_type = random.choice(["DPKN(R-KS)", "DPKN(KS-R)"])
+
+        # DAB-3(R-KS), LDBA(R-KS), BCB-1(R-KS)
+        cluster_name="DAB-3(R-KS)"
+        if cluster_name in matched_type:
+            if anno == "angl_non_free":
+                matched_type = "DAB-3(R-KS)"
+            elif anno == "dist_intersec":
+                matched_type = "LDBA(R-KS)"
+            elif anno == "no_tangent":
+                matched_type = "BCB-1(R-KS)"
+            else:
+                matched_type = "LDBA(R-KS)"
+
+        # KL(R), KL-1(R), KL-2(R)
+        cluster_name="KL(R)"
+        if cluster_name in matched_type:
+            if anno == "ff":
+                matched_type = "KL(R)"
+            elif anno == "tt":
+                matched_type = "KL-1(R)"
+            elif anno == "tf":
+                matched_type = "KL-2(R)"
+            else:
+                matched_type = "KL(R)"
+        
+        # KL(KS), KL-1(KS), KL-2(KS)
+        cluster_name="KL(KS)"
+        if cluster_name in matched_type:
+            if anno == "ff":
+                matched_type = "KL(KS)"
+            elif anno == "tt":
+                matched_type = "KL-1(KS)"
+            elif anno == "tf":
+                matched_type = "KL-2(KS)"
+            else:
+                matched_type = "KL(KS)"
+        
+        # DPK-1(R), DPK-2(R-R), DPK-5(R-R), LDPK-3(R-R)
+        cluster_name="DPK-1(R)"
+        if cluster_name in matched_type:
+            if anno == "angl_non_free":
+                matched_type = "DPK-1(R)"
+            elif anno == "dist_adja":
+                matched_type = "DPK-2(R-R)"
+            elif anno == "angl_toe":
+                matched_type = "DPK-5(R-R)"
+            elif anno == "dist_intersec":
+                matched_type = "LDPK-3(R-R)"
+            else:
+                matched_type = "DPK-1(R)"
+        
+        # DPK(R-KS), LDPK-1(KS-R)
+        cluster_name="DPK(R-KS)"
+        if cluster_name in matched_type:
+            if anno == "long_anno":
+                matched_type = "DPK(R-KS)"
+            elif anno == "short_anno":
+                matched_type = "LDPK-1(KS-R)"
+            else:
+                matched_type = "DPK(R-KS)"
+        
+        # BR-1(KS), DAA(KS)
+        cluster_name="BR-1(KS)"
+        if cluster_name in matched_type:
+            if anno == "angl_non_free":
+                matched_type = "BR-1(KS)"
+            elif anno == "dist_intersec":
+                matched_type = "DAA(KS)"
+            else:
+                matched_type = "DAA(KS)"
+        
+        # DPV-4(R-KS), DPV-6(R-KS)
+        cluster_name="DPV-4(R-KS)"
+        if cluster_name in matched_type:
+            if anno == "D_anno":
+                matched_type = "DPV-4(R-KS)"
+            elif anno == "no_anno":
+                matched_type = "DPV-6(R-KS)"
+            else:
+                matched_type = "DPV-4(R-KS)"
+        
+        # LBMA-1(KS), BMA-1(KS)
+        cluster_name="DPV-4(R-KS)"
+        if cluster_name in matched_type:
+            if anno == "dist":
+                matched_type = "BMA-1(KS)"
+            elif anno == "angl":
+                matched_type = "LBMA-1(KS)"
+            else:
+                matched_type = "BMA-1(KS)"
+        
         return matched_type
