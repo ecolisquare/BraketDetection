@@ -414,7 +414,18 @@ def poly_classifier(poly_refs, texts,dimensions,conerhole_num, poly_free_edges, 
                 matched_type = "LDPKN(KS-KS)"
             else:
                 matched_type = random.choice(["DPKN(KS-KS)", "DAB-3(KS-KS)"])
-        
+
+        # DAD(R), DCD(R) 
+        cluster_name="DAD(R)"
+        if cluster_name in matched_type:
+            if anno == "dist_intersec":
+                matched_type = "DAD(R)"
+            elif anno == "no_dist":
+                matched_type = "DCD(R)"
+            else:
+                matched_type = "DCD(R)"
+
+
         # DPKN(R-KS), DPKN(KS-R), LDPKN(KS-R)
         cluster_name="DPKN(R-KS)"
         if cluster_name in matched_type:
@@ -475,6 +486,18 @@ def poly_classifier(poly_refs, texts,dimensions,conerhole_num, poly_free_edges, 
             else:
                 matched_type = "DPK-1(R)"
         
+        # BR(R), BR-1(R), DAA(R)
+        cluster_name="BR(R)"
+        if cluster_name in matched_type:
+            if anno == "no_anno":
+                matched_type = "BR(R)"
+            elif anno == "angl_non_free":
+                matched_type = "BR-1(R)"
+            elif anno == "dist_intersec":
+                matched_type = "DAA(R)"
+            else:
+                matched_type = "BR(R)"
+        
         # DPK(R-KS), LDPK-1(KS-R)
         cluster_name="DPK(R-KS)"
         if cluster_name in matched_type:
@@ -503,10 +526,10 @@ def poly_classifier(poly_refs, texts,dimensions,conerhole_num, poly_free_edges, 
             elif anno == "no_anno":
                 matched_type = "DPV-6(R-KS)"
             else:
-                matched_type = "DPV-4(R-KS)"
+                matched_type = "DPV-6(R-KS)"
         
         # LBMA-1(KS), BMA-1(KS)
-        cluster_name="DPV-4(R-KS)"
+        cluster_name="LBMA-1(KS)"
         if cluster_name in matched_type:
             if anno == "dist":
                 matched_type = "BMA-1(KS)"
