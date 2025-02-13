@@ -1100,6 +1100,31 @@ def outputPolyInfo(poly, segments, segmentation_config, point_map, index,star_po
         print(f"回路{index}没有约束边！")
         #return poly_refs
         return None
+    
+    # 依据自由边的起始，调整固定边和角隅孔的顺序
+    cycle_edges = edges + edges
+    constarint_cornerhole_edges = []
+    constarint_edges = []
+    cornerhole_edges = []
+    start = False
+    for edge_ in cycle_edges:
+        # 如果遇到第一个非 Cornerhole 和非 Constraint 边，开始收集
+        if not start and edge_[0].isCornerhole == False and edge_[0].isConstraint == False:
+            start = True
+        
+        # 如果已经开始收集，且当前边是 Cornerhole 或 Constraint，加入 al_edges
+        elif start and (edge_[0].isCornerhole or edge_[0].isConstraint):
+            constarint_cornerhole_edges.append(edge_)
+            if edge_[0].isCornerhole:
+                cornerhole_edges.append(edge_)
+            elif edge_[0].isConstraint:
+                constarint_edges.append(edge_)
+        
+        # 如果已经开始收集，且当前边不再是 Cornerhole 或 Constraint，停止收集
+        elif start and edge_[0].isCornerhole == False and edge_[0].isConstraint == False:
+            start = False
+    edges = free_edges + constarint_cornerhole_edges
+
     #分割固定边
     new_edges=[]
     for edge_ in edges:
