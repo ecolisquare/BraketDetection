@@ -1,29 +1,149 @@
 {
-  "type_1": {
-    "free_edges": ["line", "line"],
-    "non_free_edges": [
-      {"type": "constraint", "edges": ["line"]},
-      {"type": "cornerhole", "edges": [["arc", "line"]]},
-      {"type": "constraint", "edges": ["line"]},
-      {"type": "constraint", "edges": ["line"]}
-    ]
+  "DAC(VU-R)":{
+    "free_edges": ["toe", "arc", "line", "arc", "line"],
+    "non_free_edges": [{
+      "type": "constraint",
+      "edges": ["line"]
+      }, {
+      "type": "cornerhole",
+      "edges": ["arc"]
+      }, {
+      "type": "constraint",
+      "edges": ["line"]
+      }, {
+      "type": "cornerhole",
+      "edges": [["arc", "line"]]
+      }, {
+      "type": "constraint",
+      "edges": ["line"]
+      }],
+    "code": "no_anno",
+    "default": "True"
   },
-  "type_2": {
-    "free_edges": ["line", "line", "line"],
-    "non_free_edges": [
-      {"type": "constraint", "edges": ["line"]},
-      {"type": "cornerhole", "edges": ["arc"]},
-      {"type": "constraint", "edges": ["line"]}
-    ]
+  "DAC(VUF-R)":{
+    "free_edges": ["toe", "arc", "line", "arc", "line"],
+    "non_free_edges": [{
+      "type": "constraint",
+      "edges": ["line"]
+      }, {
+      "type": "cornerhole",
+      "edges": ["arc"]
+      }, {
+      "type": "constraint",
+      "edges": ["line"]
+      }, {
+      "type": "cornerhole",
+      "edges": [["arc", "line"]]
+      }, {
+      "type": "constraint",
+      "edges": ["line"]
+      }],
+    "code": "short_anno",
+    "default": "False"
   },
-  "type_3": {
-    "free_edges": ["line", "line"],
-    "non_free_edges": [
-      {"type": "constraint", "edges": ["line"]},
-      {"type": "cornerhole", "edges": ["arc"]},
-      {"type": "constraint", "edges": ["line"]},
-      {"type": "cornerhole", "edges": ["arc"]},
-      {"type": "constraint", "edges": ["line"]}
-    ]
+  "DPK(R)":{
+    "free_edges": ["toe", "arc", "line", "arc", "toe"],
+    "non_free_edges": [{
+      "type": "constraint",
+      "edges": ["line"]
+      }, {
+      "type": "cornerhole",
+      "edges": ["arc"]
+      }, {
+      "type": "constraint",
+      "edges": ["line"]
+      }, {
+      "type": "cornerhole",
+      "edges": ["arc"]
+      }, {
+      "type": "constraint",
+      "edges": ["line"]
+      }],
+    "code": "long_anno",
+    "default": "True"
+  },
+  "LDPK(R-R)":{
+    "free_edges": ["toe", "arc", "line", "arc", "toe"],
+    "non_free_edges": [{
+      "type": "constraint",
+      "edges": ["line"]
+      }, {
+      "type": "cornerhole",
+      "edges": ["arc"]
+      }, {
+      "type": "constraint",
+      "edges": ["line"]
+      }, {
+      "type": "cornerhole",
+      "edges": ["arc"]
+      }, {
+      "type": "constraint",
+      "edges": ["line"]
+      }],
+    "code": "short_anno",
+    "default": "False"
+  },
+  "LDPK-1(R-R)":{
+    "free_edges": ["toe", "arc", "line", "arc", "toe"],
+    "non_free_edges": [{
+      "type": "constraint",
+      "edges": ["line"]
+      }, {
+      "type": "cornerhole",
+      "edges": ["arc"]
+      }, {
+      "type": "constraint",
+      "edges": ["line"]
+      }, {
+      "type": "cornerhole",
+      "edges": ["arc"]
+      }, {
+      "type": "constraint",
+      "edges": ["line"]
+      }],
+    "code": "short_anno_para",
+    "default": "False"
+  },
+  "DPKN(KS-KS)":{
+    "free_edges": ["toe", "arc", "line"],
+    "non_free_edges": [{
+      "type": "constraint",
+      "edges": ["line"]
+      }, {
+      "type": "cornerhole",
+      "edges": ["line"]
+      }, {
+      "type": "constraint",
+      "edges": ["line"]
+      }, {
+      "type": "cornerhole",
+      "edges": ["line"]
+      }, {
+      "type": "constraint",
+      "edges": ["line"]
+      }],
+    "code": "long_anno",
+    "default": "Ture"
+  },
+  "LDPKN(KS-KS)":{
+    "free_edges": ["toe", "arc", "line"],
+    "non_free_edges": [{
+      "type": "constraint",
+      "edges": ["line"]
+      }, {
+      "type": "cornerhole",
+      "edges": ["line"]
+      }, {
+      "type": "constraint",
+      "edges": ["line"]
+      }, {
+      "type": "cornerhole",
+      "edges": ["line"]
+      }, {
+      "type": "constraint",
+      "edges": ["line"]
+      }],
+    "code": "short_anno",
+    "default": "False"
   }
 }
