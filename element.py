@@ -318,7 +318,7 @@ class DDimension(DElement):
         self.dimtype=dimtype
         self.meta=meta
         if self.text=="":
-            if self.dimtype==37 or self.dimtype==34:
+            if self.dimtype==37 or self.dimtype==34 or self.dimtype==162:
                 self.text=str(round(self.measurement/math.pi*180))+"°"
             elif self.dimtype==163:
                 self.text="Φ"+str(round(self.measurement))

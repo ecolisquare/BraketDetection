@@ -1,7 +1,135 @@
 import json
 from element import *
+def is_vertical_(point1,point2,segment,epsilon=0.05):
+    v1=DPoint(point1.x-point2.x,point1.y-point2.y)
+    v2=DPoint(segment.start_point.x-segment.end_point.x,segment.start_point.y-segment.end_point.y)
+    cross_product=(v1.x*v2.x+v1.y+v2.y)/(DSegment(point1,point2).length()*segment.length())
+    if  abs(cross_product) <epsilon:
+        return True
+    return False 
+def is_tangent(line,arc):
+    s1,s2=DSegment(arc.ref.center,arc.ref.start_point),DSegment(arc.ref.center,arc.ref.end_point)
+    v1,v2=line.start_point,line.end_point
+    if v1==arc.ref.start_point or v2==arc.ref.start_point:
+        return is_vertical_(v1,v2,s1)
+    if v1==arc.ref.end_point or v2==arc.ref.end_point:
+        return is_vertical_(v1,v2,s2)
+    return True
 
-def find_anno_info(cluster_name,poly_refs, texts,dimensions,conerhole_num, poly_free_edges, edges):
+
+def find_anno_info(matched_type,all_anno,poly_free_edges):
+    radius_anno,whole_anno,half_anno,cornor_anno,parallel_anno,non_parallel_anno,vertical_anno,d_anno,angle_anno,toe_angle_anno=all_anno
+    if "DAB(VU-KS)" in matched_type:
+        if len(angle_anno)==0:
+            return "no_angle"
+        else:
+            return "angl"
+    elif "DAC(VU-R)" in matched_type:
+        if len(cornor_anno)==0:
+            return "no_anno"
+        else:
+            return "short_anno"
+    elif "DPK(R)" in matched_type:
+        if len(parallel_anno)!=0:
+            return "short_anno_para"
+        elif len(half_anno)!=0:
+            return "short_anno"
+        else:
+            return "long_anno"
+    elif "DAB(R-KS)" in matched_type:
+        if len(cornor_anno)==0:
+            return "no_anno"
+        else:
+            return "short_anno"
+    elif "DPKN(KS-KS)" in matched_type:
+        if len(half_anno)!=0:
+            return "short_anno"
+        else:
+            return "long_anno"
+    elif "DAD(R)" in matched_type:
+        if len(half_anno)!=0:
+            return "dist_intersec"
+        else:
+            return "no_dist"
+    elif "DPKN(KS-R)" in matched_type:
+        if len(half_anno)!=0:
+            return "short_anno"
+        else:
+            return "long_anno"
+    elif "DAB-3(R-KS)" in matched_type:
+        free_edges=poly_free_edges[0]
+        line=free_edges[2]
+        arc1,arc2=free_edges[1],free_edges[3]
+        if is_tangent(line,arc1) and is_tangent(line,arc2):
+            if len(angle_anno)!=0:
+                return "angl_non_free"
+            else:
+            
+                return "dist_intersec"
+        else:
+            return "no_tangent"
+    elif "KL(R)" in matched_type:
+        if len(vertical_anno)==2:
+            return "tt"
+        elif len(vertical_anno)==1:
+            return "tf"
+        else:
+            return "ff"
+    elif "KL(KS)" in matched_type:
+        if len(vertical_anno)==2:
+            return "tt"
+        elif len(vertical_anno)==1:
+            return "tf"
+        else:
+            return "ff"
+    elif "BR-1(R)" in matched_type:
+        if len(angle_anno)!=0:
+            return "angl_non_free"
+        elif len(half_anno)!=0:
+            return "dist_intersec"
+        else:
+            return "no_anno"
+    elif "DPK(R-KS)" in matched_type:
+        if len(half_anno)!=0:
+            return "short_anno"
+        else:
+            return "long_anno"
+    elif "BR-1(KS)" in matched_type:
+        if len(angle_anno)!=0:
+            return "angl_non_free"
+        else:
+            return "dist_intersec"
+    elif "LBMA-1(KS)" in matched_type:
+        if len(angle_anno)!=0:
+            return "angl"
+        else:
+            return "dist"
+    elif "DPV-4(R-KS)" in matched_type:
+        if len(parallel_anno)!=0:
+            return "D_anno"
+        else:
+            return "no_anno"
+    elif "DAC(KS-KS)" in matched_type:
+        if len(d_anno)!=0:
+            return "D"
+        else:
+            return "notD"
+    elif "DAE(R-R)" in matched_type:
+        if len(d_anno)!=0:
+            return "D"
+        else:
+            return "notD"
+    elif "DPK-1（R）" in matched_type:
+        if len(non_parallel_anno)!=0:
+            return "dist_adja"
+        elif len(toe_angle_anno)!=0:
+            return "angl_toe"
+        elif len(half_anno)!=0:
+            return "dist_intersec"
+        else:
+            return "angl_non_free"
+
+
     return None
 def load_classification_table(file_path):
     """
@@ -267,7 +395,7 @@ def conerhole_free_classifier(classification_table, conerhole_num, free_edges_se
 
     return matched_type if matched_type is not None else "Unclassified"
 
-def poly_classifier(poly_refs, texts,dimensions,conerhole_num, poly_free_edges, edges, classification_file_path, info_json_path, keyname, is_output_json = False):
+def poly_classifier(all_anno,poly_refs, texts,dimensions,conerhole_num, poly_free_edges, edges, classification_file_path, info_json_path, keyname, is_output_json = False):
     classification_table = load_classification_table(classification_file_path)
 
     # Step 1: 获取角隅孔数
@@ -355,7 +483,7 @@ def poly_classifier(poly_refs, texts,dimensions,conerhole_num, poly_free_edges, 
     #TODO
     #for each mixed type, use the first type name as key(cluster_name),find the annoation
     cluster_name="KL(R)"
-    anno=find_anno_info(cluster_name,poly_refs, texts,dimensions,conerhole_num, poly_free_edges, edges)
+    anno=find_anno_info(matched_type,poly_refs, texts,dimensions,conerhole_num, poly_free_edges, edges)
     if anno is None:
         #default type of the mixed type
         return matched_type

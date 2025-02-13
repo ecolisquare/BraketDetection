@@ -107,7 +107,8 @@ def point_segment_position(point: DPoint, segment: DSegment, epsilon=0.05):
     AB = DPoint(segment.end_point.x - segment.start_point.x, segment.end_point.y - segment.start_point.y)
     # 向量AP表示从起点到点的方向
     AP = DPoint(point.x - segment.start_point.x, point.y - segment.start_point.y)
-
+    l1,l2=DSegment(segment.start_point,point).length(),segment.length()
+    
     # 计算叉积，判断点是否在直线上
     cross_product = (AB.x * AP.y - AB.y * AP.x)/(DSegment(segment.start_point,point).length()*segment.length())
     if abs(cross_product) > epsilon:
@@ -116,8 +117,12 @@ def point_segment_position(point: DPoint, segment: DSegment, epsilon=0.05):
     # 计算点积，判断点是否在线段上
     dot_product = (AB.x * AP.x + AB.y * AP.y)/(DSegment(segment.start_point,point).length()*segment.length())
     if dot_product < 0:
+        if l2>40 and l1>0.75*l2:
+            return "not_on_line"
         return "before_start"  # 点在线段起点之前
     elif DSegment(segment.start_point,point).length()>segment.length():
+        if l2>40 and l1>1.75*l2:
+            return "not_on_line"
         return "after_end"  # 点在线段终点之后
     else:
         return "on_segment"  # 点在线段上
@@ -144,6 +149,7 @@ def check_parallel_anno(point1: DPoint, point2: DPoint, constraint_edges: list[D
     cons2=point_on_segments(point2,constraint_edges,epsilon)
     free1=point_on_segments(point1,free_edges,epsilon)
     free2=point_on_segments(point2,free_edges,epsilon)
+    # print(len(cons1),len(cons2),len(free1),len(free2))
     key=None
     if len(cons1)==1 and len(cons2)==0 and len(free1)==0 and len(free2)==1:
         key=(cons1[0],free2[0])
@@ -152,6 +158,32 @@ def check_parallel_anno(point1: DPoint, point2: DPoint, constraint_edges: list[D
         key=(cons2[0],free1[0])
     return key
 
+def is_on_free_edges(point,free_edges):
+    for edge in free_edges:
+        l1,l2=DSegment(edge.start_point,point).length(),DSegment(edge.end_point,point).length()
+        if l1<100 or l2<100:
+            return True
+    return False
+def nearest_free_edge(point,free_edges):
+    free_edge=None
+    distance=float('inf')
+    for edge in free_edges:
+        l1,l2=DSegment(edge.start_point,point).length(),DSegment(edge.end_point,point).length()
+        dis=min(l1,l2)
+        if distance>dis:
+            free_edge=edge
+            distance=dis    
+    return free_edge
+def check_non_parallel_anno(point1: DPoint, point2: DPoint, constraint_edges: list[DSegment],free_edges:list[DSegment], epsilon=0.05):
+    cons1=point_on_segments(point1,constraint_edges,epsilon)
+    cons2=point_on_segments(point2,constraint_edges,epsilon)
+    if len(cons1)==1 and len(cons2)==0 and is_on_free_edges(point2,free_edges):
+        free=nearest_free_edge(point2,free_edges)
+        return (cons1[0],free)
+    if len(cons2)==1 and len(cons1)==0 and is_on_free_edges(point1,free_edges):
+        free=nearest_free_edge(point1,free_edges)
+        return (cons2[0],free)
+    return None
 def is_vertical(point1,point2,segment,epsilon=0.05):
     v1=DPoint(point1.x-point2.x,point1.y-point2.y)
     v2=DPoint(segment.start_point.x-segment.end_point.x,segment.start_point.y-segment.end_point.y)
@@ -969,7 +1001,29 @@ def segment_intersection(p1, p2, q1, q2, epsilon=1e-9):
         return DPoint(intersect_x, intersect_y)
     
     return None
+def segment_intersection_line(p1, p2, q1, q2, epsilon=1e-9):
+    """ Returns the intersection point between two line segments, or None if they don't intersect. """
+    ###TODO: if two segments are colinear or in the same line,get the intersection within a unique method  
+    def cross_product(v1, v2):
+        return v1[0] * v2[1] - v1[1] * v2[0]
 
+    r = (p2.x - p1.x, p2.y - p1.y)
+    s = (q2.x - q1.x, q2.y - q1.y)
+
+    denominator = cross_product(r, s)
+
+    if abs(denominator) < epsilon:  # Parallel or collinear
+        return None
+
+    t = cross_product((q1.x - p1.x, q1.y - p1.y), s) / denominator
+    u = cross_product((q1.x - p1.x, q1.y - p1.y), r) / denominator
+
+    
+    intersect_x = p1.x + t * r[0]
+    intersect_y = p1.y + t * r[1]
+    return DPoint(intersect_x, intersect_y)
+
+    
 # Function to find all intersections
 # def find_all_intersections(segments, epsilon=1e-9):
 #     intersection_dict = {}
@@ -2567,10 +2621,10 @@ def outputLines(segmentation_config,segments,point_map,polys,cornor_holes,star_p
                     x=p_minus(p_add(d.defpoints[1],l0),p_mul(l0,d10/d00))
                 d1,d2,d3,d4=d.defpoints[0], x,d.defpoints[1],d.defpoints[2]
 
-                for i,p in enumerate([d1,d2,d3,d4]):
-                    if p!=DPoint(0,0):
-                        plt.text(p.x, p.y, str(i+1),color="#EE0000", fontsize=15)
-                        plt.plot(p.x, p.y, 'b.')
+                # for i,p in enumerate([d1,d2,d3,d4]):
+                #     if p!=DPoint(0,0):
+                #         plt.text(p.x, p.y, str(i+1),color="#EE0000", fontsize=15)
+                #         plt.plot(p.x, p.y, 'b.')
                 ss=[DSegment(d1,d4),DSegment(d4,d3),DSegment(d3,d2)]
                 sss=[DSegment(d2,d1)]
                 ss=expandFixedLength(ss,25,True,False,True)
@@ -2619,27 +2673,65 @@ def outputLines(segmentation_config,segments,point_map,polys,cornor_holes,star_p
                 ab=p_minus(b,a)
                 rotation_angle = np.arctan2(ab.y, -ab.x) * (180 / np.pi)
                 plt.text(q.x, q.y, d.text,rotation=rotation_angle,color="#EEC933", fontsize=15)
-            elif d.dimtype==34:
-                a,b_,b,o=d.defpoints[0],d.defpoints[1],d.defpoints[2],d.defpoints[3]
-                r=DSegment(d.defpoints[4],o).length()
-                ra=DSegment(a,o).length()
-                rb=DSegment(b,o).length()
-                oa_=p_mul(p_minus(a,o),r/ra)
-                ob_=p_mul(p_minus(b,o),r/rb)
-                ao_=p_mul(oa_,-1)
-                bo_=p_mul(ob_,-1)
-                a_= p_add(o, oa_)
-                b_ = p_add(o, ob_)
-                ia_=p_add(o,ao_)
-                ib_=p_add(o,bo_)
-                delta=p_mul(DPoint(oa_.y,-oa_.x),3)
-                sp=p_add(delta,a_)
-                plt.arrow(ia_.x, ia_.y, a_.x-ia_.x,a_.y-ia_.y, head_width=20, head_length=20, fc='red', ec='red')
-                plt.arrow(ib_.x, ib_.y, b_.x-ib_.x,b_.y-ib_.y, head_width=20, head_length=20, fc='red', ec='red')
-                plt.plot([sp.x,a_.x], [sp.y,a_.y], color="#FF0000", lw=2,linestyle='--')
-                q=p_mul(p_add(a_,sp),0.5)
-                rotation_angle = np.arctan2(delta.y, -delta.x) * (180 / np.pi)
-                plt.text(q.x, q.y, d.text,rotation=rotation_angle,color="#EEC933", fontsize=15)
+            elif d.dimtype==34 or d.dimtype==162:
+                
+                s1=DSegment(d.defpoints[3],d.defpoints[0])
+                s2=DSegment(d.defpoints[2],d.defpoints[1])
+                
+                inter=segment_intersection_line(s1.start_point,s1.end_point,s2.start_point,s2.end_point)
+                pos=d.defpoints[4]
+                r=DSegment(pos,inter).length()
+                v1=DPoint((s1.end_point.x-s1.start_point.x)/s1.length()*(r+5),(s1.end_point.y-s1.start_point.y)/s1.length()*(r+5))
+                v2=DPoint((s2.end_point.x-s2.start_point.x)/s2.length()*(r+5),(s2.end_point.y-s2.start_point.y)/s2.length()*(r+5))
+                d1=DPoint(v1.x+inter.x,v1.y+inter.y)
+                d2=DPoint(-v1.x+inter.x,-v1.y+inter.y)
+                d3=DPoint(v2.x+inter.x,v2.y+inter.y)
+                d4=DPoint(-v2.x+inter.x,-v2.y+inter.y)
+                p1=None
+                p2=None
+                if DSegment(pos,d1).length()<DSegment(pos,d2).length():
+                    p1=d1
+                else:
+                    p1=d2
+                if DSegment(pos,d3).length()<DSegment(pos,d4).length():
+                    p2=d3
+                else:
+                    p2=d4
+
+                
+                # if d.dimtype==34:
+                #     for i,p in enumerate([d1,d2,d3,d4]):
+                #         if p!=DPoint(0,0):
+                #             plt.text(p.x, p.y, str(i+1),color="#EE0000", fontsize=15)
+                #             plt.plot(p.x, p.y, 'b.')
+                ss1=DSegment(inter,p1)
+                ss2=DSegment(inter,p2)
+
+                plt.arrow(ss1.start_point.x, ss1.start_point.y, ss1.end_point.x-ss1.start_point.x,ss1.end_point.y-ss1.start_point.y, head_width=20, head_length=20, fc='red', ec='red')
+                plt.arrow(ss2.start_point.x, ss2.start_point.y, ss2.end_point.x-ss2.start_point.x,ss2.end_point.y-ss2.start_point.y, head_width=20, head_length=20, fc='red', ec='red')
+                plt.text(pos.x, pos.y, d.text,rotation=rotation_angle,color="#EEC933", fontsize=15)
+                plt.plot(inter.x,inter.y,'g.')
+                plt.plot([p1.x,p2.x], [p1.y,p2.y], color="#FF0000", lw=2,linestyle='--')
+                # a,b_,b,o=d.defpoints[0],d.defpoints[1],d.defpoints[2],d.defpoints[3]
+                # r=DSegment(d.defpoints[4],o).length()
+                # ra=DSegment(a,o).length()
+                # rb=DSegment(b,o).length()
+                # oa_=p_mul(p_minus(a,o),r/ra)
+                # ob_=p_mul(p_minus(b,o),r/rb)
+                # ao_=p_mul(oa_,-1)
+                # bo_=p_mul(ob_,-1)
+                # a_= p_add(o, oa_)
+                # b_ = p_add(o, ob_)
+                # ia_=p_add(o,ao_)
+                # ib_=p_add(o,bo_)
+                # delta=p_mul(DPoint(oa_.y,-oa_.x),3)
+                # sp=p_add(delta,a_)
+                # plt.arrow(ia_.x, ia_.y, a_.x-ia_.x,a_.y-ia_.y, head_width=20, head_length=20, fc='red', ec='red')
+                # plt.arrow(ib_.x, ib_.y, b_.x-ib_.x,b_.y-ib_.y, head_width=20, head_length=20, fc='red', ec='red')
+                # plt.plot([sp.x,a_.x], [sp.y,a_.y], color="#FF0000", lw=2,linestyle='--')
+                # q=p_mul(p_add(a_,sp),0.5)
+                # rotation_angle = np.arctan2(delta.y, -delta.x) * (180 / np.pi)
+                # plt.text(q.x, q.y, d.text,rotation=rotation_angle,color="#EEC933", fontsize=15)
         #plt.plot(p.x, p.y, marker='o', markerfacecolor="#E38C35",markersize=10)
         
     # for cornor_hole in cornor_holes:
@@ -3358,7 +3450,7 @@ def processDimensions(dimensions):
             #转角标注& 对齐标注
             dim_pos=DPoint((d.defpoints[1].x+d.defpoints[2].x)/2,(d.defpoints[1].y+d.defpoints[2].y)/2)
             ds.append([d,dim_pos]) 
-        elif type==37 or type==34:
+        elif type==37 or type==34 or type==162:
             #三点角度标注
             dim_pos=DPoint(d.defpoints[3].x,d.defpoints[3].y)
             ds.append([d,dim_pos]) 
