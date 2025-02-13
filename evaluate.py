@@ -113,18 +113,19 @@ def find_nearest_text(poly, texts, extra_range = 2500):
     search_radius = calculate_search_radius(poly)
     nearest_text = None
     min_distance = float('inf')
-    
+    nearest_texts=[]
     for text in texts:
         text_center = get_text_center(text)
         distance = center.distance(text_center)
         
         # 判断标注是否在框内或自适应搜索范围内
         if distance <= search_radius + extra_range:
-            if distance < min_distance:
-                nearest_text = text
-                min_distance = distance
+            # if distance < min_distance:
+                # nearest_text = text
+                # min_distance = distance
+            nearest_texts.append(text)
 
-    return nearest_text
+    return nearest_texts
 
 if __name__ == '__main__':
     test_dxf_path = "./output/Large8_braket.dxf"
@@ -181,17 +182,31 @@ if __name__ == '__main__':
     gt_total_with_labels = 0
     successful_classifications = 0
     for gt_poly in gt_polys:
-        nearest_gt_text = find_nearest_text(gt_poly, gt_texts)
-        if nearest_gt_text is None:
+        nearest_gt_texts = find_nearest_text(gt_poly, gt_texts)
+        # if nearest_gt_text is None:
+        #     continue
+        if len(nearest_gt_texts)==0:
             continue
         gt_total_with_labels += 1
         gt_polygon = Polygon(gt_poly)
         for test_poly in test_polys:
             test_polygon = Polygon(test_poly)
             if test_polygon.intersects(gt_polygon):
-                nearest_test_text = find_nearest_text(test_poly, test_texts)
-                if nearest_test_text and nearest_gt_text.content in nearest_test_text.content:
-                    # print(f"{nearest_gt_text.content}, {nearest_test_text.content}")
+                nearest_test_texts = find_nearest_text(test_poly, test_texts)
+                if len(nearest_test_texts)==0:
+                    continue
+                flag=False
+                for gt_text in nearest_gt_texts:
+                    for test_text in nearest_test_texts:
+
+                        if gt_text.content in test_text.content:
+                            flag=True
+                            
+                        if flag:
+                            break
+                    if flag:
+                        break
+                if flag:
                     successful_classifications += 1
                     break
     classification_precision = successful_classifications / gt_total_with_labels if gt_total_with_labels > 0 else 1

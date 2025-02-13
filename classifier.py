@@ -117,9 +117,9 @@ def find_anno_info(matched_type,all_anno,poly_free_edges):
             return "notD"
     elif "DAE(R-R)" in matched_type:
         if len(d_anno)!=0:
-            return "D"
+            return "D_anno"
         else:
-            return "notD"
+            return "no_anno"
     elif "DPK-1（R）" in matched_type:
         if len(non_parallel_anno)!=0:
             return "dist_adja"
@@ -483,7 +483,12 @@ def poly_classifier(all_anno,poly_refs, texts,dimensions,conerhole_num, poly_fre
     if len(matched_type.split(","))<=1:
         return matched_type
     #TODO
+   
+
     #for each mixed type, use the first type name as key(cluster_name),find the annoation
+
+    
+
     anno=find_anno_info(matched_type,all_anno,poly_free_edges)
     random.seed(13)
     if anno is None:
@@ -534,7 +539,7 @@ def poly_classifier(all_anno,poly_refs, texts,dimensions,conerhole_num, poly_fre
             else:
                 matched_type = "DAB(R-KS)"
 
-        # DPKN(KS-KS), LDPKN(KS-KS), DAB-3(KS-KS)
+        # DPKN(KS-KS), LDPKN(KS-KS)
         cluster_name="DPKN(KS-KS)"
         if cluster_name in matched_type:
             if anno == "long_anno":
@@ -542,7 +547,7 @@ def poly_classifier(all_anno,poly_refs, texts,dimensions,conerhole_num, poly_fre
             elif anno == "short_anno":
                 matched_type = "LDPKN(KS-KS)"
             else:
-                matched_type = random.choice(["DPKN(KS-KS)", "DAB-3(KS-KS)"])
+                matched_type = "DPKN(KS-KS)"
 
         # DAD(R), DCD(R) 
         cluster_name="DAD(R)"
@@ -555,15 +560,15 @@ def poly_classifier(all_anno,poly_refs, texts,dimensions,conerhole_num, poly_fre
                 matched_type = "DCD(R)"
 
 
-        # DPKN(R-KS), DPKN(KS-R), LDPKN(KS-R)
-        cluster_name="DPKN(R-KS)"
+        #  DPKN(KS-R), LDPKN(KS-R)
+        cluster_name="DPKN(KS-R)"
         if cluster_name in matched_type:
             if anno == "long_anno":
-                matched_type = random.choice(["DPKN(R-KS)", "DPKN(KS-R)"])
+                matched_type = "DPKN(KS-R)"
             elif anno == "short_anno":
                 matched_type = "LDPKN(KS-R)"
             else:
-                matched_type = random.choice(["DPKN(R-KS)", "DPKN(KS-R)"])
+                matched_type =  "DPKN(KS-R)"
 
         # DAB-3(R-KS), LDBA(R-KS), BCB-1(R-KS)
         cluster_name="DAB-3(R-KS)"
@@ -667,4 +672,23 @@ def poly_classifier(all_anno,poly_refs, texts,dimensions,conerhole_num, poly_fre
             else:
                 matched_type = "BMA-1(KS)"
         
+        # DAC(KS-KS),DAE(KS-KS)
+        cluster_name="DAC(KS-KS)"
+        if cluster_name in matched_type:
+            if anno == "D":
+                matched_type = "DAC(KS-KS)"
+            elif anno == "notD":
+                matched_type = "DAE(KS-KS)"
+            else:
+                matched_type = "DAE(KS-KS)"
+
+        # DAC(R-R),DAE(R-R)
+        cluster_name="DAC(R-R)"
+        if cluster_name in matched_type:
+            if anno == "D_anno":
+                matched_type = "DAE(R-R)"
+            elif anno == "no_anno":
+                matched_type = "DAC(R-R)"
+            else:
+                matched_type = "DAC(R-R)"
         return matched_type
