@@ -480,7 +480,8 @@ def poly_classifier(all_anno,poly_refs, texts,dimensions,conerhole_num, poly_fre
 
     # Step 5: 遍历每个肘板类型，进行匹配
     matched_type= conerhole_free_classifier(classification_table, conerhole_num, free_edges_sequence, reversed_free_edges_sequence, edges_sequence, reversed_edges_sequence)
-    
+    if len(matched_type.split(","))<=1:
+        return matched_type
     #TODO
     #for each mixed type, use the first type name as key(cluster_name),find the annoation
     anno=find_anno_info(matched_type,all_anno,poly_free_edges)
