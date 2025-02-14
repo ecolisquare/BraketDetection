@@ -483,10 +483,68 @@ def poly_classifier(all_anno,poly_refs, texts,dimensions,conerhole_num, poly_fre
     if len(matched_type.split(","))<=1:
         return matched_type
     #TODO
-   
-
     #for each mixed type, use the first type name as key(cluster_name),find the annoation
 
+    # 边界区分易混淆类细化
+    # DPK(VU-R1), DPK(VU-R)
+    cluster_name = "DPK(VU-R1)"
+    if cluster_name in matched_type:
+        mixed_types = ["DPK(VU-R1)", "DPK(VU-R)"]
+        matched_type = refine_poly_classifier(classification_table, mixed_types, edges_sequence, reversed_edges_sequence)
+    
+    # BMA(VU), LBMA(R), LBMA(KS)
+    cluster_name = "BMA(VU)"
+    if cluster_name in matched_type:
+        mixed_types = ["BMA(VU)", "LBMA(R)", "LBMA(KS)"]
+        matched_type = refine_poly_classifier(classification_table, mixed_types, edges_sequence, reversed_edges_sequence)
+    
+    # DMC-1(R-KS), DMC-1(KS-R)
+    cluster_name = "DMC-1(R-KS)"
+    if cluster_name in matched_type:
+        mixed_types = ["DMC-1(R-KS)", "DMC-1(KS-R)"]
+        matched_type = refine_poly_classifier(classification_table, mixed_types, edges_sequence, reversed_edges_sequence)
+
+    # DPKN(R-KS), DPKN(KS-R)
+    cluster_name = "DPKN(R-KS)"
+    if cluster_name in matched_type:
+        mixed_types = ["DPKN(R-KS)", "DPKN(KS-R)"]
+        matched_type = refine_poly_classifier(classification_table, mixed_types, edges_sequence, reversed_edges_sequence)
+
+    # BMB(R-KS), BMB(KS-R)
+    cluster_name = "BMB(R-KS)"
+    if cluster_name in matched_type:
+        mixed_types = ["BMB(R-KS)", "BMB(KS-R)"]
+        matched_type = refine_poly_classifier(classification_table, mixed_types, edges_sequence, reversed_edges_sequence)
+    
+    # DPV(VU-KS), DPV-H(VU-KS)
+    cluster_name = "DPV(VU-KS)"
+    if cluster_name in matched_type:
+        mixed_types = ["DPV(VU-KS)", "DPV-H(VU-KS)"]
+        matched_type = refine_poly_classifier(classification_table, mixed_types, edges_sequence, reversed_edges_sequence)
+
+    # DPV-4(VU-VU), DPV-4(VVU-VVU)
+    cluster_name = "DPV-4(VU-VU)"
+    if cluster_name in matched_type:
+        mixed_types = ["DPV-4(VU-VU)", "DPV-4(VVU-VVU)"]
+        matched_type = refine_poly_classifier(classification_table, mixed_types, edges_sequence, reversed_edges_sequence)
+
+    # BR-2(KS-KS), BR-2(R-KS)
+    cluster_name = "BR-2(KS-KS)"
+    if cluster_name in matched_type:
+        mixed_types = ["BR-2(KS-KS)", "BR-2(R-KS)"]
+        matched_type = refine_poly_classifier(classification_table, mixed_types, edges_sequence, reversed_edges_sequence)
+    
+    # DBA(R-KS), LDPKN-3(KS-R)
+    # cluster_name = "DBA(R-KS)"
+    # if cluster_name in matched_type:
+    #    mixed_types = ["DBA(R-KS)", "LDPKN-3(KS-R)"]
+    #    matched_type = refine_poly_classifier(classification_table, mixed_types, edges_sequence, reversed_edges_sequence)
+    
+    # DPKN-2(R-R) , DPKN-2(2R-KS)
+    cluster_name = "DPKN-2(R-R)"
+    if cluster_name in matched_type:
+        mixed_types = ["DPKN-2(R-R) ", "DPKN-2(2R-KS)"]
+        matched_type = refine_poly_classifier(classification_table, mixed_types, edges_sequence, reversed_edges_sequence)
     
 
     anno=find_anno_info(matched_type,all_anno,poly_free_edges)
@@ -560,7 +618,7 @@ def poly_classifier(all_anno,poly_refs, texts,dimensions,conerhole_num, poly_fre
                 matched_type = "DCD(R)"
 
 
-        #  DPKN(KS-R), LDPKN(KS-R)
+        # DPKN(KS-R), LDPKN(KS-R)
         cluster_name="DPKN(KS-R)"
         if cluster_name in matched_type:
             if anno == "long_anno":
@@ -569,6 +627,16 @@ def poly_classifier(all_anno,poly_refs, texts,dimensions,conerhole_num, poly_fre
                 matched_type = "LDPKN(KS-R)"
             else:
                 matched_type =  "DPKN(KS-R)"
+
+        # DPKN(R-KS), LDPKN(KS-R)
+        cluster_name="DPKN(R-KS)"
+        if cluster_name in matched_type:
+            if anno == "long_anno":
+                matched_type = "DPKN(R-KS)"
+            elif anno == "short_anno":
+                matched_type = "LDPKN(KS-R)"
+            else:
+                matched_type =  "DPKN(R-KS)"
 
         # DAB-3(R-KS), LDBA(R-KS), BCB-1(R-KS)
         cluster_name="DAB-3(R-KS)"
@@ -691,4 +759,44 @@ def poly_classifier(all_anno,poly_refs, texts,dimensions,conerhole_num, poly_fre
                 matched_type = "DAC(R-R)"
             else:
                 matched_type = "DAC(R-R)"
+
         return matched_type
+    
+def refine_poly_classifier(classification_table, mixed_types, edges_sequence, reversed_edges_sequence):
+    matched_type = None
+    max_similarity = -1  # 初始化最大相似度为 -1
+
+    for type in mixed_types:
+        tmp_edge_seq = classification_table[type]["non_free_edges"]
+
+        # 计算与 edges_sequence 的相似度
+        similarity = calculate_similarity(tmp_edge_seq, edges_sequence)
+        # 计算与 reversed_edges_sequence 的相似度
+        reversed_similarity = calculate_similarity(tmp_edge_seq, reversed_edges_sequence)
+
+        # 取两者中的最大值
+        current_max_similarity = max(similarity, reversed_similarity)
+
+        # 如果当前相似度大于最大相似度，则更新 matched_type
+        if current_max_similarity > max_similarity:
+            max_similarity = current_max_similarity
+            matched_type = type
+
+    return matched_type
+
+def calculate_similarity(seq1, seq2):
+    """
+    计算两个序列的相似度。
+    这里使用简单的匹配比例作为相似度度量。
+    """
+    if not seq1 or not seq2:
+        return 0
+
+    match_count = 0
+    min_length = min(len(seq1), len(seq2))
+
+    for i in range(min_length):
+        if seq1[i] == seq2[i]:
+            match_count += 1
+
+    return match_count / min_length
