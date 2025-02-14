@@ -758,6 +758,7 @@ def poly_classifier(all_anno,poly_refs, texts,dimensions,conerhole_num, poly_fre
             else:
                 matched_type = "DAC(R-R)"
 
+    # 自由边和非自由边结合起来进行匹配
     if len(matched_type.split(","))<=1:
         return matched_type
     edges_sequence.insert(0,["free", free_edges_sequence])
