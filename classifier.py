@@ -450,7 +450,6 @@ def poly_classifier(all_anno,poly_refs, texts,dimensions,conerhole_num, poly_fre
                     seq.append("arc")
             edges_sequence.append([type, seq])
             reversed_edges_sequence.insert(0, [type, list(reversed(seq))])
-
     # 对肘板轮廓进行输出
     if is_output_json:
         geometry_info = {
@@ -485,70 +484,69 @@ def poly_classifier(all_anno,poly_refs, texts,dimensions,conerhole_num, poly_fre
     #TODO
     #for each mixed type, use the first type name as key(cluster_name),find the annoation
 
-    # 边界区分易混淆类细化
-    # DPK(VU-R1), DPK(VU-R)
-    cluster_name = "DPK(VU-R1)"
-    if cluster_name in matched_type:
-        mixed_types = ["DPK(VU-R1)", "DPK(VU-R)"]
-        matched_type = refine_poly_classifier(classification_table, mixed_types, edges_sequence, reversed_edges_sequence)
-    
-    # BMA(VU), LBMA(R), LBMA(KS)
-    cluster_name = "BMA(VU)"
-    if cluster_name in matched_type:
-        mixed_types = ["BMA(VU)", "LBMA(R)", "LBMA(KS)"]
-        matched_type = refine_poly_classifier(classification_table, mixed_types, edges_sequence, reversed_edges_sequence)
-    
-    # DMC-1(R-KS), DMC-1(KS-R)
-    cluster_name = "DMC-1(R-KS)"
-    if cluster_name in matched_type:
-        mixed_types = ["DMC-1(R-KS)", "DMC-1(KS-R)"]
-        matched_type = refine_poly_classifier(classification_table, mixed_types, edges_sequence, reversed_edges_sequence)
-
-    # DPKN(R-KS), DPKN(KS-R)
-    cluster_name = "DPKN(R-KS)"
-    if cluster_name in matched_type:
-        mixed_types = ["DPKN(R-KS)", "DPKN(KS-R)"]
-        matched_type = refine_poly_classifier(classification_table, mixed_types, edges_sequence, reversed_edges_sequence)
-
-    # BMB(R-KS), BMB(KS-R)
-    cluster_name = "BMB(R-KS)"
-    if cluster_name in matched_type:
-        mixed_types = ["BMB(R-KS)", "BMB(KS-R)"]
-        matched_type = refine_poly_classifier(classification_table, mixed_types, edges_sequence, reversed_edges_sequence)
-    
-    # DPV(VU-KS), DPV-H(VU-KS)
-    cluster_name = "DPV(VU-KS)"
-    if cluster_name in matched_type:
-        mixed_types = ["DPV(VU-KS)", "DPV-H(VU-KS)"]
-        matched_type = refine_poly_classifier(classification_table, mixed_types, edges_sequence, reversed_edges_sequence)
-
-    # DPV-4(VU-VU), DPV-4(VVU-VVU)
-    cluster_name = "DPV-4(VU-VU)"
-    if cluster_name in matched_type:
-        mixed_types = ["DPV-4(VU-VU)", "DPV-4(VVU-VVU)"]
-        matched_type = refine_poly_classifier(classification_table, mixed_types, edges_sequence, reversed_edges_sequence)
-
-    # BR-2(KS-KS), BR-2(R-KS)
-    cluster_name = "BR-2(KS-KS)"
-    if cluster_name in matched_type:
-        mixed_types = ["BR-2(KS-KS)", "BR-2(R-KS)"]
-        matched_type = refine_poly_classifier(classification_table, mixed_types, edges_sequence, reversed_edges_sequence)
-    
-    # DBA(R-KS), LDPKN-3(KS-R)
-    # cluster_name = "DBA(R-KS)"
+    # # 边界区分易混淆类细化
+    # # DPK(VU-R1), DPK(VU-R)
+    # cluster_name = "DPK(VU-R1)"
     # if cluster_name in matched_type:
-    #    mixed_types = ["DBA(R-KS)", "LDPKN-3(KS-R)"]
-    #    matched_type = refine_poly_classifier(classification_table, mixed_types, edges_sequence, reversed_edges_sequence)
+    #     mixed_types = ["DPK(VU-R1)", "DPK(VU-R)"]
+    #     matched_type = refine_poly_classifier(classification_table, mixed_types, edges_sequence, reversed_edges_sequence)
     
-    # DPKN-2(R-R) , DPKN-2(2R-KS)
-    cluster_name = "DPKN-2(R-R)"
-    if cluster_name in matched_type:
-        mixed_types = ["DPKN-2(R-R) ", "DPKN-2(2R-KS)"]
-        matched_type = refine_poly_classifier(classification_table, mixed_types, edges_sequence, reversed_edges_sequence)
+    # # BMA(VU), LBMA(R), LBMA(KS)
+    # cluster_name = "BMA(VU)"
+    # if cluster_name in matched_type:
+    #     mixed_types = ["BMA(VU)", "LBMA(R)", "LBMA(KS)"]
+    #     matched_type = refine_poly_classifier(classification_table, mixed_types, edges_sequence, reversed_edges_sequence)
+    
+    # # DMC-1(R-KS), DMC-1(KS-R)
+    # cluster_name = "DMC-1(R-KS)"
+    # if cluster_name in matched_type:
+    #     mixed_types = ["DMC-1(R-KS)", "DMC-1(KS-R)"]
+    #     matched_type = refine_poly_classifier(classification_table, mixed_types, edges_sequence, reversed_edges_sequence)
+
+    # # DPKN(R-KS), DPKN(KS-R)
+    # cluster_name = "DPKN(R-KS)"
+    # if cluster_name in matched_type:
+    #     mixed_types = ["DPKN(R-KS)", "DPKN(KS-R)"]
+    #     matched_type = refine_poly_classifier(classification_table, mixed_types, edges_sequence, reversed_edges_sequence)
+
+    # # BMB(R-KS), BMB(KS-R)
+    # cluster_name = "BMB(R-KS)"
+    # if cluster_name in matched_type:
+    #     mixed_types = ["BMB(R-KS)", "BMB(KS-R)"]
+    #     matched_type = refine_poly_classifier(classification_table, mixed_types, edges_sequence, reversed_edges_sequence)
+    
+    # # DPV(VU-KS), DPV-H(VU-KS)
+    # cluster_name = "DPV(VU-KS)"
+    # if cluster_name in matched_type:
+    #     mixed_types = ["DPV(VU-KS)", "DPV-H(VU-KS)"]
+    #     matched_type = refine_poly_classifier(classification_table, mixed_types, edges_sequence, reversed_edges_sequence)
+
+    # # DPV-4(VU-VU), DPV-4(VVU-VVU)
+    # cluster_name = "DPV-4(VU-VU)"
+    # if cluster_name in matched_type:
+    #     mixed_types = ["DPV-4(VU-VU)", "DPV-4(VVU-VVU)"]
+    #     matched_type = refine_poly_classifier(classification_table, mixed_types, edges_sequence, reversed_edges_sequence)
+
+    # # BR-2(KS-KS), BR-2(R-KS)
+    # cluster_name = "BR-2(KS-KS)"
+    # if cluster_name in matched_type:
+    #     mixed_types = ["BR-2(KS-KS)", "BR-2(R-KS)"]
+    #     matched_type = refine_poly_classifier(classification_table, mixed_types, edges_sequence, reversed_edges_sequence)
+    
+    # # DBA(R-KS), LDPKN-3(KS-R)
+    # # cluster_name = "DBA(R-KS)"
+    # # if cluster_name in matched_type:
+    # #    mixed_types = ["DBA(R-KS)", "LDPKN-3(KS-R)"]
+    # #    matched_type = refine_poly_classifier(classification_table, mixed_types, edges_sequence, reversed_edges_sequence)
+    
+    # # DPKN-2(R-R) , DPKN-2(2R-KS)
+    # cluster_name = "DPKN-2(R-R)"
+    # if cluster_name in matched_type:
+    #     mixed_types = ["DPKN-2(R-R) ", "DPKN-2(2R-KS)"]
+    #     matched_type = refine_poly_classifier(classification_table, mixed_types, edges_sequence, reversed_edges_sequence)
     
 
     anno=find_anno_info(matched_type,all_anno,poly_free_edges)
-    random.seed(13)
     if anno is None:
         #default type of the mixed type
         return matched_type
@@ -622,21 +620,21 @@ def poly_classifier(all_anno,poly_refs, texts,dimensions,conerhole_num, poly_fre
         cluster_name="DPKN(KS-R)"
         if cluster_name in matched_type:
             if anno == "long_anno":
-                matched_type = "DPKN(KS-R)"
+                matched_type = matched_type.replace("LDPKN(KS-R)", "")
             elif anno == "short_anno":
                 matched_type = "LDPKN(KS-R)"
             else:
-                matched_type =  "DPKN(KS-R)"
+                matched_type = matched_type.replace("LDPKN(KS-R)", "")
 
         # DPKN(R-KS), LDPKN(KS-R)
         cluster_name="DPKN(R-KS)"
         if cluster_name in matched_type:
             if anno == "long_anno":
-                matched_type = "DPKN(R-KS)"
+                matched_type = matched_type.replace("LDPKN(KS-R)", "")
             elif anno == "short_anno":
                 matched_type = "LDPKN(KS-R)"
             else:
-                matched_type =  "DPKN(R-KS)"
+                matched_type = matched_type.replace("LDPKN(KS-R)", "")
 
         # DAB-3(R-KS), LDBA(R-KS), BCB-1(R-KS)
         cluster_name="DAB-3(R-KS)"
@@ -760,15 +758,22 @@ def poly_classifier(all_anno,poly_refs, texts,dimensions,conerhole_num, poly_fre
             else:
                 matched_type = "DAC(R-R)"
 
+    if len(matched_type.split(","))<=1:
         return matched_type
+    edges_sequence.insert(0,["free", free_edges_sequence])
+    reversed_edges_sequence.insert(0, ["free", reversed_free_edges_sequence])
+    mixed_types = matched_type.split(',')
+    matched_type = refine_poly_classifier(classification_table, mixed_types, edges_sequence, reversed_edges_sequence)
+    return matched_type
     
 def refine_poly_classifier(classification_table, mixed_types, edges_sequence, reversed_edges_sequence):
     matched_type = None
     max_similarity = -1  # 初始化最大相似度为 -1
 
     for type in mixed_types:
+        temp_free_edge_seq = classification_table[type]["free_edges"]
         tmp_edge_seq = classification_table[type]["non_free_edges"]
-
+        tmp_edge_seq.insert(0, ["free", temp_free_edge_seq])
         # 计算与 edges_sequence 的相似度
         similarity = calculate_similarity(tmp_edge_seq, edges_sequence)
         # 计算与 reversed_edges_sequence 的相似度
