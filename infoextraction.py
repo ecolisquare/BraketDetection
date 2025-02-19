@@ -522,6 +522,33 @@ def match_a_anno(a_anno,free_edges):
                 angle_anno.append(d)
     return a_map,angle_anno,toe_angle_anno
 
+
+def compute_accurate_position(d1,d2,d3,d4,constraint_edges):
+    ori_cons_edges=[]
+    for constraint_edge in constraint_edges:
+        
+        # s_constraint_edge=shrinkFixedLength(constraint_edge,10)
+        # s_constraint_edges.extend(s_constraint_edge)
+        ori_cons_edges.extend(constraint_edge)
+    ref_segment=DSegment(d1,d2)
+    for i,segment in enumerate(ori_cons_edges):
+
+        if is_parallel(ref_segment,segment,0.15):
+            pos1 = point_segment_position(d3, segment)
+            pos2 = point_segment_position(d4, segment)
+            if pos1 !="not_on_line" and pos2 !="not_on_line":
+                return d1,d2,d3,d4
+            if pos1!= "not_on_line":
+                return d1,d2,d3,p_minus(p_add(d1,d3),d2)
+            if pos2 !="not_on_line":
+                return d1,d2,p_minus(p_add(d2,d4),d1),d4
+    l1,l2=DSegment(d1,d4).length(),DSegment(d2,d3).length()
+    if l1<l2:
+        return d1,d2,d3,p_minus(p_add(d1,d3),d2)
+    else:
+        return d1,d2,p_minus(p_add(d2,d4),d1),d4
+        
+    
 def outputPolyInfo(poly, segments, segmentation_config, point_map, index,star_pos_map,cornor_holes,texts,dimensions,text_map,stiffeners):
     # step1: 计算几何中心坐标
     poly_centroid = calculate_poly_centroid(poly)
@@ -1258,7 +1285,7 @@ def outputPolyInfo(poly, segments, segmentation_config, point_map, index,star_po
             else:
                 x=p_minus(p_add(d.defpoints[1],l0),p_mul(l0,d10/d00))
             d1,d2,d3,d4=d.defpoints[0], x,d.defpoints[1],d.defpoints[2]
-            d4=p_minus(p_add(d1,d3),d2)
+            d1,d2,d3,d4=compute_accurate_position(d1,d2,d3,d4,constraint_edges)
             l_anno.append((d3,d4,d))
         elif d.dimtype==34 or d.dimtype==162:
             s1=DSegment(d.defpoints[3],d.defpoints[0])
