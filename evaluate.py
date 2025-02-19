@@ -11,6 +11,7 @@ import re
 def read_json(json_path, bracket_layer):
     texts=[]
     polys=[]
+    poly_ids=[]
     try:  
         with open(json_path, 'r', encoding='utf-8') as file:  
             data_list = json.load(file)
@@ -20,7 +21,10 @@ def read_json(json_path, bracket_layer):
                 continue
             if ele["type"]=="text":
                 e=DText(ele["bound"],ele["insert"], ele["color"],ele["content"].strip(),ele["height"],ele["handle"],meta=None)
-                texts.append(e)
+                if 'id' not in e.content:
+                    texts.append(e)
+                else:
+                    poly_ids.append(e)
             elif  ele["type"]=="mtext":
                 string = ele["text"].strip().split(";")[-1]
                 cleaned_string = re.sub(r"}", "", string)
@@ -52,7 +56,7 @@ def read_json(json_path, bracket_layer):
     except json.JSONDecodeError:  
         print("Error decoding JSON.")
     
-    return texts, polys
+    return texts, polys,poly_ids
 
 
 def calculate_total_covered_area(gt_poly, test_polys):
@@ -150,8 +154,8 @@ if __name__ == '__main__':
     gt_json_path = os.path.join(os.path.dirname(gt_dxf_path), (os.path.basename(gt_dxf_path).split('.')[0] + ".json"))
 
     # 解析两个json文件
-    test_texts, test_polys_seg = read_json(test_json_path, test_bracket_layer)
-    gt_texts, gt_polys_seg = read_json(gt_json_path, gt_bracket_layer)
+    test_texts, test_polys_seg,poly_ids = read_json(test_json_path, test_bracket_layer)
+    gt_texts, gt_polys_seg,_= read_json(gt_json_path, gt_bracket_layer)
 
 
 
@@ -227,7 +231,7 @@ if __name__ == '__main__':
     doc = ezdxf.readfile(file_path)
     msp = doc.modelspace()
 
-    if "Braket" not in doc.layers:
+    if "Incorrect" not in doc.layers:
         doc.layers.add("Incorrect", color=6)
     bbox_list=[]
     classi_res=[]
@@ -262,7 +266,30 @@ if __name__ == '__main__':
         if classification != "Unclassified":
             text = msp.add_text(classification, dxfattribs={"layer": "Incorrect", "height": 50})
             text.dxf.insert = ((x1 + x2) / 2, y2)
+    bbox_list=[]
+    for poly in test_polys:
+        x_min,x_max,y_min,y_max=computeBBox(poly)
+        bbox_list.append([[x_min,y_min],[x_max,y_max]])
+    for bbox in bbox_list:
+        x1 = bbox[0][0] - 20
+        y1 = bbox[0][1] - 20
+        x2 = bbox[1][0] + 20
+        y2 = bbox[1][1] + 20
 
+        # 使用多段线绘制矩形
+        rectangle_points = [
+            (x1, y1),  # Top-left
+            (x2, y1),  # Top-right
+            (x2, y2),  # Bottom-right
+            (x1, y2),  # Bottom-left
+        ]
+        msp.add_lwpolyline(rectangle_points, close=True, dxfattribs={"layer": "Braket"})
+    for t in test_texts:
+        text = msp.add_text(t.content, dxfattribs={"layer": "Braket", "height": 50})
+        text.dxf.insert = (t.insert.x,t.insert.y)
+    for t in poly_ids:
+        text = msp.add_text(t.content, dxfattribs={"layer": "Braket", "height": 50})
+        text.dxf.insert = (t.insert.x,t.insert.y)
     # 保存修改后的 DXF 文件
     file_name = os.path.basename(file_path)[:-4]
     doc.saveas("./output/incorrect.dxf")

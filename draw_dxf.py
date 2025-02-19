@@ -52,7 +52,7 @@ import json
 
 
 
-def draw_rectangle_in_dxf(file_path, folder, bbox_list, classi_res):
+def draw_rectangle_in_dxf(file_path, folder, bbox_list, classi_res,idxs):
     folder = os.path.normpath(os.path.abspath(folder))
     os.makedirs(folder, exist_ok=True)
 
@@ -81,6 +81,8 @@ def draw_rectangle_in_dxf(file_path, folder, bbox_list, classi_res):
         if classification != "Unclassified":
             text = msp.add_text(classification, dxfattribs={"layer": "Braket", "height": 50})
             text.dxf.insert = ((x1 + x2) / 2, y2)
+        text2 = msp.add_text(f"poly_id {idxs[idx]}", dxfattribs={"layer": "Braket", "height": 50})
+        text2.dxf.insert = ((x1 + x2) / 2, y1)
 
     # 保存修改后的 DXF 文件
     file_name = os.path.basename(file_path)[:-4]

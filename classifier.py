@@ -120,7 +120,7 @@ def find_anno_info(matched_type,all_anno,poly_free_edges):
             return "D_anno"
         else:
             return "no_anno"
-    elif "DPK-1（R）" in matched_type:
+    elif "DPK-1(R)" in matched_type:
         if len(non_parallel_anno)!=0:
             return "dist_adja"
         elif len(toe_angle_anno)!=0:
@@ -136,7 +136,7 @@ def load_classification_table(file_path):
     """
     Load the classification table from a JSON file.
     """
-    with open(file_path, 'r') as f:
+    with open(file_path, 'r',encoding='UTF-8') as f:
         classification_table = json.load(f)  # Load the JSON file
     return classification_table
 

@@ -2851,10 +2851,10 @@ def process_text_map(text_map,removed_segments,segmentation_config):
 
 
                        
-            if p not in new_text_map:
+            if p not in new_text_map and d_min is not None:
                 new_text_map[p]=[]
                 new_text_map[p].append([t,result,"top",d_min])
-            else:
+            elif d_min is not None:
                 new_text_map[p].append([t,result,"top",d_min])
 
     for p,texts in text_pos_map2.items():
@@ -2896,10 +2896,10 @@ def process_text_map(text_map,removed_segments,segmentation_config):
                         else:
                             if d_min>d:
                                 d_min=d
-            if p not in new_text_map:
+            if p not in new_text_map and d_min is not None:
                 new_text_map[p]=[]
                 new_text_map[p].append([t,result,"bottom",-d_min])
-            else:
+            elif d_min is not None:
                 new_text_map[p].append([t,result,"bottom",-d_min])
     for p,texts in text_pos_map3.items():
         for t in texts:

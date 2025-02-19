@@ -52,6 +52,7 @@ if __name__ == '__main__':
     #结构化输出每个肘板信息
     polys_info = []
     classi_res = []
+    idxs=[]
     pbar=tqdm(total=len(polys),desc="正在输出结构化信息")
     for i, poly in enumerate(polys):
         # try:
@@ -75,6 +76,7 @@ if __name__ == '__main__':
             # print(res)
             polys_info.append(res[0])
             classi_res.append(res[1])
+            idxs.append(i)
     pbar.close()
     print("结构化信息输出完毕，保存于:", segmentation_config.poly_info_dir)
     if segmentation_config.mode=="dev":
@@ -103,4 +105,4 @@ if __name__ == '__main__':
     
     dxf_path = os.path.splitext(segmentation_config.json_path)[0] + '.dxf'
     dxf_output_folder = segmentation_config.dxf_output_folder
-    draw_rectangle_in_dxf(dxf_path, dxf_output_folder, bboxs, classi_res)
+    draw_rectangle_in_dxf(dxf_path, dxf_output_folder, bboxs, classi_res,idxs)
