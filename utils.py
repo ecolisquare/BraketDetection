@@ -3313,23 +3313,23 @@ def findClosedPolys_via_BFS(elements,texts,dimensions,segments,segmentation_conf
             repline_has_visited.add(DSegment(sampled_line.end_point,sampled_line.start_point))
     if verbose:
         pbar.close()
-    sampled_lines=[]
-    for s in filtered_segments:
-        sampled_lines.append(DSegment(s.start_point,s.end_point,s.ref))
-        sampled_lines.append(DSegment(s.end_point,s.start_point,s.ref))
+    # sampled_lines=[]
+    # for s in filtered_segments:
+    #     sampled_lines.append(DSegment(s.start_point,s.end_point,s.ref))
+    #     sampled_lines.append(DSegment(s.end_point,s.start_point,s.ref))
     
-    if verbose:
-        pbar=tqdm(desc="sampled_lines(all the segments)",total=len(sampled_lines))
-    for sampled_line in sampled_lines:
-        if verbose:
-            pbar.update()
-        visited_edges=set()
-        visited_edges.add((sampled_line[0],sampled_line[1]))
-        path=process_repline_with_repline_dfs(visited_edges,sampled_line,graph,segmentation_config)
-        if(len(path)>=segmentation_config.path_min_length):
-            closed_polys.append(path)
-    if verbose:
-        pbar.close()
+    # if verbose:
+    #     pbar=tqdm(desc="sampled_lines(all the segments)",total=len(sampled_lines))
+    # for sampled_line in sampled_lines:
+    #     if verbose:
+    #         pbar.update()
+    #     visited_edges=set()
+    #     visited_edges.add((sampled_line[0],sampled_line[1]))
+    #     path=process_repline_with_repline_dfs(visited_edges,sampled_line,graph,segmentation_config)
+    #     if(len(path)>=segmentation_config.path_min_length):
+    #         closed_polys.append(path)
+    # if verbose:
+    #     pbar.close()
     
     # repline_unvisited=[]
     # for s in replines:
