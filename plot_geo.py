@@ -297,6 +297,7 @@ def plot_info_poly(polygon,segments, path,texts,dimensions,stifferners,others=[]
             ax.plot(x_values, y_values, color, lw=2)
     ax.set_aspect('equal', 'box')
     plt.savefig(path)
+    plt.close('all')
     plt.close()
 
 def outputRes(segments,point_map,polys,resPNGPath,drawIntersections=False,drawLines=False,drawPolys=False):
@@ -343,6 +344,7 @@ def outputRes(segments,point_map,polys,resPNGPath,drawIntersections=False,drawLi
     plt.gca().axis('equal')
     plt.savefig(resPNGPath)
     print(f"结果图保存于:{resPNGPath}")
+    plt.close('all')
     fig.clf()
 
 def output_training_img(polys, segments, training_img_output_folder, name):

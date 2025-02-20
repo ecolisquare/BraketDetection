@@ -59,9 +59,9 @@ def find_anno_info(matched_type,all_anno,poly_free_edges):
             return "long_anno"
     elif "DAB-3(R-KS)" in matched_type:
         free_edges=poly_free_edges[0]
-        line=free_edges[2]
-        arc1,arc2=free_edges[1],free_edges[3]
-        if is_tangent(line,arc1) and is_tangent(line,arc2):
+        line=free_edges[1] if isinstance(free_edges[1],DLine) else free_edges[2]
+        arc=free_edges[1] if isinstance(free_edges[1],DArc) else free_edges[2]
+        if isinstance(line,DLine) and isinstance(arc,DArc) and is_tangent(line,arc):
             if len(angle_anno)!=0:
                 return "angl_non_free"
             else:
