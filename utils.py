@@ -716,6 +716,7 @@ def process_block(T_is_contained,block_datas,blockName,scales,rotation,insert,bl
             if ele.get("layerName") is not None and ele["layerName"] in layname:
                 if ele["layerName"] in segmentation_config.stiffener_name:
                     e = DLwpolyline(simplified_ps,ele_linetype, ele["color"], False,ele["handle"],meta=block_meta_data)
+                    l=len(simplified_ps)
                     for i in range(l - 1):
                     # if simplified_ps[i].y>-48500 or simplified_ps[i+1].y>-48500:
                         stiffeners.append(DSegment(simplified_ps[i], simplified_ps[i + 1], e))
