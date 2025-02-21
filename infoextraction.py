@@ -1,7 +1,7 @@
 from  element import *
 from plot_geo import plot_geometry,plot_polys, plot_info_poly,p_minus,p_add,p_mul
 import os
-from utils import segment_intersection_line,segment_intersection,computeBoundingBox,is_parallel,conpute_angle_of_two_segments,point_segment_position,shrinkFixedLength,check_points_against_segments,check_parallel_anno,check_vertical_anno,check_non_parallel_anno
+from utils import segment_intersection_line,segment_intersection,computeBoundingBox,is_parallel,conpute_angle_of_two_segments,point_segment_position,shrinkFixedLength,check_points_against_segments,check_points_against_free_segments,check_parallel_anno,check_vertical_anno,check_non_parallel_anno
 from classifier import poly_classifier
 from scipy.spatial import ConvexHull
 import matplotlib.pyplot as plt
@@ -441,9 +441,11 @@ def match_l_anno(l_anno,poly_refs,constraint_edges,free_edges,segmentation_confi
                 l_cornor_map[edge].append((v1,v2,l))
                 cornor_anno.append(l)
             continue
-        ty,idx=check_points_against_segments(v1,v2,ss_free_edges)
+        ty,idx=check_points_against_free_segments(v1,v2,ss_free_edges)
+        
         if ty is not None:
             edge=s_free_edges[idx]
+
             if edge not in d_map:
                 d_map[edge]=[]
             d_map[edge].append((v1,v2,l))
@@ -1334,11 +1336,13 @@ def outputPolyInfo(poly, segments, segmentation_config, point_map, index,star_po
     log_to_file(file_path, "边界信息（非自由边）：")
     constarint_idx=0
     cornerhole_idx=0
+    k=1
     for i,edge in enumerate(edges):
         if (not edge[0].isConstraint) and (not edge[0].isCornerhole):
             continue
-        log_to_file(file_path, f"边界颜色{i + 1}: {edge[0].ref.color}")
-        log_to_file(file_path, f"边界轮廓{i + 1}: ")
+        log_to_file(file_path, f"边界颜色{k}: {edge[0].ref.color}")
+        log_to_file(file_path, f"边界轮廓{k}: ")
+        k+=1
         if edge[0].isCornerhole:
             log_to_file(file_path,f"    角隅孔{cornerhole_idx+1}")
             cornerhole_idx+=1
