@@ -108,7 +108,7 @@ def get_text_center(text):
     center_y = (y1 + y2) / 2
     return Point(center_x, center_y)
 
-def find_nearest_text(poly, texts, extra_range = 2500):
+def find_nearest_text(poly, texts, extra_range = 6000):
     """
     在包围盒对角线的一半范围内寻找最近的文本框
     """
@@ -186,6 +186,9 @@ if __name__ == '__main__':
     # 评估肘板分类正确率
     gt_total_with_labels = 0
     successful_classifications = 0
+    wrong_GT_num = 5
+    correct_polys = []
+    incorrect_polys = []
     for gt_poly in gt_polys:
         nearest_gt_texts = find_nearest_text(gt_poly, gt_texts)
         # if nearest_gt_text is None:
@@ -194,13 +197,13 @@ if __name__ == '__main__':
             continue
         gt_total_with_labels += 1
         gt_polygon = Polygon(gt_poly)
+        flag = False
         for test_poly in test_polys:
             test_polygon = Polygon(test_poly)
             if test_polygon.intersects(gt_polygon):
                 nearest_test_texts = find_nearest_text(test_poly, test_texts)
                 if len(nearest_test_texts)==0:
                     continue
-                flag=False
                 for gt_text in nearest_gt_texts:
                     for test_text in nearest_test_texts:
 
@@ -212,10 +215,15 @@ if __name__ == '__main__':
                     if flag:
                         break
                 if flag:
+                    correct_polys.append(gt_poly)
                     successful_classifications += 1
                     break
                 else:
                     incorrect_polys.append(gt_poly)
+<<<<<<< HEAD
+=======
+    gt_total_with_labels -= wrong_GT_num
+>>>>>>> 13d8136fd5826eb6380c1833547f12048563dbeb
     classification_precision = successful_classifications / gt_total_with_labels if gt_total_with_labels > 0 else 1
 
     # 输出评估结果
@@ -228,16 +236,6 @@ if __name__ == '__main__':
     # print([ len(s) for s in test_polys_seg ])
 
     import ezdxf
-
-
-    file_path=""
-    doc = ezdxf.readfile(file_path)
-    msp = doc.modelspace()
-
-    if "Incorrect" not in doc.layers:
-        doc.layers.add("Incorrect", color=6)
-    bbox_list=[]
-    classi_res=[]
     def computeBBox(poly):
         x_min,x_max,y_min,y_max=float("inf"),float("-inf"),float("inf"),float("-inf")
         for seg in poly:
@@ -245,11 +243,24 @@ if __name__ == '__main__':
             x_max=max(x_max,seg[0])
             y_min=min(y_min,seg[1])
             y_max=max(y_max,seg[1])
-        return x_min,x_max,y_min,y_max
+        return x_min - 40, x_max + 40, y_min - 40, y_max + 40
 
-    for poly in gt_polys:
+    file_path=gt_dxf_path
+    doc = ezdxf.readfile(file_path)
+    msp = doc.modelspace()
+
+    if "Incorrect" not in doc.layers:
+        doc.layers.add("Incorrect", color=6)
+    if "Braket" not in doc.layers:
+        doc.layers.add("Braket", color=30)
+    bbox_list=[]
+    classi_res=[]
+
+    for poly in incorrect_polys:
         x_min,x_max,y_min,y_max=computeBBox(poly)
-        bbox_list.append([[x_min,y_min],[x_max,y_max]])
+        bbox=[[x_min, y_min], [x_max, y_max]]
+        bbox_list.append(bbox)
+        classi_res.append("incorrect")
     for idx, (bbox, classification) in enumerate(zip(bbox_list, classi_res)):
         x1 = bbox[0][0] - 20
         y1 = bbox[0][1] - 20
@@ -272,7 +283,8 @@ if __name__ == '__main__':
     bbox_list=[]
     for poly in test_polys:
         x_min,x_max,y_min,y_max=computeBBox(poly)
-        bbox_list.append([[x_min,y_min],[x_max,y_max]])
+        bbox = [[x_min,y_min],[x_max,y_max]]
+        bbox_list.append(bbox)
     for bbox in bbox_list:
         x1 = bbox[0][0] - 20
         y1 = bbox[0][1] - 20
