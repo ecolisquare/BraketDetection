@@ -37,11 +37,11 @@ def find_anno_info(matched_type,all_anno,poly_free_edges):
             return "short_anno"
         else:
             return "long_anno"
-    elif "DAB(R-KS)" in matched_type:
-        if len(cornor_anno)==0:
-            return "no_anno"
-        else:
-            return "short_anno"
+    # elif "DAB(R-KS)" in matched_type:
+    #     if len(cornor_anno)==0:
+    #         return "no_anno"
+    #     else:
+    #         return "short_anno"
     elif "DPKN(KS-KS)" in matched_type:
         if len(half_anno)!=0:
             return "short_anno"
@@ -597,14 +597,14 @@ def poly_classifier(all_anno,poly_refs, texts,dimensions,conerhole_num, poly_fre
                 matched_type = "DPK(R)"
         
         # DAB(R-KS), DAB-1(R-KS)
-        cluster_name="DAB(R-KS)"
-        if cluster_name in matched_type:
-            if anno == "no_angle":
-                matched_type = "DAB(R-KS)"
-            elif anno == "angl":
-                matched_type = "DAB-1(R-KS)"
-            else:
-                matched_type = "DAB(R-KS)"
+        # cluster_name="DAB(R-KS)"
+        # if cluster_name in matched_type:
+        #     if anno == "no_angle":
+        #         matched_type = "DAB(R-KS)"
+        #     elif anno == "angl":
+        #         matched_type = "DAB-1(R-KS)"
+        #     else:
+        #         matched_type = "DAB(R-KS)"
 
         # DPKN(KS-KS), LDPKN(KS-KS)
         cluster_name="DPKN(KS-KS)"
