@@ -142,6 +142,12 @@ def calculate_poly_centroid(poly):
 
 
 def calculate_poly_refs(poly,segmentation_config):
+    new_poly=[]
+    #combine the same line in the poly
+
+
+
+
     refs = []
     
     for segment in poly:

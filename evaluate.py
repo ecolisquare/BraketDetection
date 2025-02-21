@@ -161,6 +161,7 @@ if __name__ == '__main__':
 
     test_polys = []
     gt_polys = []
+    incorrect_polys=[]
 
     for poly_seg in test_polys_seg:
         poly = []
@@ -213,6 +214,8 @@ if __name__ == '__main__':
                 if flag:
                     successful_classifications += 1
                     break
+                else:
+                    incorrect_polys.append(gt_poly)
     classification_precision = successful_classifications / gt_total_with_labels if gt_total_with_labels > 0 else 1
 
     # 输出评估结果
