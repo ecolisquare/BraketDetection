@@ -141,16 +141,121 @@ def calculate_poly_centroid(poly):
     return (x, y)
 
 
-def calculate_poly_refs(poly,segmentation_config):
+def combine_the_same_line(poly,segmentation_config):
+    n=len(poly)
     new_poly=[]
+    for i in range(len(poly)):
+        if isinstance(poly[i].ref,DArc):
+            continue
+        for j in range(len(poly)):
+            if isinstance(poly[j].ref,DArc):
+                continue
+            if i>=j:
+                continue
+            #j>i
+            
+
+            s1,s2=poly[i],poly[j]
+            #print(i,j,point_segment_position(s1.start_point,s2,anno=False),point_segment_position(s1.end_point,s2,anno=False))
+            if point_segment_position(s1.start_point,s2,epsilon=0.25,anno=False)!="not_on_line" and point_segment_position(s1.end_point,s2,epsilon=0.25,anno=False)!="not_on_line":
+                # print(i,j)
+                if j==i+1:
+                    if s1.end_point ==s2.start_point:
+                        new_segment=DSegment(s1.start_point,s2.end_point,s1.ref)
+                        for k in range(i):
+                            new_poly.append(poly[k])
+                        new_poly.append(new_segment)
+                        for k in range(j+1,n):
+                            new_poly.append(poly[k])
+                        return new_poly,True
+                    else:
+                        new_segment=DSegment(s2.start_point,s1.end_point,s1.ref)
+                        for k in range(i):
+                            new_poly.append(poly[k])
+                        new_poly.append(new_segment)
+                        for k in range(j+1,n):
+                            new_poly.append(poly[k])
+                        return new_poly,True
+                if i==0 and j==n-1:
+                    if s1.end_point ==s2.start_point:
+                        new_segment=DSegment(s1.start_point,s2.end_point,s1.ref)
+                        new_poly.append(new_segment)
+                        for k in range(1,n-1):
+                            new_poly.append(poly[k])
+                        return new_poly,True
+                    else:
+                        new_segment=DSegment(s2.start_point,s1.end_point,s1.ref)
+                        new_poly.append(new_segment)
+                        for k in range(1,n-1):
+                            new_poly.append(poly[k])
+                        return new_poly,True
+                
+                if s1.length()<150 or s2.length()<150:
+                    continue
+                if point_segment_position(s1.start_point,s2,epsilon=0.1,anno=False)=="not_on_line" or point_segment_position(s1.end_point,s2,epsilon=0.1,anno=False)=="not_on_line":
+                    continue
+                inner_l,outer_l=0,0
+                for k in range(i+1,j):
+                    inner_l+=poly[k].length()
+                for k in range(i):
+                    outer_l+=poly[k].length()
+                for k in range(j+1,n):
+                    outer_l+=poly[k].length()
+                if inner_l<outer_l:
+                    #remove inner
+                    prev,next=poly[(i-1+n)%n],poly[(j+1)%n]
+                    if prev.end_point == s1.start_point:
+                        new_segment=DSegment(s1.start_point,s2.end_point,s1.ref)
+                        for k in range(i):
+                            new_poly.append(poly[k])
+                        new_poly.append(new_segment)
+                        for k in range(j+1,n):
+                            new_poly.append(poly[k])
+                        return new_poly,True
+                    else:
+                        #prev.start_point==s1.end_point
+                        new_segment=DSegment(s2.start_point,s1.end_point,s1.ref)
+                        for k in range(i):
+                            new_poly.append(poly[k])
+                        new_poly.append(new_segment)
+                        for k in range(j+1,n):
+                            new_poly.append(poly[k])
+                        return new_poly,True
+                else:
+                    #remove outer
+                    prev,next=poly[(i-1+n)%n],poly[(j+1)%n]
+                    if prev.end_point == s1.start_point:
+                        new_segment=DSegment(s2.start_point,s1.end_point,s1.ref)
+                        for k in range(i+1,j):
+                            new_poly.append(poly[k])
+                        new_poly.append(new_segment)
+                        return new_poly,True
+                    else:
+                        new_segment=DSegment(s1.start_point,s2.end_point,s1.ref)
+                        for k in range(i+1,j):
+                            new_poly.append(poly[k])
+                        new_poly.append(new_segment)
+                        return new_poly,True
+    return poly,False
+def calculate_poly_refs(poly,segmentation_config):
+    new_poly=poly
+    old_poly=poly
     #combine the same line in the poly
+    # print("===================")
+    # print(len(poly))
+    while True:
 
-
-
+        
+        new_poly,flag=combine_the_same_line(old_poly,segmentation_config)
+        # print(len(new_poly))
+        if flag==False:
+            break
+        old_poly=new_poly
+    # print("===========================")
 
     refs = []
     
-    for segment in poly:
+    for segment in new_poly:
         if isinstance(segment.ref, DArc):
             if len(refs) != 0 and isinstance(refs[-1].ref, DArc):
                 if (segment.ref.start_angle, segment.ref.end_angle, segment.ref.center, segment.ref.radius) == (
@@ -158,18 +263,18 @@ def calculate_poly_refs(poly,segmentation_config):
                     continue
             refs.append(segment)
         else:
-            if len(refs) != 0:
-                last_segment = refs[-1]
-                # 判断是否平行
-                if is_parallel(last_segment, segment,segmentation_config.is_parallel_tolerance) and not isinstance(last_segment.ref, DArc):
-                    seg=last_segment if last_segment.length()>segment.length() else segment
-                    new_segment = DSegment(
-                        start_point=last_segment.start_point,
-                        end_point=segment.end_point,
-                        ref=seg.ref
-                    )
-                    refs[-1] = new_segment
-                    continue
+            # if len(refs) != 0:
+            #     last_segment = refs[-1]
+            #     # 判断是否平行
+            #     if is_parallel(last_segment, segment,segmentation_config.is_parallel_tolerance) and not isinstance(last_segment.ref, DArc):
+            #         seg=last_segment if last_segment.length()>segment.length() else segment
+            #         new_segment = DSegment(
+            #             start_point=last_segment.start_point,
+            #             end_point=segment.end_point,
+            #             ref=seg.ref
+            #         )
+            #         refs[-1] = new_segment
+            #         continue
             refs.append(segment)
 
     # 判断首尾是否可以合并
@@ -181,15 +286,15 @@ def calculate_poly_refs(poly,segmentation_config):
             if (first_segment.ref.start_angle, first_segment.ref.end_angle, first_segment.ref.center, first_segment.ref.radius) == (
                 last_segment.ref.start_angle, last_segment.ref.end_angle, last_segment.ref.center, last_segment.ref.radius):
                 refs.pop()
-        elif not isinstance(first_segment.ref, DArc) and not isinstance(last_segment.ref, DArc):
-            if is_parallel(first_segment, last_segment,segmentation_config.is_parallel_tolerance):
-                new_segment = DSegment(
-                    start_point=last_segment.start_point,
-                    end_point=first_segment.end_point,
-                    ref=last_segment.ref
-                )
-                refs[0] = new_segment
-                refs.pop()
+        # elif not isinstance(first_segment.ref, DArc) and not isinstance(last_segment.ref, DArc):
+        #     if is_parallel(first_segment, last_segment,segmentation_config.is_parallel_tolerance):
+        #         new_segment = DSegment(
+        #             start_point=last_segment.start_point,
+        #             end_point=first_segment.end_point,
+        #             ref=last_segment.ref
+        #         )
+        #         refs[0] = new_segment
+        #         refs.pop()
 
     return refs
 

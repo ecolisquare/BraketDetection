@@ -20,16 +20,16 @@ def is_tangent(line,arc):
 
 def find_anno_info(matched_type,all_anno,poly_free_edges):
     radius_anno,whole_anno,half_anno,cornor_anno,parallel_anno,non_parallel_anno,vertical_anno,d_anno,angle_anno,toe_angle_anno=all_anno
-    if "DAB(VU-KS)" in matched_type:
-        if len(angle_anno)==0:
-            return "no_angle"
-        else:
-            return "angl"
-    elif "DAC(VU-R)" in matched_type:
+    if "DAC(VU-R)" in matched_type:
         if len(cornor_anno)==0:
             return "no_anno"
         else:
             return "short_anno"
+    # elif "DAB(VU-KS)" in matched_type:
+    #     if len(angle_anno)==0:
+    #         return "no_angle"
+    #     else:
+    #         return "angl"
     elif "DPK(R)" in matched_type:
         if len(parallel_anno)!=0:
             return "short_anno_para"
@@ -129,7 +129,18 @@ def find_anno_info(matched_type,all_anno,poly_free_edges):
             return "dist_intersec"
         else:
             return "angl_non_free"
-
+    elif "DPKN(VU-R)" in matched_type:
+       
+        if len(half_anno)!=0:
+            return "short_anno"
+        else:
+            return "long_anno"
+    elif "DPKN(KS-KS)" in matched_type:
+           
+        if len(half_anno)!=0:
+            return "short_anno"
+        else:
+            return "long_anno"
 
     return None
 def load_classification_table(file_path):
@@ -554,14 +565,14 @@ def poly_classifier(all_anno,poly_refs, texts,dimensions,conerhole_num, poly_fre
         #classify inner mixed type by annotation
 
         # DAB(VU-KS), DAB-1(VU-KS)
-        cluster_name="DAB(VU-KS)"
-        if cluster_name in matched_type:
-            if anno == "no_angle":
-                matched_type = "DAB(VU-KS)"
-            elif anno == "angl":
-                matched_type = "DAB-1(VU-KS)"
-            else:
-                matched_type = "DAB(VU-KS)"
+        # cluster_name="DAB(VU-KS)"
+        # if cluster_name in matched_type:
+        #     if anno == "no_angle":
+        #         matched_type = "DAB(VU-KS)"
+        #     elif anno == "angl":
+        #         matched_type = "DAB-1(VU-KS)"
+        #     else:
+        #         matched_type = "DAB(VU-KS)"
 
         # DAC(VU-R), DAC(VUF-R)
         cluster_name="DAC(VU-R)"
@@ -620,22 +631,31 @@ def poly_classifier(all_anno,poly_refs, texts,dimensions,conerhole_num, poly_fre
         cluster_name="DPKN(KS-R)"
         if cluster_name in matched_type:
             if anno == "long_anno":
-                matched_type = matched_type.replace("LDPKN(KS-R)", "")
+                matched_type = "DPKN(KS-R)"
             elif anno == "short_anno":
                 matched_type = "LDPKN(KS-R)"
             else:
-                matched_type = matched_type.replace("LDPKN(KS-R)", "")
+                matched_type = "DPKN(KS-R)"
 
-        # DPKN(R-KS), LDPKN(KS-R)
-        cluster_name="DPKN(R-KS)"
+        # DPKN(VU-R), LDPKN(VU-R)
+        cluster_name="DPKN(VU-R)"
         if cluster_name in matched_type:
             if anno == "long_anno":
-                matched_type = matched_type.replace("LDPKN(KS-R)", "")
+                matched_type = "DPKN(VU-R)"
             elif anno == "short_anno":
-                matched_type = "LDPKN(KS-R)"
+                matched_type = "LDPKN(VU-R)"
             else:
-                matched_type = matched_type.replace("LDPKN(KS-R)", "")
-
+                matched_type = "DPKN(VU-R)"
+        
+        # DPKN(KS-KS), LDPKN(KS-KS)
+        cluster_name="DPKN(KS-KS)"
+        if cluster_name in matched_type:
+            if anno == "long_anno":
+                matched_type = "DPKN(KS-KS)"
+            elif anno == "short_anno":
+                matched_type = "LDPKN(KS-KS)"
+            else:
+                matched_type = "DPKN(KS-KS)"
         # DAB-3(R-KS), LDBA(R-KS), BCB-1(R-KS)
         cluster_name="DAB-3(R-KS)"
         if cluster_name in matched_type:

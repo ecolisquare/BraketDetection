@@ -103,6 +103,8 @@ def is_parallel(seg1, seg2, tolerance=0.05):
     return are_equal_with_tolerance(cross_product, 0, tolerance)
 
 def point_segment_position(point: DPoint, segment: DSegment, epsilon=0.05,anno=True):
+    if point ==segment.start_point or point ==segment.end_point:
+        return "on_segment"
     # 向量AB表示线段的方向
     AB = DPoint(segment.end_point.x - segment.start_point.x, segment.end_point.y - segment.start_point.y)
     # 向量AP表示从起点到点的方向
@@ -110,7 +112,16 @@ def point_segment_position(point: DPoint, segment: DSegment, epsilon=0.05,anno=T
     l1,l2=DSegment(segment.start_point,point).length(),segment.length()
     # 计算叉积，判断点是否在直线上
     cross_product = (AB.x * AP.y - AB.y * AP.x)/(DSegment(segment.start_point,point).length()*segment.length())
-    if abs(cross_product) > epsilon:
+
+
+
+     # 向量AB表示线段的方向
+    BA = DPoint(segment.start_point.x - segment.end_point.x, segment.start_point.y - segment.end_point.y)
+    # 向量AP表示从起点到点的方向
+    BP = DPoint(point.x - segment.end_point.x, point.y - segment.end_point.y)
+    # 计算叉积，判断点是否在直线上
+    cross_product2 = (BA.x * BP.y - BA.y * BP.x)/(DSegment(segment.end_point,point).length()*segment.length())
+    if abs(cross_product) > epsilon or abs(cross_product2) > epsilon:
         return "not_on_line"  # 点不在直线上
 
     # 计算点积，判断点是否在线段上
@@ -3362,7 +3373,7 @@ def findClosedPolys_via_BFS(elements,texts,dimensions,segments,segmentation_conf
 
     closed_polys=[]
     sampled_lines=[]
-    repline_has_visited=set()
+    # repline_has_visited=set()
     for s in replines:
         sampled_lines.append(DSegment(s.start_point,s.end_point,s.ref))
         sampled_lines.append(DSegment(s.end_point,s.start_point,s.ref))
@@ -3377,8 +3388,8 @@ def findClosedPolys_via_BFS(elements,texts,dimensions,segments,segmentation_conf
         path=process_repline_with_repline_dfs(visited_edges,sampled_line,graph,segmentation_config)
         if(len(path)>=segmentation_config.path_min_length):
             closed_polys.append(path)
-            repline_has_visited.add(sampled_line)
-            repline_has_visited.add(DSegment(sampled_line.end_point,sampled_line.start_point))
+            # repline_has_visited.add(sampled_line)
+            # repline_has_visited.add(DSegment(sampled_line.end_point,sampled_line.start_point))
     if verbose:
         pbar.close()
     sampled_lines=[]
