@@ -65,13 +65,13 @@ if __name__ == '__main__':
         
         # visualize_grid_and_segment(segments_nearby, poly,meta[0],meta[1],meta[2], blocks)
         # print(len(segments_nearby))
-        # try:
-        #     segments_nearby=ori_block.segments_near_poly(poly)
-        #     res = outputPolyInfo(poly, segments_nearby, segmentation_config, point_map, i, star_pos_map, cornor_holes,texts,dimensions,text_map,stiffeners)
-        # except Exception as e:
-        #     res=None
-        segments_nearby=ori_block.segments_near_poly(poly)
-        res = outputPolyInfo(poly, segments_nearby, segmentation_config, point_map, i, star_pos_map, cornor_holes,texts,dimensions,text_map,stiffeners)
+        try:
+            segments_nearby=ori_block.segments_near_poly(poly)
+            res = outputPolyInfo(poly, segments_nearby, segmentation_config, point_map, i, star_pos_map, cornor_holes,texts,dimensions,text_map,stiffeners)
+        except Exception as e:
+            res=None
+        # segments_nearby=ori_block.segments_near_poly(poly)
+        # res = outputPolyInfo(poly, segments_nearby, segmentation_config, point_map, i, star_pos_map, cornor_holes,texts,dimensions,text_map,stiffeners)
         pbar.update()
         if res is not None:
             # print(res)
@@ -80,8 +80,8 @@ if __name__ == '__main__':
             idxs.append(i)
     pbar.close()
     print("结构化信息输出完毕，保存于:", segmentation_config.poly_info_dir)
-    # if segmentation_config.mode=="dev":
-    #     outputRes(ori_segments, point_map, polys_info, segmentation_config.res_image_path,segmentation_config.draw_intersections,segmentation_config.draw_segments,segmentation_config.line_image_drawPolys)
+    if segmentation_config.mode=="dev":
+        outputRes(ori_segments, point_map, polys_info, segmentation_config.res_image_path,segmentation_config.draw_intersections,segmentation_config.draw_segments,segmentation_config.line_image_drawPolys)
 
     #将检测到的肘板标注在原本的dxf文件中
     bboxs = []

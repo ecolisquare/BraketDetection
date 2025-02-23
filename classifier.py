@@ -20,129 +20,166 @@ def is_tangent(line,arc):
 
 def find_anno_info(matched_type,all_anno,poly_free_edges):
     radius_anno,whole_anno,half_anno,cornor_anno,parallel_anno,non_parallel_anno,vertical_anno,d_anno,angle_anno,toe_angle_anno=all_anno
+    anno={}
     if "DAC(VU-R)" in matched_type:
         if len(cornor_anno)==0:
-            return "no_anno"
+            anno["DAC(VU-R)"]="no_anno"
         else:
-            return "short_anno"
+            anno["DAC(VU-R)"]="short_anno"
+    else:
+        anno["DAC(VU-R)"]="none"
     # elif "DAB(VU-KS)" in matched_type:
     #     if len(angle_anno)==0:
     #         return "no_angle"
     #     else:
     #         return "angl"
-    elif "DPK(R)" in matched_type:
+    if "DPK(R)" in matched_type:
         if len(parallel_anno)!=0:
-            return "short_anno_para"
+            anno["DPK(R)"]="short_anno_para"
         elif len(half_anno)!=0:
-            return "short_anno"
+            anno["DPK(R)"]= "short_anno"
         else:
-            return "long_anno"
+            anno["DPK(R)"]= "long_anno"
+    else:
+        anno["DPK(R)"]="none"
     # elif "DAB(R-KS)" in matched_type:
     #     if len(cornor_anno)==0:
     #         return "no_anno"
     #     else:
     #         return "short_anno"
-    elif "DPKN(KS-KS)" in matched_type:
+    if "DPKN(KS-KS)" in matched_type:
         if len(half_anno)!=0:
-            return "short_anno"
+            anno["DPKN(KS-KS)"]="short_anno"
         else:
-            return "long_anno"
-    elif "DAD(R)" in matched_type:
+            anno["DPKN(KS-KS)"]="long_anno"
+    else:
+        anno["DPKN(KS-KS)"]="none"
+    if "DAD(R)" in matched_type:
         if len(half_anno)!=0:
-            return "dist_intersec"
+            anno["DAD(R)"]="dist_intersec"
         else:
-            return "no_dist"
-    elif "DPKN(KS-R)" in matched_type:
+            anno["DAD(R)"]="no_dist"
+    else:
+        anno["DAD(R)"]="none"
+    if "DPKN(KS-R)" in matched_type:
         if len(half_anno)!=0:
-            return "short_anno"
+            anno["DPKN(KS-R)"]="short_anno"
         else:
-            return "long_anno"
-    elif "DAB-3(R-KS)" in matched_type:
+            anno["DPKN(KS-R)"]="long_anno"
+    else:
+        anno["DPKN(KS-R)"]="none"
+    if "DAB-3(R-KS)" in matched_type:
         free_edges=poly_free_edges[0]
         line=free_edges[1] if isinstance(free_edges[1],DLine) else free_edges[2]
         arc=free_edges[1] if isinstance(free_edges[1],DArc) else free_edges[2]
         if isinstance(line,DLine) and isinstance(arc,DArc) and is_tangent(line,arc):
             if len(angle_anno)!=0:
-                return "angl_non_free"
+                anno["DAB-3(R-KS)"]="angl_non_free"
             else:
             
-                return "dist_intersec"
+                anno["DAB-3(R-KS)"]="dist_intersec"
         else:
-            return "no_tangent"
-    elif "KL(R)" in matched_type:
+            anno["DAB-3(R-KS)"]="no_tangent"
+    else:
+        anno["DAB-3(R-KS)"]="none"
+    if "KL(R)" in matched_type:
         if len(vertical_anno)==2:
-            return "tt"
+            anno["KL(R)"]="tt"
         elif len(vertical_anno)==1:
-            return "tf"
+            anno["KL(R)"]= "tf"
         else:
-            return "ff"
-    elif "KL(KS)" in matched_type:
+            anno["KL(R)"]= "ff"
+    else:
+        anno["KL(R)"]="none"
+    if "KL(KS)" in matched_type:
         if len(vertical_anno)==2:
-            return "tt"
+            anno["KL(KS)"]= "tt"
         elif len(vertical_anno)==1:
-            return "tf"
+            anno["KL(KS)"]= "tf"
         else:
-            return "ff"
-    elif "BR-1(R)" in matched_type:
+            anno["KL(KS)"]= "ff"
+    else:
+        anno["KL(KS)"]="none"
+    if "BR(R)" in matched_type:
         if len(angle_anno)!=0:
-            return "angl_non_free"
+            anno["BR(R)"]="angl_non_free"
         elif len(half_anno)!=0:
-            return "dist_intersec"
+            anno["BR(R)"]= "dist_intersec"
         else:
-            return "no_anno"
-    elif "DPK(R-KS)" in matched_type:
+            anno["BR(R)"]= "no_anno"
+    else:
+        anno["BR(R)"]="none"
+    if "DPK(R-KS)" in matched_type:
         if len(half_anno)!=0:
-            return "short_anno"
+            anno["DPK(R-KS)"]="short_anno"
         else:
-            return "long_anno"
-    elif "BR-1(KS)" in matched_type:
+            anno["DPK(R-KS)"]= "long_anno"
+    else:
+        anno["DPK(R-KS)"]="none"
+    if "BR-1(KS)" in matched_type:
         if len(angle_anno)!=0:
-            return "angl_non_free"
+            anno["BR-1(KS)"]="angl_non_free"
         else:
-            return "dist_intersec"
-    elif "LBMA-1(KS)" in matched_type:
+            anno["BR-1(KS)"]= "dist_intersec"
+    else:
+        anno["BR-1(KS)"]="none"
+    if "LBMA-1(KS)" in matched_type:
         if len(angle_anno)!=0:
-            return "angl"
+            anno["LBMA-1(KS)"]="angl"
         else:
-            return "dist"
-    elif "DPV-4(R-KS)" in matched_type:
+            anno["LBMA-1(KS)"]= "dist"
+    else:
+        anno["LBMA-1(KS)"]="none"
+    if "DPV-4(R-KS)" in matched_type:
         if len(parallel_anno)!=0:
-            return "D_anno"
+            anno["DPV-4(R-KS)"]="D_anno"
         else:
-            return "no_anno"
-    elif "DAC(KS-KS)" in matched_type:
+            anno["DPV-4(R-KS)"]= "no_anno"
+    else:
+        anno["DPV-4(R-KS)"]="none"
+    if "DAC(KS-KS)" in matched_type:
         if len(d_anno)!=0:
-            return "D"
+            anno["DAC(KS-KS)"]="D"
         else:
-            return "notD"
-    elif "DAE(R-R)" in matched_type:
+            anno["DAC(KS-KS)"]="notD"
+    else:
+        anno["DAC(KS-KS)"]="none"
+    if "DAC(R-R)" in matched_type:
         if len(d_anno)!=0:
-            return "D_anno"
+            anno["DAC(R-R)"]="D_anno"
         else:
-            return "no_anno"
-    elif "DPK-1(R)" in matched_type:
+            anno["DAC(R-R)"]= "no_anno"
+    else:
+        anno["DAC(R-R)"]="none"
+    if "DPK-1(R)" in matched_type:
         if len(non_parallel_anno)!=0:
-            return "dist_adja"
+            anno["DPK-1(R)"]="dist_adja"
         elif len(toe_angle_anno)!=0:
-            return "angl_toe"
+            anno["DPK-1(R)"]= "angl_toe"
         elif len(half_anno)!=0:
-            return "dist_intersec"
+            anno["DPK-1(R)"]= "dist_intersec"
         else:
-            return "angl_non_free"
-    elif "DPKN(VU-R)" in matched_type:
+            anno["DPK-1(R)"]= "angl_non_free"
+    else:
+        anno["DPK-1(R)"]="none"
+    if "DPKN(VU-R)" in matched_type:
        
         if len(half_anno)!=0:
-            return "short_anno"
+            anno["DPKN(VU-R)"]="short_anno"
         else:
-            return "long_anno"
-    elif "DPKN(KS-KS)" in matched_type:
+            anno["DPKN(VU-R)"]= "long_anno"
+    else:
+        anno["DPKN(VU-R)"]="none"
+    if "DPKN(KS-KS)" in matched_type:
            
         if len(half_anno)!=0:
-            return "short_anno"
+            anno["DPKN(KS-KS)"]="short_anno"
         else:
-            return "long_anno"
+            anno["DPKN(KS-KS)"]= "long_anno"
+    else:
+        anno["DPKN(KS-KS)"]="none"
 
-    return None
+    return anno
 def load_classification_table(file_path):
     """
     Load the classification table from a JSON file.
@@ -249,7 +286,14 @@ def generate_key(edge):
     else:
         new_edge = edge
     return min(tuple(new_edge), tuple(reversed(new_edge)))
-
+def is_toe(free_edge,cons_edge):
+    if free_edge.length()<=25 and is_vertical_(free_edge.start_point,free_edge.end_point,cons_edge,epsilon=0.15):
+        return True
+    return False
+def is_ks_corner(free_edge,last_free_edge,cons_edge):
+    if (not is_toe(free_edge,cons_edge)) and (not is_vertical_(free_edge.start_point,free_edge.end_point,cons_edge)):
+        return True
+    return False
 def conerhole_free_classifier(classification_table, conerhole_num, free_edges_sequence, reversed_free_edges_sequence, edges_sequence, reversed_edges_sequence):
     matched_type = None
     non_conerhole_edges = []
@@ -298,7 +342,7 @@ def conerhole_free_classifier(classification_table, conerhole_num, free_edges_se
         if temp_conerhole_count != conerhole_count:
             continue
 
-        matched_type = key_name if matched_type is None else f"{matched_type}, {key_name}"
+        matched_type = key_name if matched_type is None else f"{matched_type},{key_name}"
     
     # 参考趾端和角隅孔各类型数量的不严格匹配
     if matched_type is None:
@@ -329,7 +373,7 @@ def conerhole_free_classifier(classification_table, conerhole_num, free_edges_se
             if temp_conerhole_count != unrestricted_cornerhole_count:
                 continue
 
-            matched_type = key_name if matched_type is None else f"{matched_type}, {key_name}"
+            matched_type = key_name if matched_type is None else f"{matched_type},{key_name}"
 
     # 仅参考角隅孔各类型数量的严格匹配
 
@@ -372,7 +416,7 @@ def conerhole_free_classifier(classification_table, conerhole_num, free_edges_se
             if temp_conerhole_count != conerhole_count:
                 continue
 
-            matched_type = key_name if matched_type is None else f"{matched_type}, {key_name}"
+            matched_type = key_name if matched_type is None else f"{matched_type},{key_name}"
 
     # 仅参考角隅孔各类型数量的不严格匹配
     if matched_type is None:
@@ -403,10 +447,27 @@ def conerhole_free_classifier(classification_table, conerhole_num, free_edges_se
             if temp_conerhole_count != unrestricted_cornerhole_count:
                 continue
 
-            matched_type = key_name if matched_type is None else f"{matched_type}, {key_name}"
+            matched_type = key_name if matched_type is None else f"{matched_type},{key_name}"
 
     return matched_type if matched_type is not None else "Unclassified"
 
+
+def tidy_matched_type(matched_type):
+    types=matched_type.split(',')
+    result=''
+    for ty in types:
+        if ty!='':
+            result=result+ty+','
+    if result=='':
+        result="Unclassified"        
+    return result[:-1]
+
+def find_cons_edge(poly_refs,seg):
+    for s in poly_refs:
+        if (not s.isCornerhole) and (not s.isConstraint):
+            continue
+        if s.start_point==seg.start_point or s.start_point == seg.end_point or s.end_point ==seg.start_point or s.end_point==seg.end_point:
+            return s
 def poly_classifier(all_anno,poly_refs, texts,dimensions,conerhole_num, poly_free_edges, edges, classification_file_path, info_json_path, keyname, is_output_json = False):
     classification_table = load_classification_table(classification_file_path)
 
@@ -416,8 +477,19 @@ def poly_classifier(all_anno,poly_refs, texts,dimensions,conerhole_num, poly_fre
     free_edges_sequence = []
     for i, seg in enumerate(poly_free_edges[0]):
         if isinstance(seg.ref, DLine) or isinstance(seg.ref, DLwpolyline):
-            if (i == 0 or i == len(poly_free_edges[0]) - 1) and seg.length() < 25:
-                free_edges_sequence.append("toe")
+            if (i == 0 or i == len(poly_free_edges[0]) - 1):
+                if i==0:
+                    last_free_edge=poly_free_edges[0][1]
+                else:
+                    last_free_edge=poly_free_edges[0][-2]
+                cons_edge=find_cons_edge(poly_refs,seg)
+                # print(cons_edge)
+                if is_toe(seg,cons_edge):
+                    free_edges_sequence.append("toe")
+                elif is_ks_corner(seg,last_free_edge,cons_edge):
+                    free_edges_sequence.append("KS_corner")
+                else:
+                    free_edges_sequence.append("line")
             else:
                 free_edges_sequence.append("line")
         elif isinstance(seg.ref, DArc):
@@ -558,226 +630,261 @@ def poly_classifier(all_anno,poly_refs, texts,dimensions,conerhole_num, poly_fre
     
 
     anno=find_anno_info(matched_type,all_anno,poly_free_edges)
-    if anno is None:
-        #default type of the mixed type
-        return matched_type
-    else:
-        #classify inner mixed type by annotation
+    
+    #classify inner mixed type by annotation
 
-        # DAB(VU-KS), DAB-1(VU-KS)
-        # cluster_name="DAB(VU-KS)"
-        # if cluster_name in matched_type:
-        #     if anno == "no_angle":
-        #         matched_type = "DAB(VU-KS)"
-        #     elif anno == "angl":
-        #         matched_type = "DAB-1(VU-KS)"
-        #     else:
-        #         matched_type = "DAB(VU-KS)"
+    # DAB(VU-KS), DAB-1(VU-KS)
+    # cluster_name="DAB(VU-KS)"
+    # if cluster_name in matched_type:
+    #     if anno == "no_angle":
+    #         matched_type = "DAB(VU-KS)"
+    #     elif anno == "angl":
+    #         matched_type = "DAB-1(VU-KS)"
+    #     else:
+    #         matched_type = "DAB(VU-KS)"
+    matched_type=","+matched_type+','
+    # DAC(VU-R), DAC(VUF-R)
+    cluster_name="DAC(VU-R)"
+    if cluster_name in matched_type:
+        if anno[cluster_name] == "no_anno":
+            matched_type = matched_type.replace(',DAC(VUF-R),',',,')
+        elif anno[cluster_name] == "short_anno":
+            matched_type = matched_type.replace(',DAC(VU-R),',',,')
+        else:
+            matched_type = matched_type.replace(',DAC(VUF-R),',',,')
+    
+    # DPK(R), LDPK(R-R), LDPK-1(R-R)
+    cluster_name="DPK(R)"
+    if cluster_name in matched_type:
+        if anno[cluster_name] == "long_anno":
+            matched_type = matched_type.replace(',LDPK(R-R),',',,')
+            matched_type = matched_type.replace(',LDPK-1(R-R),',',,')
+        elif anno[cluster_name] == "short_anno":
+            matched_type = matched_type.replace(',DPK(R),',',,')
+            matched_type = matched_type.replace(',LDPK-1(R-R),',',,')
+        elif anno[cluster_name] == "short_anno_para":
+            matched_type = matched_type.replace(',LDPK(R-R),',',,')
+            matched_type = matched_type.replace(',DPK(R),',',,')
+        else:
+            matched_type = matched_type.replace(',LDPK(R-R),',',,')
+            matched_type = matched_type.replace(',LDPK-1(R-R),',',,')
+    
+    # DAB(R-KS), DAB-1(R-KS)
+    # cluster_name="DAB(R-KS)"
+    # if cluster_name in matched_type:
+    #     if anno == "no_angle":
+    #         matched_type = "DAB(R-KS)"
+    #     elif anno == "angl":
+    #         matched_type = "DAB-1(R-KS)"
+    #     else:
+    #         matched_type = "DAB(R-KS)"
 
-        # DAC(VU-R), DAC(VUF-R)
-        cluster_name="DAC(VU-R)"
-        if cluster_name in matched_type:
-            if anno == "no_anno":
-                matched_type = "DAC(VU-R)"
-            elif anno == "short_anno":
-                matched_type = "DAC(VUF-R)"
-            else:
-                matched_type = "DAC(VU-R)"
-        
-        # DPK(R), LDPK(R-R), LDPK-1(R-R)
-        cluster_name="DPK(R)"
-        if cluster_name in matched_type:
-            if anno == "long_anno":
-                matched_type = "DPK(R)"
-            elif anno == "short_anno":
-                matched_type = "LDPK(R-R)"
-            elif anno == "short_anno_para":
-                matched_type = "LDPK-1(R-R)"
-            else:
-                matched_type = "DPK(R)"
-        
-        # DAB(R-KS), DAB-1(R-KS)
-        # cluster_name="DAB(R-KS)"
-        # if cluster_name in matched_type:
-        #     if anno == "no_angle":
-        #         matched_type = "DAB(R-KS)"
-        #     elif anno == "angl":
-        #         matched_type = "DAB-1(R-KS)"
-        #     else:
-        #         matched_type = "DAB(R-KS)"
+    # DPKN(KS-KS), LDPKN(KS-KS)
+    cluster_name="DPKN(KS-KS)"
+    if cluster_name in matched_type:
+        if anno[cluster_name] == "long_anno":
+            matched_type = matched_type.replace(',LDPKN(KS-KS),',',,')
+        elif anno[cluster_name] == "short_anno":
+            matched_type = matched_type.replace(',DPKN(KS-KS),',',,')
+        else:
+            matched_type = matched_type.replace(',LDPKN(KS-KS),',',,')
 
-        # DPKN(KS-KS), LDPKN(KS-KS)
-        cluster_name="DPKN(KS-KS)"
-        if cluster_name in matched_type:
-            if anno == "long_anno":
-                matched_type = "DPKN(KS-KS)"
-            elif anno == "short_anno":
-                matched_type = "LDPKN(KS-KS)"
-            else:
-                matched_type = "DPKN(KS-KS)"
-
-        # DAD(R), DCD(R) 
-        cluster_name="DAD(R)"
-        if cluster_name in matched_type:
-            if anno == "dist_intersec":
-                matched_type = "DAD(R)"
-            elif anno == "no_dist":
-                matched_type = "DCD(R)"
-            else:
-                matched_type = "DCD(R)"
+    # DAD(R), DCD(R) 
+    cluster_name="DAD(R)"
+    if cluster_name in matched_type:
+        if anno[cluster_name] == "dist_intersec":
+            matched_type = matched_type.replace(',DCD(R),',',,')
+        elif anno[cluster_name] == "no_dist":
+            matched_type = matched_type.replace(',DAD(R),',',,')
+        else:
+            matched_type = matched_type.replace(',DAD(R),',',,')
 
 
-        # DPKN(KS-R), LDPKN(KS-R)
-        cluster_name="DPKN(KS-R)"
-        if cluster_name in matched_type:
-            if anno == "long_anno":
-                matched_type = "DPKN(KS-R)"
-            elif anno == "short_anno":
-                matched_type = "LDPKN(KS-R)"
-            else:
-                matched_type = "DPKN(KS-R)"
+    # DPKN(KS-R), LDPKN(KS-R)
+    cluster_name="DPKN(KS-R)"
+    if cluster_name in matched_type:
+        if anno[cluster_name] == "long_anno":
+            matched_type = matched_type.replace(',LDPKN(KS-R),',',,')
+        elif anno[cluster_name] == "short_anno":
+            matched_type = matched_type.replace(',DPKN(KS-R),',',,')
+        else:
+            matched_type = matched_type.replace(',LDPKN(KS-R),',',,')
 
-        # DPKN(VU-R), LDPKN(VU-R)
-        cluster_name="DPKN(VU-R)"
-        if cluster_name in matched_type:
-            if anno == "long_anno":
-                matched_type = "DPKN(VU-R)"
-            elif anno == "short_anno":
-                matched_type = "LDPKN(VU-R)"
-            else:
-                matched_type = "DPKN(VU-R)"
-        
-        # DPKN(KS-KS), LDPKN(KS-KS)
-        cluster_name="DPKN(KS-KS)"
-        if cluster_name in matched_type:
-            if anno == "long_anno":
-                matched_type = "DPKN(KS-KS)"
-            elif anno == "short_anno":
-                matched_type = "LDPKN(KS-KS)"
-            else:
-                matched_type = "DPKN(KS-KS)"
-        # DAB-3(R-KS), LDBA(R-KS), BCB-1(R-KS)
-        cluster_name="DAB-3(R-KS)"
-        if cluster_name in matched_type:
-            if anno == "angl_non_free":
-                matched_type = "DAB-3(R-KS)"
-            elif anno == "dist_intersec":
-                matched_type = "LDBA(R-KS)"
-            elif anno == "no_tangent":
-                matched_type = "BCB-1(R-KS)"
-            else:
-                matched_type = "LDBA(R-KS)"
+    # DPKN(VU-R), LDPKN(VU-R)
+    cluster_name="DPKN(VU-R)"
+    if cluster_name in matched_type:
+        if anno[cluster_name] == "long_anno":
+            matched_type = matched_type.replace(',LDPKN(VU-R),',',,')
+        elif anno[cluster_name] == "short_anno":
+            matched_type = matched_type.replace(',DPKN(VU-R),',',,')
+        else:
+            matched_type = matched_type.replace(',LDPKN(VU-R),',',,')
+    
+    # # DPKN(KS-KS), LDPKN(KS-KS)
+    # cluster_name="DPKN(KS-KS)"
+    # if cluster_name in matched_type:
+    #     if anno[cluster_name] == "long_anno":
+    #         matched_type = "DPKN(KS-KS)"
+    #     elif anno[cluster_name] == "short_anno":
+    #         matched_type = "LDPKN(KS-KS)"
+    #     else:
+    #         matched_type = "DPKN(KS-KS)"
+    # DAB-3(R-KS), LDBA(R-KS), BCB-1(R-KS)
+    cluster_name="DAB-3(R-KS)"
+    if cluster_name in matched_type:
+        if anno[cluster_name] == "angl_non_free":
+            matched_type = matched_type.replace(',LDBA(R-KS),',',,')
+            matched_type = matched_type.replace(',BCB-1(R-KS),',',,')
+        elif anno[cluster_name] == "dist_intersec":
+            matched_type = matched_type.replace(',DAB-3(R-KS),',',,')
+            matched_type = matched_type.replace(',BCB-1(R-KS),',',,')
+        elif anno[cluster_name] == "no_tangent":
+            matched_type = matched_type.replace(',DAB-3(R-KS),',',,')
+            matched_type = matched_type.replace(',LDBA(R-KS),',',,')
+        else:
+            matched_type = matched_type.replace(',DAB-3(R-KS),',',,')
+            matched_type = matched_type.replace(',BCB-1(R-KS),',',,')
 
-        # KL(R), KL-1(R), KL-2(R)
-        cluster_name="KL(R)"
-        if cluster_name in matched_type:
-            if anno == "ff":
-                matched_type = "KL(R)"
-            elif anno == "tt":
-                matched_type = "KL-1(R)"
-            elif anno == "tf":
-                matched_type = "KL-2(R)"
-            else:
-                matched_type = "KL(R)"
-        
-        # KL(KS), KL-1(KS), KL-2(KS)
-        cluster_name="KL(KS)"
-        if cluster_name in matched_type:
-            if anno == "ff":
-                matched_type = "KL(KS)"
-            elif anno == "tt":
-                matched_type = "KL-1(KS)"
-            elif anno == "tf":
-                matched_type = "KL-2(KS)"
-            else:
-                matched_type = "KL(KS)"
-        
-        # DPK-1(R), DPK-2(R-R), DPK-5(R-R), LDPK-3(R-R)
-        cluster_name="DPK-1(R)"
-        if cluster_name in matched_type:
-            if anno == "angl_non_free":
-                matched_type = "DPK-1(R)"
-            elif anno == "dist_adja":
-                matched_type = "DPK-2(R-R)"
-            elif anno == "angl_toe":
-                matched_type = "DPK-5(R-R)"
-            elif anno == "dist_intersec":
-                matched_type = "LDPK-3(R-R)"
-            else:
-                matched_type = "DPK-1(R)"
-        
-        # BR(R), BR-1(R), DAA(R)
-        cluster_name="BR(R)"
-        if cluster_name in matched_type:
-            if anno == "no_anno":
-                matched_type = "BR(R)"
-            elif anno == "angl_non_free":
-                matched_type = "BR-1(R)"
-            elif anno == "dist_intersec":
-                matched_type = "DAA(R)"
-            else:
-                matched_type = "BR(R)"
-        
-        # DPK(R-KS), LDPK-1(KS-R)
-        cluster_name="DPK(R-KS)"
-        if cluster_name in matched_type:
-            if anno == "long_anno":
-                matched_type = "DPK(R-KS)"
-            elif anno == "short_anno":
-                matched_type = "LDPK-1(KS-R)"
-            else:
-                matched_type = "DPK(R-KS)"
-        
-        # BR-1(KS), DAA(KS)
-        cluster_name="BR-1(KS)"
-        if cluster_name in matched_type:
-            if anno == "angl_non_free":
-                matched_type = "BR-1(KS)"
-            elif anno == "dist_intersec":
-                matched_type = "DAA(KS)"
-            else:
-                matched_type = "DAA(KS)"
-        
-        # DPV-4(R-KS), DPV-6(R-KS)
-        cluster_name="DPV-4(R-KS)"
-        if cluster_name in matched_type:
-            if anno == "D_anno":
-                matched_type = "DPV-4(R-KS)"
-            elif anno == "no_anno":
-                matched_type = "DPV-6(R-KS)"
-            else:
-                matched_type = "DPV-6(R-KS)"
-        
-        # LBMA-1(KS), BMA-1(KS)
-        cluster_name="LBMA-1(KS)"
-        if cluster_name in matched_type:
-            if anno == "dist":
-                matched_type = "BMA-1(KS)"
-            elif anno == "angl":
-                matched_type = "LBMA-1(KS)"
-            else:
-                matched_type = "BMA-1(KS)"
-        
-        # DAC(KS-KS),DAE(KS-KS)
-        cluster_name="DAC(KS-KS)"
-        if cluster_name in matched_type:
-            if anno == "D":
-                matched_type = "DAC(KS-KS)"
-            elif anno == "notD":
-                matched_type = "DAE(KS-KS)"
-            else:
-                matched_type = "DAE(KS-KS)"
+    # KL(R), KL-1(R), KL-2(R)
+    cluster_name="KL(R)"
+    if cluster_name in matched_type:
+        if anno[cluster_name] == "ff":
+            matched_type = matched_type.replace(',KL-0(R),',',,')
+            matched_type = matched_type.replace(',KL-1(R),',',,')
+            matched_type = matched_type.replace(',KL-2(R),',',,')
+        elif anno[cluster_name] == "tt":
+            matched_type = matched_type.replace(',KL(R),',',,')
+            matched_type = matched_type.replace(',KL-0(R),',',,')
+            matched_type = matched_type.replace(',KL-2(R),',',,')
+        elif anno[cluster_name] == "tf":
+            matched_type = matched_type.replace(',KL-0(R),',',,')
+            matched_type = matched_type.replace(',KL(R),',',,')
+            matched_type = matched_type.replace(',KL-1(R),',',,')
+        else:
+            matched_type = matched_type.replace(',KL-0(R),',',,')
+            matched_type = matched_type.replace(',KL-2(R),',',,')
+            matched_type = matched_type.replace(',KL-1(R),',',,')
+    
+    # KL(KS), KL-1(KS), KL-2(KS)
+    cluster_name="KL(KS)"
+    if cluster_name in matched_type:
+        if anno[cluster_name] == "ff":
+            matched_type = matched_type.replace(',KL-0(KS),',',,')
+            matched_type = matched_type.replace(',KL-2(KS),',',,')
+            matched_type = matched_type.replace(',KL-1(KS),',',,')
+        elif anno[cluster_name] == "tt":
+            matched_type = matched_type.replace(',KL-0(KS),',',,')
+            matched_type = matched_type.replace(',KL-2(KS),',',,')
+            matched_type = matched_type.replace(',KL(KS),',',,')
+        elif anno[cluster_name] == "tf":
+            matched_type = matched_type.replace(',KL-0(KS),',',,')
+            matched_type = matched_type.replace(',KL(KS),',',,')
+            matched_type = matched_type.replace(',KL-1(KS),',',,')
+        else:
+            matched_type = matched_type.replace(',KL-0(KS),',',,')
+            matched_type = matched_type.replace(',KL-2(KS),',',,')
+            matched_type = matched_type.replace(',KL-1(KS),',',,')
+    
+    # DPK-1(R), DPK-2(R-R), DPK-5(R-R), LDPK-3(R-R)
+    cluster_name="DPK-1(R)"
+    if cluster_name in matched_type:
+        if anno[cluster_name] == "angl_non_free":
+            matched_type = matched_type.replace(',DPK-2(R-R),',',,')
+            matched_type = matched_type.replace(',DPK-5(R-R),',',,')
+            matched_type = matched_type.replace(',LDPK-3(R-R,)',',,')
+        elif anno[cluster_name] == "dist_adja":
+            matched_type = matched_type.replace(',DPK-5(R-R),',',,')
+            matched_type = matched_type.replace(',LDPK-3(R-R),',',,')
+            matched_type = matched_type.replace(',DPK-1(R),',',,')
+        elif anno[cluster_name] == "angl_toe":
+            matched_type = matched_type.replace(',DPK-2(R-R),',',,')
+            matched_type = matched_type.replace(',LDPK-3(R-R),',',,')
+            matched_type = matched_type.replace(',DPK-1(R),',',,')
+        elif anno[cluster_name] == "dist_intersec":
+            matched_type = matched_type.replace(',DPK-2(R-R),',',,')
+            matched_type = matched_type.replace(',DPK-5(R-R),',',,')
+            matched_type = matched_type.replace(',DPK-1(R),',',,')
+        else:
+            matched_type = matched_type.replace(',DPK-2(R-R),',',,')
+            matched_type = matched_type.replace(',DPK-5(R-R),',',,')
+            matched_type = matched_type.replace(',LDPK-3(R-R),',',,')
+    
+    # BR(R), BR-1(R), DAA(R)
+    cluster_name="BR(R)"
+    if cluster_name in matched_type:
+        if anno[cluster_name] == "no_anno":
+            matched_type = matched_type.replace(',BR-1(R),',',,')
+            matched_type = matched_type.replace(',DAA(R),',',,')
+        elif anno[cluster_name] == "angl_non_free":
+            matched_type = matched_type.replace(',DAA(R),',',,')
+            matched_type = matched_type.replace(',BR(R),',',,')
+        elif anno[cluster_name] == "dist_intersec":
+            matched_type = matched_type.replace(',BR-1(R),',',,')
+            matched_type = matched_type.replace(',BR(R),',',,')
+        else:
+            matched_type = matched_type.replace(',BR-1(R),',',,')
+            matched_type = matched_type.replace(',DAA(R)),',',,')
+    
+    # DPK(R-KS), LDPK-1(KS-R)
+    cluster_name="DPK(R-KS)"
+    if cluster_name in matched_type:
+        if anno[cluster_name] == "long_anno":
+            matched_type = matched_type.replace(',LDPK-1(KS-R),',',,')
+        elif anno[cluster_name] == "short_anno":
+            matched_type = matched_type.replace(',DPK(R-KS),',',,')
+        else:
+            matched_type = matched_type.replace(',LDPK-1(KS-R),',',,')
+    
+    # BR-1(KS), DAA(KS)
+    cluster_name="BR-1(KS)"
+    if cluster_name in matched_type:
+        if anno[cluster_name] == "angl_non_free":
+            matched_type = matched_type.replace(',DAA(KS),',',,')
+        elif anno[cluster_name] == "dist_intersec":
+            matched_type = matched_type.replace(',BR-1(KS),',',,')
+        else:
+            matched_type = matched_type.replace(',BR-1(KS),',',,')
+    
+    # DPV-4(R-KS), DPV-6(R-KS)
+    cluster_name="DPV-4(R-KS)"
+    if cluster_name in matched_type:
+        if anno[cluster_name] == "D_anno":
+            matched_type = matched_type.replace(',DPV-6(R-KS),',',,')
+        elif anno[cluster_name] == "no_anno":
+            matched_type = matched_type.replace(',DPV-4(R-KS),',',,')
+        else:
+            matched_type = matched_type.replace(',DPV-4(R-KS),',',,')
+    
+    # LBMA-1(KS), BMA-1(KS)
+    cluster_name="LBMA-1(KS)"
+    if cluster_name in matched_type:
+        if anno[cluster_name] == "dist":
+            matched_type = matched_type.replace(',LBMA-1(KS),',',,')
+        elif anno[cluster_name] == "angl":
+            matched_type = matched_type.replace(',BMA-1(KS),',',,')
+        else:
+            matched_type = matched_type.replace(',LBMA-1(KS),',',,')
+    
+    # DAC(KS-KS),DAE(KS-KS)
+    cluster_name="DAC(KS-KS)"
+    if cluster_name in matched_type:
+        if anno[cluster_name] == "D":
+            matched_type = matched_type.replace(',DAE(KS-KS),',',,')
+        elif anno[cluster_name] == "notD":
+            matched_type = matched_type.replace(',DAC(KS-KS),',',,')
+        else:
+            matched_type = matched_type.replace(',DAC(KS-KS),',',,')
 
-        # DAC(R-R),DAE(R-R)
-        cluster_name="DAC(R-R)"
-        if cluster_name in matched_type:
-            if anno == "D_anno":
-                matched_type = "DAE(R-R)"
-            elif anno == "no_anno":
-                matched_type = "DAC(R-R)"
-            else:
-                matched_type = "DAC(R-R)"
-
+    # DAC(R-R),DAE(R-R)
+    cluster_name="DAC(R-R)"
+    if cluster_name in matched_type:
+        if anno[cluster_name] == "D_anno":
+            matched_type = matched_type.replace(',DAC(R-R),',',,')
+        elif anno[cluster_name] == "no_anno":
+            matched_type = matched_type.replace(',DAE(R-R),',',,')
+        else:
+            matched_type = matched_type.replace(',DAE(R-R)),',',,')
+    matched_type=tidy_matched_type(matched_type)
     # 自由边和非自由边结合起来进行匹配，综合考虑自由边、固定边和角隅孔的顺序
     if len(matched_type.split(","))<=1:
         return matched_type
