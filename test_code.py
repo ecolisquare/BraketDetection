@@ -68,35 +68,30 @@
 # from bracket_parameter_extraction import *
 # print(parse_elbow_plate("12x150.0 %%% F3","top",False))
 # print(is_useful_text("12x150.0 %%% F3"))
-# from element import *
-# def point_segment_position(point: DPoint, segment: DSegment, epsilon=0.1):
-#     # 向量AB表示线段的方向
-#     AB = DPoint(segment.end_point.x - segment.start_point.x, segment.end_point.y - segment.start_point.y)
-#     # 向量AP表示从起点到点的方向
-#     AP = DPoint(point.x - segment.start_point.x, point.y - segment.start_point.y)
+from element import *
+def point_segment_position(point: DPoint, segment: DSegment, epsilon=0.1):
+    # 向量AB表示线段的方向
+    AB = DPoint(segment.end_point.x - segment.start_point.x, segment.end_point.y - segment.start_point.y)
+    # 向量AP表示从起点到点的方向
+    AP = DPoint(point.x - segment.start_point.x, point.y - segment.start_point.y)
 
-#     # 计算叉积，判断点是否在直线上
-#     cross_product = AB.x * AP.y - AB.y * AP.x
-#     if abs(cross_product) > epsilon:
-#         return "not_on_line"  # 点不在直线上
+    # 计算叉积，判断点是否在直线上
+    cross_product = AB.x * AP.y - AB.y * AP.x
+    if abs(cross_product) > epsilon:
+        return "not_on_line"  # 点不在直线上
 
-#     # 计算点积，判断点是否在线段上
-#     dot_product = AB.x * AP.x + AB.y * AP.y
-#     if dot_product < -epsilon:
-#         return "before_start"  # 点在线段起点之前
-#     elif dot_product > (AB.x ** 2 + AB.y ** 2) + epsilon:
-#         return "after_end"  # 点在线段终点之后
-#     else:
-#         return "on_segment"  # 点在线段上
+    # 计算点积，判断点是否在线段上
+    dot_product = AB.x * AP.x + AB.y * AP.y
+    if dot_product < -epsilon:
+        return "before_start"  # 点在线段起点之前
+    elif dot_product > (AB.x ** 2 + AB.y ** 2) + epsilon:
+        return "after_end"  # 点在线段终点之后
+    else:
+        return "on_segment"  # 点在线段上
 
-# # 示例用法
-# points = [DPoint(1, 1.001),DPoint(0, 1.001),DPoint(-1, -1.001),DPoint(4, 4.001)]
+# 示例用法
+points = [DPoint(1, 1.001),DPoint(0, 1.001),DPoint(-1, -1.001),DPoint(4, 4.001)]
 
-# segment = DSegment(DPoint(0, 0), DPoint(2, 2))
-# positions =  [point_segment_position(point, segment) for point in points]
-# print(positions)  
-
-code="1,21,3,4,5"
-print(code.replace('21',''))
-code="1"
-print(code[:-1])
+segment = DSegment(DPoint(0, 0), DPoint(2, 2))
+positions =  [point_segment_position(point, segment) for point in points]
+print(positions)  

@@ -236,7 +236,7 @@ def plot_info_poly(polygon,segments, path,texts,dimensions,stifferners,others=[]
 
                 ax.arrow(ss1.start_point.x, ss1.start_point.y, ss1.end_point.x-ss1.start_point.x,ss1.end_point.y-ss1.start_point.y, head_width=20, head_length=20, fc='red', ec='red')
                 ax.arrow(ss2.start_point.x, ss2.start_point.y, ss2.end_point.x-ss2.start_point.x,ss2.end_point.y-ss2.start_point.y, head_width=20, head_length=20, fc='red', ec='red')
-                ax.text(pos.x, pos.y, d.text,rotation=0,color="#EEC933", fontsize=15)
+                ax.text(pos.x, pos.y, d.text,rotation=rotation_angle,color="#EEC933", fontsize=15)
                 ax.plot(inter.x,inter.y,'g.')
                 ax.plot([p1.x,p2.x], [p1.y,p2.y], color="#FF0000", lw=2,linestyle='--')
         
