@@ -876,6 +876,7 @@ def isEntityHidden(entity):
     
     # 检查图层状态
     is_layer_off = layer.is_off()
+    is_layer_frozen = layer.is_frozen
     # is_layer_frozen = layer.is_frozen_in_layout(model_space)
 
     # # 检查实体自身的可见性
@@ -883,7 +884,7 @@ def isEntityHidden(entity):
     # is_entity_ltype_invisible = entity.dxf.linetype == "None"
     is_entity_invisible = entity.dxf.invisible
     # 结论
-    return is_layer_off  or is_entity_invisible  
+    return is_layer_off  or is_entity_invisible or is_layer_frozen 
 
 
 # 此函数内部与converBlocks内部有些不同，例如convertBlock还要处理Solid,ATTDEF，故暂且用到convertBlock中
