@@ -102,13 +102,48 @@ def is_parallel(seg1, seg2, tolerance=0.05):
     #print(cross_product)
     return are_equal_with_tolerance(cross_product, 0, tolerance)
 
-def point_segment_position(point: DPoint, segment: DSegment, epsilon=0.05):
+def point_segment_position(point: DPoint, segment: DSegment, epsilon=0.05,anno=True):
+    if point ==segment.start_point or point ==segment.end_point:
+        return "on_segment"
     # 向量AB表示线段的方向
     AB = DPoint(segment.end_point.x - segment.start_point.x, segment.end_point.y - segment.start_point.y)
     # 向量AP表示从起点到点的方向
     AP = DPoint(point.x - segment.start_point.x, point.y - segment.start_point.y)
     l1,l2=DSegment(segment.start_point,point).length(),segment.length()
-    
+    # 计算叉积，判断点是否在直线上
+    cross_product = (AB.x * AP.y - AB.y * AP.x)/(DSegment(segment.start_point,point).length()*segment.length())
+
+
+
+     # 向量AB表示线段的方向
+    BA = DPoint(segment.start_point.x - segment.end_point.x, segment.start_point.y - segment.end_point.y)
+    # 向量AP表示从起点到点的方向
+    BP = DPoint(point.x - segment.end_point.x, point.y - segment.end_point.y)
+    # 计算叉积，判断点是否在直线上
+    cross_product2 = (BA.x * BP.y - BA.y * BP.x)/(DSegment(segment.end_point,point).length()*segment.length())
+    if abs(cross_product) > epsilon or abs(cross_product2) > epsilon:
+        return "not_on_line"  # 点不在直线上
+
+    # 计算点积，判断点是否在线段上
+    dot_product = (AB.x * AP.x + AB.y * AP.y)/(DSegment(segment.start_point,point).length()*segment.length())
+    if dot_product < 0:
+        if l2>40 and l1>0.75*l2 and anno:
+            return "not_on_line"
+        return "before_start"  # 点在线段起点之前
+    elif DSegment(segment.start_point,point).length()>segment.length():
+        if l2>40 and l1>1.75*l2 and anno:
+            return "not_on_line"
+        return "after_end"  # 点在线段终点之后
+    else:
+        return "on_segment"  # 点在线段上
+def point_free_segment_position(point: DPoint, segment: DSegment, epsilon=0.05):
+    # 向量AB表示线段的方向
+    AB = DPoint(segment.end_point.x - segment.start_point.x, segment.end_point.y - segment.start_point.y)
+    # 向量AP表示从起点到点的方向
+    AP = DPoint(point.x - segment.start_point.x, point.y - segment.start_point.y)
+    l1,l2=DSegment(segment.start_point,point).length(),segment.length()
+    if l1>4*l2:
+        return "not_on_line"
     # 计算叉积，判断点是否在直线上
     cross_product = (AB.x * AP.y - AB.y * AP.x)/(DSegment(segment.start_point,point).length()*segment.length())
     if abs(cross_product) > epsilon:
@@ -126,7 +161,6 @@ def point_segment_position(point: DPoint, segment: DSegment, epsilon=0.05):
         return "after_end"  # 点在线段终点之后
     else:
         return "on_segment"  # 点在线段上
-
 def point_on_segments(point,segments,epsilon=0.05):
     segs=[]
     for i,s in enumerate(segments):
@@ -245,6 +279,49 @@ def check_points_against_segments(point1: DPoint, point2: DPoint, segments: list
         # 判断点1和点2与线段的位置关系
         pos1 = point_segment_position(point1, segment, epsilon)
         pos2 = point_segment_position(point2, segment, epsilon)
+        # if i==1:
+        #     print(pos1,pos2)
+        #     print(point1,point2)
+        #     print(start,end)
+        # 条件1：两个点分别在线段的两端
+        if (pos1 == "before_start" and pos2 == "after_end" ) or \
+           (pos1 == "after_end" and pos2 == "before_start"):
+            return "whole",i
+
+        # 条件2：一个点在线段的一端，另一个点在线段上（包括端点）
+        if (pos1 == "on_segment" and (pos2 == "before_start" or pos2=="after_end")) or \
+           (pos2 == "on_segment" and (pos1 == "before_start" or pos1=="after_end")):
+            return "half",i
+
+        # 条件3：两个点都在线段的一端
+        if (pos1 == "before_start"  and pos2 == "before_start") or \
+           (pos1 == "after_end"  and pos2 == "after_end"):
+            return "cornor",i
+
+    # 如果遍历完所有线段都没有满足条件的，返回 False
+    return None,None
+def check_points_against_free_segments(point1: DPoint, point2: DPoint, segments: list[DSegment], epsilon=0.05):
+    """
+    检查两个点与线段列表中的所有线段的位置关系。
+    返回是否存在一条线段满足以下条件之一：
+    1. 两个点分别在线段的两端。
+    2. 一个点在线段的一端，另一个点在线段上（包括端点）。
+    3. 两个点都在线段的一端。
+
+    :param point1: 第一个点
+    :param point2: 第二个点
+    :param segments: 线段列表
+    :param epsilon: 几何误差阈值
+    :return: 是否存在满足条件的线段
+    """
+    for i,segment in enumerate(segments):
+        # 获取线段的起点和终点
+        start = segment.start_point
+        end = segment.end_point
+
+        # 判断点1和点2与线段的位置关系
+        pos1 = point_free_segment_position(point1, segment, epsilon)
+        pos2 = point_free_segment_position(point2, segment, epsilon)
         # if i==1:
         #     print(pos1,pos2)
         #     print(point1,point2)
@@ -3296,7 +3373,7 @@ def findClosedPolys_via_BFS(elements,texts,dimensions,segments,segmentation_conf
 
     closed_polys=[]
     sampled_lines=[]
-    repline_has_visited=set()
+    # repline_has_visited=set()
     for s in replines:
         sampled_lines.append(DSegment(s.start_point,s.end_point,s.ref))
         sampled_lines.append(DSegment(s.end_point,s.start_point,s.ref))
@@ -3311,8 +3388,8 @@ def findClosedPolys_via_BFS(elements,texts,dimensions,segments,segmentation_conf
         path=process_repline_with_repline_dfs(visited_edges,sampled_line,graph,segmentation_config)
         if(len(path)>=segmentation_config.path_min_length):
             closed_polys.append(path)
-            repline_has_visited.add(sampled_line)
-            repline_has_visited.add(DSegment(sampled_line.end_point,sampled_line.start_point))
+            # repline_has_visited.add(sampled_line)
+            # repline_has_visited.add(DSegment(sampled_line.end_point,sampled_line.start_point))
     if verbose:
         pbar.close()
     sampled_lines=[]

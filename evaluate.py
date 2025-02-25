@@ -161,6 +161,7 @@ if __name__ == '__main__':
 
     test_polys = []
     gt_polys = []
+    incorrect_polys=[]
 
     for poly_seg in test_polys_seg:
         poly = []

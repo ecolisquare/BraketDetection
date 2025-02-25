@@ -301,6 +301,7 @@ def plot_info_poly(polygon,segments, path,texts,dimensions,stifferners,others=[]
     plt.close()
 
 def outputRes(segments,point_map,polys,resPNGPath,drawIntersections=False,drawLines=False,drawPolys=False):
+    return 
     fig, ax = plt.subplots()
     if drawLines:
         for seg in segments:
