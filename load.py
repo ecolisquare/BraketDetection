@@ -876,7 +876,7 @@ def isEntityHidden(entity):
     
     # 检查图层状态
     is_layer_off = layer.is_off()
-    is_layer_frozen = layer.is_frozen
+    is_layer_frozen = layer.is_frozen()
     # is_layer_frozen = layer.is_frozen_in_layout(model_space)
 
     # # 检查实体自身的可见性

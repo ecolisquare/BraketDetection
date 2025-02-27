@@ -131,7 +131,7 @@ def calculate_angle(point1, point2, point3):
     return angle
 
 # 计算几何中心坐标
-def calculate_poly_centroid(poly):
+def calculate_poly_centroid(poly,):
     points = []
     for segment in poly:
         points.append(segment.start_point)
@@ -140,7 +140,11 @@ def calculate_poly_centroid(poly):
         y = sum(point.y for point in points) / len(points)
     return (x, y)
 
-
+def calculate_combined_ref(segments,segmentation_config):
+    for i,s in enumerate(segments):
+        if s.ref.color in segmentation_config.constraint_color:
+            return s.ref
+    return segments[0].ref
 def combine_the_same_line(poly,segmentation_config):
     n=len(poly)
     new_poly=[]
@@ -161,7 +165,8 @@ def combine_the_same_line(poly,segmentation_config):
                 # print(i,j)
                 if j==i+1:
                     if s1.end_point ==s2.start_point:
-                        new_segment=DSegment(s1.start_point,s2.end_point,s1.ref)
+                        ref=calculate_combined_ref([s1,s2],segmentation_config)
+                        new_segment=DSegment(s1.start_point,s2.end_point,ref)
                         for k in range(i):
                             new_poly.append(poly[k])
                         new_poly.append(new_segment)
@@ -169,7 +174,8 @@ def combine_the_same_line(poly,segmentation_config):
                             new_poly.append(poly[k])
                         return new_poly,True
                     else:
-                        new_segment=DSegment(s2.start_point,s1.end_point,s1.ref)
+                        ref=calculate_combined_ref([s1,s2],segmentation_config)
+                        new_segment=DSegment(s2.start_point,s1.end_point,ref)
                         for k in range(i):
                             new_poly.append(poly[k])
                         new_poly.append(new_segment)
@@ -178,13 +184,15 @@ def combine_the_same_line(poly,segmentation_config):
                         return new_poly,True
                 if i==0 and j==n-1:
                     if s1.end_point ==s2.start_point:
-                        new_segment=DSegment(s1.start_point,s2.end_point,s1.ref)
+                        ref=calculate_combined_ref([s1,s2],segmentation_config)
+                        new_segment=DSegment(s1.start_point,s2.end_point,ref)
                         new_poly.append(new_segment)
                         for k in range(1,n-1):
                             new_poly.append(poly[k])
                         return new_poly,True
                     else:
-                        new_segment=DSegment(s2.start_point,s1.end_point,s1.ref)
+                        ref=calculate_combined_ref([s1,s2],segmentation_config)
+                        new_segment=DSegment(s2.start_point,s1.end_point,ref)
                         new_poly.append(new_segment)
                         for k in range(1,n-1):
                             new_poly.append(poly[k])
@@ -205,7 +213,8 @@ def combine_the_same_line(poly,segmentation_config):
                     #remove inner
                     prev,next=poly[(i-1+n)%n],poly[(j+1)%n]
                     if prev.end_point == s1.start_point:
-                        new_segment=DSegment(s1.start_point,s2.end_point,s1.ref)
+                        ref=calculate_combined_ref([s1,s2],segmentation_config)
+                        new_segment=DSegment(s1.start_point,s2.end_point,ref)
                         for k in range(i):
                             new_poly.append(poly[k])
                         new_poly.append(new_segment)
@@ -214,7 +223,8 @@ def combine_the_same_line(poly,segmentation_config):
                         return new_poly,True
                     else:
                         #prev.start_point==s1.end_point
-                        new_segment=DSegment(s2.start_point,s1.end_point,s1.ref)
+                        ref=calculate_combined_ref([s1,s2],segmentation_config)
+                        new_segment=DSegment(s2.start_point,s1.end_point,ref)
                         for k in range(i):
                             new_poly.append(poly[k])
                         new_poly.append(new_segment)
@@ -225,13 +235,15 @@ def combine_the_same_line(poly,segmentation_config):
                     #remove outer
                     prev,next=poly[(i-1+n)%n],poly[(j+1)%n]
                     if prev.end_point == s1.start_point:
-                        new_segment=DSegment(s2.start_point,s1.end_point,s1.ref)
+                        ref=calculate_combined_ref([s1,s2],segmentation_config)
+                        new_segment=DSegment(s2.start_point,s1.end_point,ref)
                         for k in range(i+1,j):
                             new_poly.append(poly[k])
                         new_poly.append(new_segment)
                         return new_poly,True
                     else:
-                        new_segment=DSegment(s1.start_point,s2.end_point,s1.ref)
+                        ref=calculate_combined_ref([s1,s2],segmentation_config)
+                        new_segment=DSegment(s1.start_point,s2.end_point,ref)
                         for k in range(i+1,j):
                             new_poly.append(poly[k])
                         new_poly.append(new_segment)
@@ -629,7 +641,7 @@ def match_a_anno(a_anno,free_edges):
             if target not in a_map:
                 a_map[target]=[]
             a_map[target].append((p1,p2,inter,d))
-            if l<25:
+            if l<52:
                 toe_angle_anno.append(d)
             else:
                 angle_anno.append(d)

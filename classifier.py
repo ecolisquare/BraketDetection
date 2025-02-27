@@ -323,7 +323,7 @@ def generate_key(edge):
         new_edge = edge
     return min(tuple(new_edge), tuple(reversed(new_edge)))
 def is_toe(free_edge,cons_edge):
-    if free_edge.length()<=25 and is_vertical_(free_edge.start_point,free_edge.end_point,cons_edge,epsilon=0.15):
+    if free_edge.length()<=52 and is_vertical_(free_edge.start_point,free_edge.end_point,cons_edge,epsilon=0.15):
         return True
     return False
 def is_ks_corner(free_edge,last_free_edge,cons_edge):
