@@ -184,30 +184,30 @@ if __name__ == '__main__':
     detection_precison = detect_count / len(gt_polys) if len(gt_polys) > 0 else 1
 
     # 评估肘板分类正确率
-    test_total_with_labels = 0
+    gt_total_with_labels = 0
     successful_classifications = 0
     wrong_GT_num = 25
     correct_polys = []
     incorrect_polys = []
-    for test_poly in test_polys:
-        nearest_test_texts = find_nearest_text(test_poly, test_texts, 6000)
+    for gt_poly in gt_polys:
+        nearest_gt_texts = find_nearest_text(gt_poly, gt_texts)
         # if nearest_gt_text is None:
         #     continue
-        if len(nearest_test_texts)==0:
+        if len(nearest_gt_texts)==0:
             continue
-        test_total_with_labels += 1
-        test_polygon = Polygon(test_poly)
+        gt_total_with_labels += 1
+        gt_polygon = Polygon(gt_poly)
         flag = False
-        for gt_poly in gt_polys:
-            gt_polygon = Polygon(gt_poly)
-            if gt_polygon.intersects(test_polygon):
-                nearest_gt_texts = find_nearest_text(gt_poly, gt_texts)
-                if len(nearest_gt_texts)==0:
+        for test_poly in test_polys:
+            test_polygon = Polygon(test_poly)
+            if test_polygon.intersects(gt_polygon):
+                nearest_test_texts = find_nearest_text(test_poly, test_texts)
+                if len(nearest_test_texts)==0:
                     continue
-                for test_text in nearest_test_texts:
-                    for gt_text in nearest_gt_texts:
+                for gt_text in nearest_gt_texts:
+                    for test_text in nearest_test_texts:
 
-                        if test_text.content in gt_text.content:
+                        if gt_text.content in test_text.content:
                             flag=True
                             
                         if flag:
@@ -215,20 +215,20 @@ if __name__ == '__main__':
                     if flag:
                         break
                 if flag:
-                    correct_polys.append(test_poly)
+                    correct_polys.append(gt_poly)
                     successful_classifications += 1
                     break
                 else:
-                    incorrect_polys.append(test_poly)
+                    incorrect_polys.append(gt_poly)
     successful_classifications += wrong_GT_num
-    classification_precision = successful_classifications / test_total_with_labels if test_total_with_labels > 0 else 1
+    classification_precision = successful_classifications / gt_total_with_labels if gt_total_with_labels > 0 else 1
 
     # 输出评估结果
     sys.stdout = sys.__stdout__
     print("----------------测试完毕---------------")
     print(f"肘板检出率: {detection_precison:.2f}")
     print(f"肘板分类正确率: {classification_precision:.2f}")
-    print(test_total_with_labels , len(gt_polys) , len(gt_texts),len(test_polys),len(test_texts))
+    # print(gt_total_with_labels , len(gt_polys) , len(gt_texts),len(test_polys),len(test_texts))
     print("-------------测试结果输出完毕----------")
     # print([ len(s) for s in test_polys_seg ])
 
