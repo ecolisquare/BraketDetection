@@ -1523,8 +1523,14 @@ def outputPolyInfo(poly, segments, segmentation_config, point_map, index,star_po
     #         log_to_file(file_path, f"角隅孔{cornerhole_index}位于边界{pre}和边界{nex}之间")
     #         cornerhole_index += 1
 
-    # step12 对肘板进行分类：
-    classification_res,output_template = poly_classifier(all_anno,poly_refs, tis,ds,cornerhole_idx, free_edges, edges, 
+    cornerhole_num=0
+    for i,edge in enumerate(edges):
+        if (not edge[0].isConstraint) and (not edge[0].isCornerhole):
+            continue
+        if edge[0].isCornerhole:
+            cornerhole_num+=1
+
+    classification_res,output_template = poly_classifier(all_anno,poly_refs, tis,ds,cornerhole_num, free_edges, edges, 
                                          segmentation_config.type_path, segmentation_config.json_output_path, 
                                          f"{os.path.splitext(os.path.basename(segmentation_config.json_path))[0]}_infopoly{index}",
                                          is_output_json=True)
