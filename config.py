@@ -34,7 +34,7 @@ class SegmentationConfig:
         #包围盒
         self.bbox_min_area=5000
         self.bbox_max_area=1000*15000
-        self.bbox_ratio=6
+        self.bbox_ratio=12
 
 
         self.remove_tolerance=1e-5

@@ -792,21 +792,21 @@ def process_block(T_is_contained,block_datas,blockName,scales,rotation,insert,bl
                 ele_linetype=block_linetype.upper()
             if ele.get("layerName") is not None and ele["layerName"] in layname:
                 if ele["layerName"] in segmentation_config.stiffener_name:
-                    e = DLwpolyline(simplified_ps,ele_linetype, ele["color"], False,ele["handle"],meta=block_meta_data)
-                    l=len(simplified_ps)
-                    for i in range(l - 1):
+                    e=DLine(simplified_ps[0],simplified_ps[-1],ele_linetype,ele["color"],ele["handle"],meta=block_meta_data)
+                    # l=len(simplified_ps)
+                    # for i in range(l - 1):
                     # if simplified_ps[i].y>-48500 or simplified_ps[i+1].y>-48500:
-                        stiffeners.append(DSegment(simplified_ps[i], simplified_ps[i + 1], e))
+                    stiffeners.append(DSegment(simplified_ps[0], simplified_ps[-1], e))
                 if ele["layerName"] in segmentation_config.remove_layername:
                     continue
             if ele["color"]  in color:
                 continue
-            e = DLwpolyline(simplified_ps,ele_linetype, ele["color"], False,ele["handle"],meta=block_meta_data)
+            e=DLine(simplified_ps[0],simplified_ps[-1],ele_linetype,ele["color"],ele["handle"],meta=block_meta_data)
             elements.append(e)
-            l = len(simplified_ps)
-            for i in range(l - 1):
+            # l = len(simplified_ps)
+            # for i in range(l - 1):
                 # if simplified_ps[i].y>-48500 or simplified_ps[i+1].y>-48500:
-                segments.append(DSegment(simplified_ps[i], simplified_ps[i + 1], e))
+            segments.append(DSegment(simplified_ps[0], simplified_ps[-1], e))
         elif ele["type"]=="lwpolyline" :
                 # 颜色过滤
             # if ele["color"] not in color:
@@ -839,7 +839,7 @@ def process_block(T_is_contained,block_datas,blockName,scales,rotation,insert,bl
             elements.extend(lwe)
             arcs.extend(lwa)
             segments.extend(lws)
-            pass
+            
             #ps = [DPoint(v[0], v[1]) for v in vs]
 
             # Apply line simplification
@@ -878,27 +878,33 @@ def process_block(T_is_contained,block_datas,blockName,scales,rotation,insert,bl
             if ele.get("layerName") is not None and ele["layerName"] in layname:
                 if ele["layerName"] in segmentation_config.stiffener_name:
                     
-                    e = DLwpolyline(simplified_ps,ele_linetype, ele["color"], ele["isClosed"],ele["handle"],meta=block_meta_data)
+                    # e = DLwpolyline(simplified_ps,ele_linetype, ele["color"], ele["isClosed"],ele["handle"],meta=block_meta_data)
                     l = len(simplified_ps)
                     for i in range(l - 1):
                         # if simplified_ps[i].y>-48500 or simplified_ps[i+1].y>-48500:
+                        e=DLine(simplified_ps[i], simplified_ps[i + 1],ele_linetype,ele["color"],ele["handle"],meta=block_meta_data)
                         stiffeners.append(DSegment(simplified_ps[i], simplified_ps[i + 1], e))
                     if ele["isClosed"]:
                         # if simplified_ps[-1].y>-48500 or simplified_ps[0].y>-48500:
+                        e=DLine(simplified_ps[-1], simplified_ps[0],ele_linetype,ele["color"],ele["handle"],meta=block_meta_data)
                         stiffeners.append(DSegment(simplified_ps[-1], simplified_ps[0], e))
                 if ele["layerName"] in segmentation_config.remove_layername:
                     continue
             if ele["color"]  in color:
                 continue
-            e = DLwpolyline(simplified_ps,ele_linetype, ele["color"], ele["isClosed"],ele["handle"],meta=block_meta_data)
-            elements.append(e)
+            #e = DLwpolyline(simplified_ps,ele_linetype, ele["color"], ele["isClosed"],ele["handle"],meta=block_meta_data)
+            # elements.append(e)
             l = len(simplified_ps)
             for i in range(l - 1):
                 # if simplified_ps[i].y>-48500 or simplified_ps[i+1].y>-48500:
+                e=DLine(simplified_ps[i], simplified_ps[i + 1],ele_linetype,ele["color"],ele["handle"],meta=block_meta_data)
                 segments.append(DSegment(simplified_ps[i], simplified_ps[i + 1], e))
+                elements.append(e)
             if ele["isClosed"]:
                 # if simplified_ps[-1].y>-48500 or simplified_ps[0].y>-48500:
+                e=DLine(simplified_ps[-1], simplified_ps[0],ele_linetype,ele["color"],ele["handle"],meta=block_meta_data)
                 segments.append(DSegment(simplified_ps[-1], simplified_ps[0], e))
+                elements.append(e)
         elif ele["type"]=="insert":
                 if ele.get("layerName") is not None and ele["layerName"] in layname:
                     continue

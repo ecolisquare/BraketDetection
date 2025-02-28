@@ -322,12 +322,12 @@ def generate_key(edge):
     else:
         new_edge = edge
     return min(tuple(new_edge), tuple(reversed(new_edge)))
-def is_toe(free_edge,cons_edge):
-    if free_edge.length()<=52 and is_vertical_(free_edge.start_point,free_edge.end_point,cons_edge,epsilon=0.15):
+def is_toe(free_edge,cons_edge,max_free_edge_length):
+    if free_edge.length()<=0.105*max_free_edge_length and is_vertical_(free_edge.start_point,free_edge.end_point,cons_edge,epsilon=0.15):
         return True
     return False
-def is_ks_corner(free_edge,last_free_edge,cons_edge):
-    if (not is_toe(free_edge,cons_edge)) and (not is_vertical_(free_edge.start_point,free_edge.end_point,cons_edge)) and isinstance(last_free_edge.ref,DLine) and free_edge.length() <= 100:
+def is_ks_corner(free_edge,last_free_edge,cons_edge,max_free_edge_length):
+    if (not is_toe(free_edge,cons_edge,max_free_edge_length)) and (not is_vertical_(free_edge.start_point,free_edge.end_point,cons_edge)) and isinstance(last_free_edge.ref,DLine) and free_edge.length() <= 100:
         return True
     return False
 def conerhole_free_classifier(classification_table, conerhole_num, free_edges_sequence, reversed_free_edges_sequence, edges_sequence, reversed_edges_sequence):
@@ -511,6 +511,9 @@ def poly_classifier(all_anno,poly_refs, texts,dimensions,conerhole_num, poly_fre
 
     # Step 2: 获取自由边的轮廓
     free_edges_sequence = []
+    max_free_edge_length=float("-inf")
+    for seg in enumerate(poly_free_edges[0]):
+        max_free_edge_length=max(max_free_edge_length,seg.length())
     for i, seg in enumerate(poly_free_edges[0]):
         if isinstance(seg.ref, DLine) or isinstance(seg.ref, DLwpolyline):
             if (i == 0 or i == len(poly_free_edges[0]) - 1):
@@ -520,9 +523,9 @@ def poly_classifier(all_anno,poly_refs, texts,dimensions,conerhole_num, poly_fre
                     last_free_edge=poly_free_edges[0][-2]
                 cons_edge=find_cons_edge(poly_refs,seg)
                 # print(cons_edge)
-                if is_toe(seg,cons_edge):
+                if is_toe(seg,cons_edge,max_free_edge_length):
                     free_edges_sequence.append("toe")
-                elif is_ks_corner(seg,last_free_edge,cons_edge):
+                elif is_ks_corner(seg,last_free_edge,cons_edge,max_free_edge_length):
                     free_edges_sequence.append("KS_corner")
                 else:
                     free_edges_sequence.append("line")
