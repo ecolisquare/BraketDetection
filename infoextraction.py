@@ -672,7 +672,53 @@ def compute_accurate_position(d1,d2,d3,d4,constraint_edges):
         return d1,d2,d3,p_minus(p_add(d1,d3),d2)
     else:
         return d1,d2,p_minus(p_add(d2,d4),d1),d4
-        
+
+
+def compara_free_order(free_edges,free_edges_seq):
+    detect_free_edges_seq=[]
+    for edge in free_edges:
+        if isinstance(edge.ref,DArc):
+            detect_free_edges_seq.append("arc")
+        else:
+            detect_free_edges_seq.append("line")
+    for i in range(len(free_edges_seq)):
+        if detect_free_edges_seq[i]!=free_edges_seq[i]:
+            return False
+    return True
+# def compara_cons_order(edges,non_free_edges_seq):
+#     detect_cons_edges_seq=[]
+#     for i,edge in enumerate(edges):
+#         if (not edge[0].isConstraint) and (not edge[0].isCornerhole):
+#             continue
+#         log_to_file(file_path, f"边界颜色{k}: {edge[0].ref.color}")
+#         log_to_file(file_path, f"边界轮廓{k}: ")
+#         k+=1
+#         if edge[0].isCornerhole:
+#             log_to_file(file_path,f"    角隅孔{cornerhole_idx+1}")
+#             cornerhole_idx+=1
+#         else:
+#             log_to_file(file_path,f"    约束边{constarint_idx+1}")
+#             constarint_idx+=1
+#         for seg in edge:
+#             if isinstance(seg.ref, DArc):
+#                 actual_radius= seg.ref.radius if seg not in r_map else r_map[seg].content.lstrip("R")
+#                 log_to_file(file_path, f"       起点：{seg.ref.start_point}、终点：{seg.ref.end_point}、圆心：{seg.ref.center}、半径：{seg.ref.radius}[实际半径:{actual_radius}]（圆弧）、句柄: {seg.ref.handle}")
+#             else:
+                
+#                 log_to_file(file_path, f"       起点：{seg.start_point}、终点{seg.end_point}（直线）、句柄: {seg.ref.handle}")
+#                 if seg in l_whole_map:
+#                     log_to_file(file_path,f"        边全长标注信息:"+"\n            "+tidy_anno_output(l_whole_map[seg]))
+#                 if seg in l_half_map:   
+#                     log_to_file(file_path,f"        边半长标注信息:"+"\n            "+tidy_anno_output(l_half_map[seg]))
+#                 if seg in l_cornor_map:
+#                     log_to_file(file_path,f"        边角孔标注信息:"+"\n            "+tidy_anno_output(l_cornor_map[seg]))
+#                 if seg in l_para_single_map:
+#                     log_to_file(file_path,f"        边平行标注信息:"+"\n            "+tidy_anno_output2(l_para_single_map[seg]))
+#                 if seg in l_n_para_single_map:
+#                     log_to_file(file_path,f"        边非平行标注信息:"+"\n            "+tidy_anno_output2(l_n_para_single_map[seg]))
+#                 if seg in l_ver_single_map:
+#                     log_to_file(file_path,f"        边垂直标注信息:"+"\n            "+tidy_anno_output2(l_ver_single_map[seg]))
+#     pass   
     
 def outputPolyInfo(poly, segments, segmentation_config, point_map, index,star_pos_map,cornor_holes,texts,dimensions,text_map,stiffeners):
     # step1: 计算几何中心坐标
@@ -1445,6 +1491,52 @@ def outputPolyInfo(poly, segments, segmentation_config, point_map, index,star_po
     #     print(s, lts)
     # print("===============")
     # print(parallel_anno)
+
+    # for l_t in parallel_anno:
+    #     d=l_t[2]
+    #     content=d.text
+    #     log_to_file(file_path,f"起始点:{l_t[0]}、终止点:{l_t[1]}、内容: {content}、颜色: {d.color}、类型： {d.dimtype}、句柄: {d.handle}")
+   
+
+    # step11: 输出角隅孔和边界之间的关系
+    # cornerhole_index = 1
+    # edge_index = 0
+    # for edge in edges:
+    #     seg = edge[0]
+    #     # 如果是固定边，边界计数加一
+    #     if not seg.isCornerhole and seg.isConstraint:
+    #         edge_index += 1
+
+    #     # 圆弧角隅孔和直线角隅孔
+    #     if seg.isCornerhole:
+    #         pre = len(constraint_edges) if edge_index == 0 else edge_index
+    #         nex = (pre + 1) % len(constraint_edges)
+    #         nex = len(constraint_edges) if nex == 0 else nex
+    #         log_to_file(file_path, f"角隅孔{cornerhole_index}位于边界{pre}和边界{nex}之间")
+    #         cornerhole_index += 1
+
+    #     # 星形角隅孔
+    #     if seg.StarCornerhole is not None:
+    #         pre = len(constraint_edges) if edge_index == 0 else edge_index
+    #         nex = (pre + 1) % len(constraint_edges)
+    #         nex = len(constraint_edges) if nex == 0 else nex
+    #         log_to_file(file_path, f"角隅孔{cornerhole_index}位于边界{pre}和边界{nex}之间")
+    #         cornerhole_index += 1
+
+    # step12 对肘板进行分类：
+    classification_res,output_template = poly_classifier(all_anno,poly_refs, tis,ds,cornerhole_idx, free_edges, edges, 
+                                         segmentation_config.type_path, segmentation_config.json_output_path, 
+                                         f"{os.path.splitext(os.path.basename(segmentation_config.json_path))[0]}_infopoly{index}",
+                                         is_output_json=True)
+    free_order=True
+    # cons_order=True
+    if output_template is not None:
+        #根据输出模板整理轮廓信息
+        free_edges_seq=output_template["free_edges"]
+        # non_free_edges_seq=output_template["non_free_edges"]
+        free_order=compara_free_order(free_edges[0],free_edges_seq)
+        # cons_order=compara_cons_order(edges,non_free_edges_seq)
+        
     # step7: 输出几何中心和边界信息
     file_path = os.path.join(segmentation_config.poly_info_dir, f'info{index}.txt')
     clear_file(file_path)
@@ -1617,43 +1709,6 @@ def outputPolyInfo(poly, segments, segmentation_config, point_map, index,star_po
     for key,annos in l_ver_map.items():
         log_to_file(file_path,f"        起始边: {key[0].start_point}->{key[0].end_point}  底边: {key[1].start_point}->{key[1].end_point} {tidy_anno_output2(annos)}")
 
-    # for l_t in parallel_anno:
-    #     d=l_t[2]
-    #     content=d.text
-    #     log_to_file(file_path,f"起始点:{l_t[0]}、终止点:{l_t[1]}、内容: {content}、颜色: {d.color}、类型： {d.dimtype}、句柄: {d.handle}")
-   
-
-    # step11: 输出角隅孔和边界之间的关系
-    # cornerhole_index = 1
-    # edge_index = 0
-    # for edge in edges:
-    #     seg = edge[0]
-    #     # 如果是固定边，边界计数加一
-    #     if not seg.isCornerhole and seg.isConstraint:
-    #         edge_index += 1
-
-    #     # 圆弧角隅孔和直线角隅孔
-    #     if seg.isCornerhole:
-    #         pre = len(constraint_edges) if edge_index == 0 else edge_index
-    #         nex = (pre + 1) % len(constraint_edges)
-    #         nex = len(constraint_edges) if nex == 0 else nex
-    #         log_to_file(file_path, f"角隅孔{cornerhole_index}位于边界{pre}和边界{nex}之间")
-    #         cornerhole_index += 1
-
-    #     # 星形角隅孔
-    #     if seg.StarCornerhole is not None:
-    #         pre = len(constraint_edges) if edge_index == 0 else edge_index
-    #         nex = (pre + 1) % len(constraint_edges)
-    #         nex = len(constraint_edges) if nex == 0 else nex
-    #         log_to_file(file_path, f"角隅孔{cornerhole_index}位于边界{pre}和边界{nex}之间")
-    #         cornerhole_index += 1
-
-    # step12 对肘板进行分类：
-    classification_res = poly_classifier(all_anno,poly_refs, tis,ds,cornerhole_idx, free_edges, edges, 
-                                         segmentation_config.type_path, segmentation_config.json_output_path, 
-                                         f"{os.path.splitext(os.path.basename(segmentation_config.json_path))[0]}_infopoly{index}",
-                                         is_output_json=True)
-    
     log_to_file(file_path, f"肘板类别为{classification_res}")
     if classification_res == "Unclassified":
         log_to_file("./output/Unclassified.txt", f"{os.path.splitext(os.path.basename(segmentation_config.json_path))[0]}_infopoly{index}")

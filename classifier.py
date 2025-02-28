@@ -958,7 +958,19 @@ def poly_classifier(all_anno,poly_refs, texts,dimensions,conerhole_num, poly_fre
     reversed_edges_sequence.insert(0, ["free", reversed_free_edges_sequence])
     mixed_types = matched_type.split(',')
     matched_type = refine_poly_classifier(classification_table, mixed_types, edges_sequence, reversed_edges_sequence)
-    return matched_type
+
+    output_template=None
+    if matched_type == "Unclassified":
+        pass
+    else:
+        if len(matched_type.split(","))>1:
+            first_type=matched_type.split(",")[0]
+        else:
+            first_type=matched_type
+
+        #根据fisrt_type 进行输出的格式化
+        output_template=classification_table[first_type]
+    return matched_type,output_template
     
 def refine_poly_classifier(classification_table, mixed_types, edges_sequence, reversed_edges_sequence):
     matched_type = None
