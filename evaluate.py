@@ -190,7 +190,7 @@ if __name__ == '__main__':
     correct_polys = []
     incorrect_polys = []
     for gt_poly in gt_polys:
-        nearest_gt_texts = find_nearest_text(gt_poly, gt_texts, 6000)
+        nearest_gt_texts = find_nearest_text(gt_poly, gt_texts)
         # if nearest_gt_text is None:
         #     continue
         if len(nearest_gt_texts)==0:
