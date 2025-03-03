@@ -265,7 +265,7 @@ def free_edges_sequence_classifier(classification_table, free_edges_sequence, re
             reversed_free_edges_sequence_copy[-1] = "line"
         for b_type in matched_type_list:
             temp_free_edge_seq = classification_table[b_type]["free_edges"]
-            if is_free_edges_equal(free_edges_sequence, temp_free_edge_seq) or is_free_edges_equal(reversed_free_edges_sequence, temp_free_edge_seq):
+            if is_free_edges_equal(free_edges_sequence_copy, temp_free_edge_seq) or is_free_edges_equal(reversed_free_edges_sequence_copy, temp_free_edge_seq):
                 matched_type = b_type if matched_type is None else f'{matched_type},{b_type}'
     
     return matched_type if matched_type is not None else "Unclassified"
