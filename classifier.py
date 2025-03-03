@@ -443,7 +443,7 @@ def poly_classifier(all_anno,poly_refs, texts,dimensions,conerhole_num, poly_fre
     # step5: 固定边轮廓严格匹配+角隅孔非严格匹配（直线角隅孔可能不画）
     matched_type_list = conerhole_free_classifier(classification_table, conerhole_num, free_edges_sequence, reversed_free_edges_sequence, edges_sequence, reversed_edges_sequence)
     
-    # step6: 自由边的匹配
+    # step6: 自由边的筛选
     matched_type = free_edges_sequence_classifier(classification_table, free_edges_sequence,reversed_free_edges_sequence, matched_type_list)
 
     # print(matched_type)
@@ -451,7 +451,8 @@ def poly_classifier(all_anno,poly_refs, texts,dimensions,conerhole_num, poly_fre
         return matched_type,classification_table[matched_type]
     elif matched_type=="Unclassified":
         return matched_type,None
-    #TODO
+    
+    # step7: 易混淆筛选
     #for each mixed type, use the first type name as key(cluster_name),find the annoation
 
     # # 边界区分易混淆类细化
@@ -798,9 +799,7 @@ def poly_classifier(all_anno,poly_refs, texts,dimensions,conerhole_num, poly_fre
 
     matched_type=tidy_matched_type(matched_type)
 
-
-
-    # 自由边和非自由边结合起来进行匹配，综合考虑自由边、固定边和角隅孔的顺序
+    # step8: 考虑整体轮廓筛选
     if len(matched_type.split(","))<=1 and matched_type!="Unclassified":
         return matched_type,classification_table[matched_type]
     elif matched_type=="Unclassified":
