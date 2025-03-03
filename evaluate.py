@@ -220,7 +220,7 @@ if __name__ == '__main__':
                     break
                 else:
                     incorrect_polys.append(gt_poly)
-    successful_classifications += wrong_GT_num
+    gt_total_with_labels -= wrong_GT_num
     classification_precision = successful_classifications / gt_total_with_labels if gt_total_with_labels > 0 else 1
 
     # 输出评估结果

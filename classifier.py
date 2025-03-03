@@ -827,7 +827,7 @@ def poly_classifier(all_anno,poly_refs, texts,dimensions,conerhole_num, poly_fre
         if anno[cluster_name] == "angl_non_free":
             matched_type = matched_type.replace(',DPK-2(R-R),',',,')
             matched_type = matched_type.replace(',DPK-5(R-R),',',,')
-            matched_type = matched_type.replace(',LDPK-3(R-R,)',',,')
+            matched_type = matched_type.replace(',LDPK-3(R-R),',',,')
         elif anno[cluster_name] == "dist_adja":
             matched_type = matched_type.replace(',DPK-5(R-R),',',,')
             matched_type = matched_type.replace(',LDPK-3(R-R),',',,')
