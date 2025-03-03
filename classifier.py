@@ -49,6 +49,7 @@ def find_anno_info(matched_type,all_anno,poly_free_edges):
     #         return "no_angle"
     #     else:
     #         return "angl"
+    # print(matched_type)
     if ",DPK(R)," in matched_type:
         if len(parallel_anno)!=0:
             anno[",DPK(R),"]="short_anno_para"
@@ -322,12 +323,12 @@ def generate_key(edge):
     else:
         new_edge = edge
     return min(tuple(new_edge), tuple(reversed(new_edge)))
-def is_toe(free_edge,cons_edge):
-    if free_edge.length()<=52 and is_vertical_(free_edge.start_point,free_edge.end_point,cons_edge,epsilon=0.15):
+def is_toe(free_edge,cons_edge,max_free_edge_length):
+    if (free_edge.length()<32.2 or free_edge.length()<=0.105*max_free_edge_length) and is_vertical_(free_edge.start_point,free_edge.end_point,cons_edge,epsilon=0.15):
         return True
     return False
-def is_ks_corner(free_edge,last_free_edge,cons_edge):
-    if (not is_toe(free_edge,cons_edge)) and (not is_vertical_(free_edge.start_point,free_edge.end_point,cons_edge)) and isinstance(last_free_edge.ref,DLine) and free_edge.length() <= 100:
+def is_ks_corner(free_edge,last_free_edge,cons_edge,max_free_edge_length):
+    if (not is_toe(free_edge,cons_edge,max_free_edge_length)) and (not is_vertical_(free_edge.start_point,free_edge.end_point,cons_edge)) and isinstance(last_free_edge.ref,DLine) and free_edge.length() <= 100:
         return True
     return False
 def conerhole_free_classifier(classification_table, conerhole_num, free_edges_sequence, reversed_free_edges_sequence, edges_sequence, reversed_edges_sequence):
@@ -511,6 +512,9 @@ def poly_classifier(all_anno,poly_refs, texts,dimensions,conerhole_num, poly_fre
 
     # Step 2: 获取自由边的轮廓
     free_edges_sequence = []
+    max_free_edge_length=float("-inf")
+    for seg in poly_free_edges[0]:
+        max_free_edge_length=max(max_free_edge_length,seg.length())
     for i, seg in enumerate(poly_free_edges[0]):
         if isinstance(seg.ref, DLine) or isinstance(seg.ref, DLwpolyline):
             if (i == 0 or i == len(poly_free_edges[0]) - 1):
@@ -520,9 +524,9 @@ def poly_classifier(all_anno,poly_refs, texts,dimensions,conerhole_num, poly_fre
                     last_free_edge=poly_free_edges[0][-2]
                 cons_edge=find_cons_edge(poly_refs,seg)
                 # print(cons_edge)
-                if is_toe(seg,cons_edge):
+                if is_toe(seg,cons_edge,max_free_edge_length):
                     free_edges_sequence.append("toe")
-                elif is_ks_corner(seg,last_free_edge,cons_edge):
+                elif is_ks_corner(seg,last_free_edge,cons_edge,max_free_edge_length):
                     free_edges_sequence.append("KS_corner")
                 else:
                     free_edges_sequence.append("line")
@@ -598,8 +602,11 @@ def poly_classifier(all_anno,poly_refs, texts,dimensions,conerhole_num, poly_fre
 
     # Step 5: 遍历每个肘板类型，进行匹配
     matched_type= conerhole_free_classifier(classification_table, conerhole_num, free_edges_sequence, reversed_free_edges_sequence, edges_sequence, reversed_edges_sequence)
-    if len(matched_type.split(","))<=1:
-        return matched_type
+    # print(matched_type)
+    if len(matched_type.split(","))<=1 and matched_type!="Unclassified":
+        return matched_type,classification_table[matched_type]
+    elif matched_type=="Unclassified":
+        return matched_type,None
     #TODO
     #for each mixed type, use the first type name as key(cluster_name),find the annoation
 
@@ -663,7 +670,7 @@ def poly_classifier(all_anno,poly_refs, texts,dimensions,conerhole_num, poly_fre
     # if cluster_name in matched_type:
     #     mixed_types = ["DPKN-2(R-R) ", "DPKN-2(2R-KS)"]
     #     matched_type = refine_poly_classifier(classification_table, mixed_types, edges_sequence, reversed_edges_sequence)
-    
+    matched_type=","+matched_type+','
 
     anno=find_anno_info(matched_type,all_anno,poly_free_edges)
     
@@ -678,8 +685,9 @@ def poly_classifier(all_anno,poly_refs, texts,dimensions,conerhole_num, poly_fre
     #         matched_type = "DAB-1(VU-KS)"
     #     else:
     #         matched_type = "DAB(VU-KS)"
-    matched_type=","+matched_type+','
+    
     # DAC(VU-R), DAC(VUF-R)
+    # print(anno)
     cluster_name=",DAC(VU-R),"
     if cluster_name in matched_type:
         if anno[cluster_name] == "no_anno":
@@ -949,13 +957,27 @@ def poly_classifier(all_anno,poly_refs, texts,dimensions,conerhole_num, poly_fre
 
 
     # 自由边和非自由边结合起来进行匹配，综合考虑自由边、固定边和角隅孔的顺序
-    if len(matched_type.split(","))<=1:
-        return matched_type
+    if len(matched_type.split(","))<=1 and matched_type!="Unclassified":
+        return matched_type,classification_table[matched_type]
+    elif matched_type=="Unclassified":
+        return matched_type,None
     edges_sequence.insert(0,["free", free_edges_sequence])
     reversed_edges_sequence.insert(0, ["free", reversed_free_edges_sequence])
     mixed_types = matched_type.split(',')
     matched_type = refine_poly_classifier(classification_table, mixed_types, edges_sequence, reversed_edges_sequence)
-    return matched_type
+
+    output_template=None
+    if matched_type == "Unclassified":
+        pass
+    else:
+        if len(matched_type.split(","))>1:
+            first_type=matched_type.split(",")[0]
+        else:
+            first_type=matched_type
+
+        #根据fisrt_type 进行输出的格式化
+        output_template=classification_table[first_type]
+    return matched_type,output_template
     
 def refine_poly_classifier(classification_table, mixed_types, edges_sequence, reversed_edges_sequence):
     matched_type = None
