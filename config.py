@@ -2,7 +2,7 @@ class SegmentationConfig:
     def __init__(self):
         self.verbose=True
         # self.mode="dev"
-        self.mode="pro"
+        self.mode="dev"
         self.bracket_layer=None
         self.json_path=""
         

@@ -161,7 +161,7 @@ def combine_the_same_line(poly,segmentation_config):
 
             s1,s2=poly[i],poly[j]
             #print(i,j,point_segment_position(s1.start_point,s2,anno=False),point_segment_position(s1.end_point,s2,anno=False))
-            if point_segment_position(s1.start_point,s2,epsilon=0.25,anno=False)!="not_on_line" and point_segment_position(s1.end_point,s2,epsilon=0.25,anno=False)!="not_on_line":
+            if point_segment_position(s1.start_point,s2,epsilon=0.20,anno=False)!="not_on_line" and point_segment_position(s1.end_point,s2,epsilon=0.20,anno=False)!="not_on_line":
                 # print(i,j)
                 if j==i+1:
                     if s1.end_point ==s2.start_point:
