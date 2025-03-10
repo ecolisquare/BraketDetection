@@ -804,6 +804,12 @@ def poly_classifier(all_anno,poly_refs, texts,dimensions,conerhole_num, poly_fre
         return matched_type,classification_table[matched_type]
     elif matched_type=="Unclassified":
         return matched_type,None
+    # 去除自由边所有"KS_corner"以及轮廓中所有"["cornerhole", ["line"]]"
+    free_edges_sequence = [item for item in free_edges_sequence if item != "KS_corner"]
+    reversed_free_edges_sequence = [item for item in reversed_free_edges_sequence if item != "KS_corner"]
+    edges_sequence = [item for item in edges_sequence if item != ["cornerhole", ["line"]]]
+    reversed_edges_sequence = [item for item in reversed_edges_sequence if item != ["cornerhole", ["line"]]]
+
     edges_sequence.insert(0,["free", free_edges_sequence])
     reversed_edges_sequence.insert(0, ["free", reversed_free_edges_sequence])
     mixed_types = matched_type.split(',')
@@ -829,7 +835,15 @@ def refine_poly_classifier(classification_table, mixed_types, edges_sequence, re
 
     for type in mixed_types:
         temp_free_edge_seq = classification_table[type]["free_edges"]
-        tmp_edge_seq = classification_table[type]["non_free_edges"]
+        temp_edge_seq = classification_table[type]["non_free_edges"]
+        tmp_edge_seq = []
+        for edge in temp_edge_seq:
+            if edge["type"] == "cornerhole" and edge["edges"] == ["line"]:
+                continue
+            else:
+                tmp_edge_seq.append([edge["type"], edge["edges"]])
+        temp_free_edge_seq = [item for item in temp_free_edge_seq if item != "KS_corner"]
+
         tmp_edge_seq.insert(0, ["free", temp_free_edge_seq])
         # 计算与 edges_sequence 的相似度
         similarity = calculate_similarity(tmp_edge_seq, edges_sequence)
