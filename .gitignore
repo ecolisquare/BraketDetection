@@ -5,6 +5,8 @@ __pycache__/
 # Ignore output files
 output/
 output2/
+data/
+gt/
 DGCNN/data_folder
 DGCNN/cpkt
 training_img/

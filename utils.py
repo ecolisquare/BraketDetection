@@ -102,7 +102,247 @@ def is_parallel(seg1, seg2, tolerance=0.05):
     #print(cross_product)
     return are_equal_with_tolerance(cross_product, 0, tolerance)
 
+def point_segment_position(point: DPoint, segment: DSegment, epsilon=0.05,anno=True):
+    if point ==segment.start_point or point ==segment.end_point:
+        return "on_segment"
+    # 向量AB表示线段的方向
+    AB = DPoint(segment.end_point.x - segment.start_point.x, segment.end_point.y - segment.start_point.y)
+    # 向量AP表示从起点到点的方向
+    AP = DPoint(point.x - segment.start_point.x, point.y - segment.start_point.y)
+    l1,l2=DSegment(segment.start_point,point).length(),segment.length()
+    # 计算叉积，判断点是否在直线上
+    cross_product = (AB.x * AP.y - AB.y * AP.x)/(DSegment(segment.start_point,point).length()*segment.length())
 
+
+
+     # 向量AB表示线段的方向
+    BA = DPoint(segment.start_point.x - segment.end_point.x, segment.start_point.y - segment.end_point.y)
+    # 向量AP表示从起点到点的方向
+    BP = DPoint(point.x - segment.end_point.x, point.y - segment.end_point.y)
+    # 计算叉积，判断点是否在直线上
+    cross_product2 = (BA.x * BP.y - BA.y * BP.x)/(DSegment(segment.end_point,point).length()*segment.length())
+    if abs(cross_product) > epsilon or abs(cross_product2) > epsilon:
+        return "not_on_line"  # 点不在直线上
+
+    # 计算点积，判断点是否在线段上
+    dot_product = (AB.x * AP.x + AB.y * AP.y)/(DSegment(segment.start_point,point).length()*segment.length())
+    if dot_product < 0:
+        if l2>40 and l1>0.75*l2 and anno:
+            return "not_on_line"
+        return "before_start"  # 点在线段起点之前
+    elif DSegment(segment.start_point,point).length()>segment.length():
+        if l2>40 and l1>1.75*l2 and anno:
+            return "not_on_line"
+        return "after_end"  # 点在线段终点之后
+    else:
+        return "on_segment"  # 点在线段上
+def point_free_segment_position(point: DPoint, segment: DSegment, epsilon=0.05):
+    # 向量AB表示线段的方向
+    AB = DPoint(segment.end_point.x - segment.start_point.x, segment.end_point.y - segment.start_point.y)
+    # 向量AP表示从起点到点的方向
+    AP = DPoint(point.x - segment.start_point.x, point.y - segment.start_point.y)
+    l1,l2=DSegment(segment.start_point,point).length(),segment.length()
+    if l1>4*l2:
+        return "not_on_line"
+    # 计算叉积，判断点是否在直线上
+    cross_product = (AB.x * AP.y - AB.y * AP.x)/(DSegment(segment.start_point,point).length()*segment.length())
+    if abs(cross_product) > epsilon:
+        return "not_on_line"  # 点不在直线上
+
+    # 计算点积，判断点是否在线段上
+    dot_product = (AB.x * AP.x + AB.y * AP.y)/(DSegment(segment.start_point,point).length()*segment.length())
+    if dot_product < 0:
+        if l2>40 and l1>0.75*l2:
+            return "not_on_line"
+        return "before_start"  # 点在线段起点之前
+    elif DSegment(segment.start_point,point).length()>segment.length():
+        if l2>40 and l1>1.75*l2:
+            return "not_on_line"
+        return "after_end"  # 点在线段终点之后
+    else:
+        return "on_segment"  # 点在线段上
+def point_on_segments(point,segments,epsilon=0.05):
+    segs=[]
+    for i,s in enumerate(segments):
+        pos = point_segment_position(point, s,epsilon=0.05)
+        if pos !="not_on_line":
+            segs.append(s)
+    return segs
+
+def point_on_segments_idx(point,segments,epsilon=0.05):
+    segs=[]
+    for i,s in enumerate(segments):
+        pos = point_segment_position(point, s,epsilon=0.05)
+        if pos !="not_on_line":
+            segs.append((s,i))
+    return segs
+
+def check_parallel_anno(point1: DPoint, point2: DPoint, constraint_edges: list[DSegment],free_edges:list[DSegment], epsilon=0.05):
+    para_set={}
+    cons1=point_on_segments(point1,constraint_edges,epsilon)
+    cons2=point_on_segments(point2,constraint_edges,epsilon)
+    free1=point_on_segments(point1,free_edges,epsilon)
+    free2=point_on_segments(point2,free_edges,epsilon)
+    # print(len(cons1),len(cons2),len(free1),len(free2))
+    key=None
+    if len(cons1)==1 and len(cons2)==0 and len(free1)==0 and len(free2)==1:
+        key=(cons1[0],free2[0])
+        
+    if len(cons1)==0 and len(cons2)==1 and len(free1)==1 and len(free2)==0:
+        key=(cons2[0],free1[0])
+    return key
+
+def is_on_free_edges(point,free_edges):
+    for edge in free_edges:
+        l1,l2=DSegment(edge.start_point,point).length(),DSegment(edge.end_point,point).length()
+        if l1<100 or l2<100:
+            return True
+    return False
+def nearest_free_edge(point,free_edges):
+    free_edge=None
+    distance=float('inf')
+    for edge in free_edges:
+        l1,l2=DSegment(edge.start_point,point).length(),DSegment(edge.end_point,point).length()
+        dis=min(l1,l2)
+        if distance>dis:
+            free_edge=edge
+            distance=dis    
+    return free_edge
+def check_non_parallel_anno(point1: DPoint, point2: DPoint, constraint_edges: list[DSegment],free_edges:list[DSegment], epsilon=0.05):
+    cons1=point_on_segments(point1,constraint_edges,epsilon)
+    cons2=point_on_segments(point2,constraint_edges,epsilon)
+    if len(cons1)==1 and len(cons2)==0 and is_on_free_edges(point2,free_edges):
+        free=nearest_free_edge(point2,free_edges)
+        return (cons1[0],free)
+    if len(cons2)==1 and len(cons1)==0 and is_on_free_edges(point1,free_edges):
+        free=nearest_free_edge(point1,free_edges)
+        return (cons2[0],free)
+    return None
+def is_vertical(point1,point2,segment,epsilon=0.05):
+    v1=DPoint(point1.x-point2.x,point1.y-point2.y)
+    v2=DPoint(segment.start_point.x-segment.end_point.x,segment.start_point.y-segment.end_point.y)
+    cross_product=(v1.x*v2.x+v1.y+v2.y)/(DSegment(point1,point2).length()*segment.length())
+    if  abs(cross_product) <epsilon:
+        return True
+    return False 
+def check_vertical_anno(point1: DPoint, point2: DPoint, constraint_edges: list[DSegment], epsilon=0.05):
+    cons1=point_on_segments_idx(point1,constraint_edges,epsilon)
+    cons2=point_on_segments_idx(point2,constraint_edges,epsilon)
+    if len(cons1)==0 or len(cons2)==0:
+        return None
+    if len(cons1)==1 and is_vertical(point1,point2,cons1[0][0],epsilon):
+        flag=False
+        idx1=cons1[0][1]
+        idx2=None
+        for cons in cons2:
+            if (cons[1]+1)%len(constraint_edges)==idx1 or (cons[1]-1+len(constraint_edges))%len(constraint_edges)==idx1:
+                flag=True
+                idx2=cons[1]
+                break
+        if flag:
+            key=(constraint_edges[idx2],constraint_edges[idx1])
+            return key
+    if len(cons2)==1 and is_vertical(point1,point2,cons2[0][0],epsilon):
+        flag=False
+        idx1=cons2[0][1]
+        idx2=None
+        for cons in cons1:
+            if (cons[1]+1)%len(constraint_edges)==idx1 or (cons[1]-1+len(constraint_edges))%len(constraint_edges)==idx1:
+                flag=True
+                idx2=cons[1]
+                break
+        if flag:
+            key=(constraint_edges[idx2],constraint_edges[idx1])
+            return key
+    return None
+
+
+def check_points_against_segments(point1: DPoint, point2: DPoint, segments: list[DSegment], epsilon=0.05):
+    """
+    检查两个点与线段列表中的所有线段的位置关系。
+    返回是否存在一条线段满足以下条件之一：
+    1. 两个点分别在线段的两端。
+    2. 一个点在线段的一端，另一个点在线段上（包括端点）。
+    3. 两个点都在线段的一端。
+
+    :param point1: 第一个点
+    :param point2: 第二个点
+    :param segments: 线段列表
+    :param epsilon: 几何误差阈值
+    :return: 是否存在满足条件的线段
+    """
+    for i,segment in enumerate(segments):
+        # 获取线段的起点和终点
+        start = segment.start_point
+        end = segment.end_point
+
+        # 判断点1和点2与线段的位置关系
+        pos1 = point_segment_position(point1, segment, epsilon)
+        pos2 = point_segment_position(point2, segment, epsilon)
+        # if i==1:
+        #     print(pos1,pos2)
+        #     print(point1,point2)
+        #     print(start,end)
+        # 条件1：两个点分别在线段的两端
+        if (pos1 == "before_start" and pos2 == "after_end" ) or \
+           (pos1 == "after_end" and pos2 == "before_start"):
+            return "whole",i
+
+        # 条件2：一个点在线段的一端，另一个点在线段上（包括端点）
+        if (pos1 == "on_segment" and (pos2 == "before_start" or pos2=="after_end")) or \
+           (pos2 == "on_segment" and (pos1 == "before_start" or pos1=="after_end")):
+            return "half",i
+
+        # 条件3：两个点都在线段的一端
+        if (pos1 == "before_start"  and pos2 == "before_start") or \
+           (pos1 == "after_end"  and pos2 == "after_end"):
+            return "cornor",i
+
+    # 如果遍历完所有线段都没有满足条件的，返回 False
+    return None,None
+def check_points_against_free_segments(point1: DPoint, point2: DPoint, segments: list[DSegment], epsilon=0.05):
+    """
+    检查两个点与线段列表中的所有线段的位置关系。
+    返回是否存在一条线段满足以下条件之一：
+    1. 两个点分别在线段的两端。
+    2. 一个点在线段的一端，另一个点在线段上（包括端点）。
+    3. 两个点都在线段的一端。
+
+    :param point1: 第一个点
+    :param point2: 第二个点
+    :param segments: 线段列表
+    :param epsilon: 几何误差阈值
+    :return: 是否存在满足条件的线段
+    """
+    for i,segment in enumerate(segments):
+        # 获取线段的起点和终点
+        start = segment.start_point
+        end = segment.end_point
+
+        # 判断点1和点2与线段的位置关系
+        pos1 = point_free_segment_position(point1, segment, epsilon)
+        pos2 = point_free_segment_position(point2, segment, epsilon)
+        # if i==1:
+        #     print(pos1,pos2)
+        #     print(point1,point2)
+        #     print(start,end)
+        # 条件1：两个点分别在线段的两端
+        if (pos1 == "before_start" and pos2 == "after_end" ) or \
+           (pos1 == "after_end" and pos2 == "before_start"):
+            return "whole",i
+
+        # 条件2：一个点在线段的一端，另一个点在线段上（包括端点）
+        if (pos1 == "on_segment" and (pos2 == "before_start" or pos2=="after_end")) or \
+           (pos2 == "on_segment" and (pos1 == "before_start" or pos1=="after_end")):
+            return "half",i
+
+        # 条件3：两个点都在线段的一端
+        if (pos1 == "before_start"  and pos2 == "before_start") or \
+           (pos1 == "after_end"  and pos2 == "after_end"):
+            return "cornor",i
+
+    # 如果遍历完所有线段都没有满足条件的，返回 False
+    return None,None
 def angleOfTwoVectors(A,B):
     lengthA = math.sqrt(A[0]**2 + A[1]**2)  
     lengthB = math.sqrt(B[0]**2 + B[1]**2)  
@@ -167,7 +407,7 @@ def rdp(points, epsilon):
     # else:
     #     return [start, end]  
 
-def process_lwpoline(vs,vs_type,color,handle,meta,isClosed,hasArc):
+def process_lwpoline(vs,vs_type,color,handle,meta,isClosed,hasArc,line_type):
     #print(len(vs_type),len(vs))
     new_vs=[]
     elements=[]
@@ -215,7 +455,7 @@ def process_lwpoline(vs,vs_type,color,handle,meta,isClosed,hasArc):
                 # segments.append(DSegment(line.start_point,line.end_point,line))
                 pass
             else:
-                arc=DArc(DPoint(x,y),r,s_a,e_a,color,handle,meta)
+                arc=DArc(DPoint(x,y),r,s_a,e_a,line_type,color,handle,meta)
                 elements.append(arc)
                 arcs.append(arc)
                 s1,s2=DSegment(start_point,end_point,None),DSegment(end_point,start_point,None)
@@ -238,12 +478,12 @@ def process_lwpoline(vs,vs_type,color,handle,meta,isClosed,hasArc):
         s,e=DPoint(new_vs[i][0],new_vs[i][1]),DPoint(new_vs[i+1][0],new_vs[i+1][1])
         seg=DSegment(s,e,None)
         if seg.length()>0 and seg not in arc_set:
-            line=DLine(s,e,color,handle,meta)
+            line=DLine(s,e,line_type,color,handle,meta)
             segments.append(DSegment(line.start_point,line.end_point,line))
             elements.append(line)
     
     if isClosed:
-        line=DLine(DPoint(new_vs[-1][0],new_vs[-1][1]),DPoint(new_vs[0][0],new_vs[0][1]),color,handle,meta)
+        line=DLine(DPoint(new_vs[-1][0],new_vs[-1][1]),DPoint(new_vs[0][0],new_vs[0][1]),line_type,color,handle,meta)
         elements.append(line)
         segments.append(DSegment(line.start_point,line.end_point,line))
     #print(len(elements),len(arcs),len(segments),handle)
@@ -334,7 +574,34 @@ def sort_points_on_arc(points, arc):
     else:
         return sorted(points, key=lambda pt: angle_from_center(pt,start_point,arc))
 
+def shrinkFixedLength(segList,dist):
+    
 
+    new_seglist=[] 
+    n=len(segList)
+    # if verbose:
+    #     pbar=tqdm(total=n,desc="Preprocess")
+    for seg in segList:
+        # if verbose:
+        #     pbar.update()
+        p1=seg[0]
+        p2=seg[1]
+        v=(p2[0]-p1[0],p2[1]-p1[1])
+        l=math.sqrt(v[0]*v[0]+v[1]*v[1])
+
+       
+        
+        # elif l<=dist:
+        #     l*=1.5
+        v=(v[0]/l*dist,v[1]/l*dist)
+        if l <=2*dist:
+            l*=2
+        vs=DPoint(p1[0]+v[0],p1[1]+v[1]) 
+        ve=DPoint(p2[0]-v[0],p2[1]-v[1])
+        new_seglist.append(DSegment(vs,ve,seg.ref))
+    # if verbose:
+    #     pbar.close()
+    return new_seglist
 #expand lines by fixed length
 def expandFixedLength(segList,dist,both=True,verbose=True,ignore_length=False):
 
@@ -350,12 +617,14 @@ def expandFixedLength(segList,dist,both=True,verbose=True,ignore_length=False):
         p2=seg[1]
         v=(p2[0]-p1[0],p2[1]-p1[1])
         l=math.sqrt(v[0]*v[0]+v[1]*v[1])
-        if l<=dist and ignore_length==False:
-            continue
-        # elif l<=dist:
-        #     l*=1.5
         if l<0.25:
             continue
+        if l<=dist and ignore_length==False:
+            l=l*dist/0.5
+        
+        # elif l<=dist:
+        #     l*=1.5
+
         v=(v[0]/l*dist,v[1]/l*dist)
         vs=DPoint(p1[0]-v[0],p1[1]-v[1]) if both else DPoint(p1[0],p1[1])
         ve=DPoint(p2[0]+v[0],p2[1]+v[1])
@@ -425,7 +694,7 @@ def transform_segments(segments,scales,rotation,insert):
         new_segments.append(segment)
     return new_segments
 #json --> elements
-def process_block(T_is_contained,block_datas,blockName,scales,rotation,insert,attribs,bound,block_elements,segmentation_config):
+def process_block(T_is_contained,block_datas,blockName,scales,rotation,insert,block_linetype,attribs,bound,block_elements,segmentation_config):
     print(f"正在处理块:{blockName}")
     # if blockName!="L125X75X7" or insert[1]>-36900:
     #     return [],[],[]
@@ -458,36 +727,46 @@ def process_block(T_is_contained,block_datas,blockName,scales,rotation,insert,at
             continue
         if ele["type"]=="line":
            
-           
+            ele_linetype=ele["linetype"].upper()
+            if ele_linetype =="BYBLOCK":
+                ele_linetype=block_linetype.upper()
             
             if ele.get("layerName") is not None and ele["layerName"] in layname:
                 if ele["layerName"] in segmentation_config.stiffener_name:
-                    e=DLine(DPoint(ele["start"][0],ele["start"][1]),DPoint(ele["end"][0],ele["end"][1]),ele["color"],ele["handle"],meta=block_meta_data)
+                    e=DLine(DPoint(ele["start"][0],ele["start"][1]),DPoint(ele["end"][0],ele["end"][1]),ele_linetype,ele["color"],ele["handle"],meta=block_meta_data)
                     stiffeners.append(DSegment(e.start_point,e.end_point,e))
                 if ele["layerName"] in segmentation_config.remove_layername:
                     continue
             # 虚线过滤
-            if ele.get("linetype") is not None and ele["linetype"] in linetype:
-                continue
-            # 颜色过滤
-            # if ele["color"] not in color:
+            # if ele.get("linetype") is not None and ele["linetype"] in linetype:
             #     continue
-            e=DLine(DPoint(ele["start"][0],ele["start"][1]),DPoint(ele["end"][0],ele["end"][1]),ele["color"],ele["handle"],meta=block_meta_data)
-    
+            # 颜色过滤
+            if ele["color"]  in color:
+                continue
+            e=DLine(DPoint(ele["start"][0],ele["start"][1]),DPoint(ele["end"][0],ele["end"][1]),ele_linetype,ele["color"],ele["handle"],meta=block_meta_data)
             elements.append(e)
             segments.append(DSegment(e.start_point,e.end_point,e))
         elif ele["type"] == "arc":
             # 颜色过滤
             # if ele["color"] not in color:
             #     continue
-            
+            ele_linetype=ele["linetype"].upper()
+            if ele_linetype =="BYBLOCK":
+                ele_linetype=block_linetype.upper()
             if ele.get("layerName") is not None and ele["layerName"] in layname:
+                if ele["layerName"] in segmentation_config.stiffener_name:
+                    e = DArc(DPoint(ele["center"][0], ele["center"][1]), ele["radius"], ele["startAngle"], ele["endAngle"],ele_linetype,ele["color"],ele["handle"],meta=block_meta_data)
+                    stiffeners.append(DSegment(e.start_point,e.end_point,e))
+                if ele["layerName"] in segmentation_config.remove_layername:
+                    continue
+            if ele["color"]  in color:
                 continue
             # 虚线过滤
-            if ele.get("linetype") is not None and ele["linetype"] in linetype:
-                continue
+            # if ele.get("linetype") is not None and ele["linetype"] in linetype:
+            #     continue
             # 创建DArc对象
-            e = DArc(DPoint(ele["center"][0], ele["center"][1]), ele["radius"], ele["startAngle"], ele["endAngle"],ele["color"],ele["handle"],meta=block_meta_data)
+            e = DArc(DPoint(ele["center"][0], ele["center"][1]), ele["radius"], ele["startAngle"], ele["endAngle"],ele_linetype,ele["color"],ele["handle"],meta=block_meta_data)
+
             elements.append(e)
             arcs.append(e)
             continue
@@ -498,23 +777,36 @@ def process_block(T_is_contained,block_datas,blockName,scales,rotation,insert,at
             # 虚线过滤
             # if ele.get("linetype") is None or ele["linetype"] not in linetype:
             #     continue
-            if ele.get("layerName") is not None and ele["layerName"] in layname:
-                continue
+            
             # 虚线过滤
-            if ele.get("linetype") is not None and ele["linetype"] in linetype:
-                continue
+            # if ele.get("linetype") is not None and ele["linetype"] in linetype:
+            #     continue
             vs = ele["vertices"]
             ps = [DPoint(v[0], v[1]) for v in vs]
 
             # Apply line simplification
             simplified_ps = rdp(ps, epsilon=5.0)  # Adjust epsilon for simplification level
 
-            e = DLwpolyline(simplified_ps, ele["color"], False,ele["handle"],meta=block_meta_data)
+            ele_linetype=ele["linetype"].upper()
+            if ele_linetype =="BYBLOCK":
+                ele_linetype=block_linetype.upper()
+            if ele.get("layerName") is not None and ele["layerName"] in layname:
+                if ele["layerName"] in segmentation_config.stiffener_name:
+                    e=DLine(simplified_ps[0],simplified_ps[-1],ele_linetype,ele["color"],ele["handle"],meta=block_meta_data)
+                    # l=len(simplified_ps)
+                    # for i in range(l - 1):
+                    # if simplified_ps[i].y>-48500 or simplified_ps[i+1].y>-48500:
+                    stiffeners.append(DSegment(simplified_ps[0], simplified_ps[-1], e))
+                if ele["layerName"] in segmentation_config.remove_layername:
+                    continue
+            if ele["color"]  in color:
+                continue
+            e=DLine(simplified_ps[0],simplified_ps[-1],ele_linetype,ele["color"],ele["handle"],meta=block_meta_data)
             elements.append(e)
-            l = len(simplified_ps)
-            for i in range(l - 1):
+            # l = len(simplified_ps)
+            # for i in range(l - 1):
                 # if simplified_ps[i].y>-48500 or simplified_ps[i+1].y>-48500:
-                segments.append(DSegment(simplified_ps[i], simplified_ps[i + 1], e))
+            segments.append(DSegment(simplified_ps[0], simplified_ps[-1], e))
         elif ele["type"]=="lwpolyline" :
                 # 颜色过滤
             # if ele["color"] not in color:
@@ -522,18 +814,32 @@ def process_block(T_is_contained,block_datas,blockName,scales,rotation,insert,at
             # 虚线过滤
             # if ele.get("linetype") is None or ele["linetype"] not in linetype:
             #     continue
-            if ele.get("layerName") is not None and ele["layerName"] in layname:
-                continue
             # 虚线过滤
-            if ele.get("linetype") is not None and ele["linetype"] in linetype:
-                continue
+            # if ele.get("linetype") is not None and ele["linetype"] in linetype:
+            #     continue
             vs = ele["vertices"]
             vs_type=ele["verticesType"]
-            lwe,lwa,lws=process_lwpoline(vs,vs_type,ele["color"],ele["handle"],block_meta_data,ele["isClosed"],ele["hasArc"])
+            ele_linetype=ele["linetype"].upper()
+            if ele_linetype =="BYBLOCK":
+                ele_linetype=block_linetype.upper()
+            lwe,lwa,lws=process_lwpoline(vs,vs_type,ele["color"],ele["handle"],block_meta_data,ele["isClosed"],ele["hasArc"],ele_linetype)
+            if ele.get("layerName") is not None and ele["layerName"] in layname:
+                if ele["layerName"] in segmentation_config.stiffener_name:
+                    
+                    for s in lws:
+                    # if simplified_ps[i].y>-48500 or simplified_ps[i+1].y>-48500:
+                        stiffeners.append(s)
+                    for s in lwa:
+                        stiffeners.append(DSegment(s.start_point,s.end_point,s))
+                if ele["layerName"] in segmentation_config.remove_layername:
+                    continue
+            
+            if ele["color"]  in color:
+                continue
             elements.extend(lwe)
             arcs.extend(lwa)
             segments.extend(lws)
-            pass
+            
             #ps = [DPoint(v[0], v[1]) for v in vs]
 
             # Apply line simplification
@@ -556,32 +862,55 @@ def process_block(T_is_contained,block_datas,blockName,scales,rotation,insert,at
             # 虚线过滤
             # if ele.get("linetype") is None or ele["linetype"] not in linetype:
             #     continue
-            if ele.get("layerName") is not None and ele["layerName"] in layname:
-                continue
             # 虚线过滤
-            if ele.get("linetype") is not None and ele["linetype"] in linetype:
-                continue
+            # if ele.get("linetype") is not None and ele["linetype"] in linetype:
+            #     continue
             vs = ele["vertices"]
             ps = [DPoint(v[0], v[1]) for v in vs]
 
             # Apply line simplification
             simplified_ps = rdp(ps, epsilon=5.0)  # Adjust epsilon for simplification level
             #print(simplified_ps)
-            e = DLwpolyline(simplified_ps, ele["color"], ele["isClosed"],ele["handle"],meta=block_meta_data)
-            elements.append(e)
+            ele_linetype=ele["linetype"].upper()
+            if ele_linetype =="BYBLOCK":
+                ele_linetype=block_linetype.upper()
+
+            if ele.get("layerName") is not None and ele["layerName"] in layname:
+                if ele["layerName"] in segmentation_config.stiffener_name:
+                    
+                    # e = DLwpolyline(simplified_ps,ele_linetype, ele["color"], ele["isClosed"],ele["handle"],meta=block_meta_data)
+                    l = len(simplified_ps)
+                    for i in range(l - 1):
+                        # if simplified_ps[i].y>-48500 or simplified_ps[i+1].y>-48500:
+                        e=DLine(simplified_ps[i], simplified_ps[i + 1],ele_linetype,ele["color"],ele["handle"],meta=block_meta_data)
+                        stiffeners.append(DSegment(simplified_ps[i], simplified_ps[i + 1], e))
+                    if ele["isClosed"]:
+                        # if simplified_ps[-1].y>-48500 or simplified_ps[0].y>-48500:
+                        e=DLine(simplified_ps[-1], simplified_ps[0],ele_linetype,ele["color"],ele["handle"],meta=block_meta_data)
+                        stiffeners.append(DSegment(simplified_ps[-1], simplified_ps[0], e))
+                if ele["layerName"] in segmentation_config.remove_layername:
+                    continue
+            if ele["color"]  in color:
+                continue
+            #e = DLwpolyline(simplified_ps,ele_linetype, ele["color"], ele["isClosed"],ele["handle"],meta=block_meta_data)
+            # elements.append(e)
             l = len(simplified_ps)
             for i in range(l - 1):
                 # if simplified_ps[i].y>-48500 or simplified_ps[i+1].y>-48500:
+                e=DLine(simplified_ps[i], simplified_ps[i + 1],ele_linetype,ele["color"],ele["handle"],meta=block_meta_data)
                 segments.append(DSegment(simplified_ps[i], simplified_ps[i + 1], e))
+                elements.append(e)
             if ele["isClosed"]:
                 # if simplified_ps[-1].y>-48500 or simplified_ps[0].y>-48500:
+                e=DLine(simplified_ps[-1], simplified_ps[0],ele_linetype,ele["color"],ele["handle"],meta=block_meta_data)
                 segments.append(DSegment(simplified_ps[-1], simplified_ps[0], e))
+                elements.append(e)
         elif ele["type"]=="insert":
                 if ele.get("layerName") is not None and ele["layerName"] in layname:
                     continue
                 # 虚线过滤
-                if ele.get("linetype") is not None and ele["linetype"] in linetype:
-                    continue
+                # if ele.get("linetype") is not None and ele["linetype"] in linetype:
+                #     continue
                 sub_blockName=ele["blockName"]
                 # x1,x2,y1,y2=ele["bound"]["x1"],ele["bound"]["x2"],ele["bound"]["y1"],ele["bound"]["y2"]
                 sub_scales=ele["scales"]
@@ -590,13 +919,16 @@ def process_block(T_is_contained,block_datas,blockName,scales,rotation,insert,at
                 sub_attribs=ele['attribs']
                 sub_block_data=block_datas[sub_blockName]
                 sub_bound=ele["bound"]
+                ele_linetype=ele["linetype"].upper() if ele.get("linetype") is not None else "CONTINUOUS"
+                if ele_linetype =="BYBLOCK":
+                    ele_linetype=block_linetype.upper()
                 #pre-check
                 sub_T_is_contained=False
                 for sube in sub_block_data:
                     if sube.get("layerName") is not None and sube["layerName"]=="T":
                         sub_T_is_contained=True
                         break
-                sub_elements,sub_segments,sub_arc_splits,sub_ori_segments,sub_stiffeners=process_block(sub_T_is_contained,block_datas,sub_blockName,sub_scales,sub_rotation,sub_insert,sub_attribs,sub_bound,sub_block_data,segmentation_config)
+                sub_elements,sub_segments,sub_arc_splits,sub_ori_segments,sub_stiffeners=process_block(sub_T_is_contained,block_datas,sub_blockName,sub_scales,sub_rotation,sub_insert,ele_linetype,sub_attribs,sub_bound,sub_block_data,segmentation_config)
                 for sube in sub_elements:
                     sube.meta=block_meta_data
                 elements.extend(sub_elements)
@@ -604,30 +936,30 @@ def process_block(T_is_contained,block_datas,blockName,scales,rotation,insert,at
                 arc_splits.extend(sub_arc_splits)
                 ori_segments.extend(sub_ori_segments)
                 stiffeners.extend(sub_stiffeners)
-        elif ele["type"]=="text" and blockName=="TOP":
+        elif ele["type"]=="text":
                 if ele.get("layerName") is not None and ele["layerName"] in layname:
                     continue
                 # 虚线过滤
-                if ele.get("linetype") is not None and ele["linetype"] in linetype:
-                    continue
+                # if ele.get("linetype") is not None and ele["linetype"] in linetype:
+                #     continue
                 e=DText(ele["bound"],ele["insert"], ele["color"],ele["content"].strip(),ele["height"],ele["handle"],meta=block_meta_data)
                 elements.append(e)
-        elif  ele["type"]=="mtext" and blockName=="TOP":
+        elif  ele["type"]=="mtext":
             if ele.get("layerName") is not None and ele["layerName"] in layname:
                     continue
             # 虚线过滤
-            if ele.get("linetype") is not None and ele["linetype"] in linetype:
-                continue
+            # if ele.get("linetype") is not None and ele["linetype"] in linetype:
+            #     continue
             string = ele["text"].strip()
             cleaned_string = re.sub(r"^\\A1;", "", string)
             e=DText(ele["bound"],ele["insert"], ele["color"],cleaned_string,ele["width"],ele["handle"],meta=block_meta_data,is_mtext=True)
             elements.append(e)
-        elif ele["type"]=="dimension" and blockName=="TOP":
+        elif ele["type"]=="dimension":
             if ele.get("layerName") is not None and ele["layerName"] in layname:
                 continue
             # 虚线过滤
-            if ele.get("linetype") is not None and ele["linetype"] in linetype:
-                continue
+            # if ele.get("linetype") is not None and ele["linetype"] in linetype:
+            #     continue
             textpos=ele["textpos"]
             defpoints=[]
             for i in range(5):
@@ -692,10 +1024,25 @@ def readJson(path,segmentation_config):
         with open(path, 'r', encoding='utf-8') as file:  
             data_list = json.load(file)
         block_datas=data_list[1]
-        elements,segments,arc_splits,ori_segments,stiffeners=process_block(False,block_datas,"TOP",[1.0,1.0],0,[0,0],[],None,data_list[0],segmentation_config)
+        elements,segments,arc_splits,ori_segments,stiffeners=process_block(False,block_datas,"TOP",[1.0,1.0],0,[0,0],"CONTINUOUS",[],None,data_list[0],segmentation_config)
+        new_segments=[]
+        new_arc_splits=[]
+
+        for s in segments:
+            if s.ref.linetype in segmentation_config.line_type:
+                new_segments.append(s)
+        for s in arc_splits:
+            if s.ref.linetype in segmentation_config.line_type:
+                new_arc_splits.append(s)
+        
+        segments=new_segments
+        arc_splits=new_arc_splits
+        
         segments=expandFixedLength(segments,segmentation_config.line_expand_length)
         arc_splits=expandFixedLength(arc_splits,segmentation_config.arc_expand_length)
            
+        
+        
        
        
         return elements,segments+arc_splits,ori_segments,stiffeners
@@ -717,6 +1064,7 @@ def remove_duplicates(input_list):
 # Helper function to compute intersection between two segments
 def segment_intersection(p1, p2, q1, q2, epsilon=1e-9):
     """ Returns the intersection point between two line segments, or None if they don't intersect. """
+    ###TODO: if two segments are colinear or in the same line,get the intersection within a unique method  
     def cross_product(v1, v2):
         return v1[0] * v2[1] - v1[1] * v2[0]
 
@@ -731,13 +1079,35 @@ def segment_intersection(p1, p2, q1, q2, epsilon=1e-9):
     t = cross_product((q1.x - p1.x, q1.y - p1.y), s) / denominator
     u = cross_product((q1.x - p1.x, q1.y - p1.y), r) / denominator
 
-    if 0 <= t <= 1 and 0 <= u <= 1:  # Intersection occurs within both segments
+    if -epsilon <= t <= 1+epsilon and -epsilon <= u <= 1+epsilon:  # Intersection occurs within both segments
         intersect_x = p1.x + t * r[0]
         intersect_y = p1.y + t * r[1]
         return DPoint(intersect_x, intersect_y)
     
     return None
+def segment_intersection_line(p1, p2, q1, q2, epsilon=1e-9):
+    """ Returns the intersection point between two line segments, or None if they don't intersect. """
+    ###TODO: if two segments are colinear or in the same line,get the intersection within a unique method  
+    def cross_product(v1, v2):
+        return v1[0] * v2[1] - v1[1] * v2[0]
 
+    r = (p2.x - p1.x, p2.y - p1.y)
+    s = (q2.x - q1.x, q2.y - q1.y)
+
+    denominator = cross_product(r, s)
+
+    if abs(denominator) < epsilon:  # Parallel or collinear
+        return None
+
+    t = cross_product((q1.x - p1.x, q1.y - p1.y), s) / denominator
+    u = cross_product((q1.x - p1.x, q1.y - p1.y), r) / denominator
+
+    
+    intersect_x = p1.x + t * r[0]
+    intersect_y = p1.y + t * r[1]
+    return DPoint(intersect_x, intersect_y)
+
+    
 # Function to find all intersections
 # def find_all_intersections(segments, epsilon=1e-9):
 #     intersection_dict = {}
@@ -772,11 +1142,13 @@ def segment_intersection(p1, p2, q1, q2, epsilon=1e-9):
 # Function to compute intersections for two subsets of segments
 def compute_intersections(chunk1, chunk2, epsilon=1e-9):
     intersection_dict = {}
-    n=len(chunk1)*(len(chunk2))
+    n=len(chunk1)
     pbar=tqdm(total=n,desc="计算交点")
     for seg1 in chunk1:
-        for seg2 in chunk2:
-            pbar.update()
+        pbar.update()
+        chunck=chunk2.segments_near_segment(seg1)
+        for seg2 in chunck:
+            
             if seg1 == seg2 :
                 continue  # Skip self-intersection
             
@@ -815,17 +1187,19 @@ def merge_intersections(results,segments):
     return merged
 
 # Main function to find all intersections using multiprocessing
-def find_all_intersections(segments, epsilon=0.1):
+def find_all_intersections(segments, segmentation_config,epsilon=0.1):
+    seg_block=build_initial_block(segments,segmentation_config)
     n = len(segments)
-    k= max((n+31)//32,1)
+    L=4
+    k= max((n+L-1)//L,1)
     # Divide segments into chunks of size k
     segment_chunks = [segments[i:i + k] for i in range(0, n, k)]
     s_l=[len(c) for c in segment_chunks]
     print(len(segment_chunks))
     print(s_l)
     # Use ProcessPoolExecutor for parallel computation
-    with ProcessPoolExecutor(max_workers=32) as executor:
-        partial_intersections = partial(compute_intersections, chunk2=segments,epsilon=epsilon)
+    with ProcessPoolExecutor(max_workers=L) as executor:
+        partial_intersections = partial(compute_intersections, chunk2=seg_block,epsilon=epsilon)
         results = list(executor.map(partial_intersections, segment_chunks))
 
     # Merge results from all processes
@@ -833,7 +1207,7 @@ def find_all_intersections(segments, epsilon=0.1):
     return intersection_dict
 from collections import deque
 
-def split_segments(segments, intersections,epsilon=0.25,expansion_param=0): 
+def split_segments(segments,segmentation_config, intersections,epsilon=0.25,expansion_param=0): 
     """根据交点将线段分割并构建 edge_map"""
     new_segments = []
     edge_map = {}
@@ -841,7 +1215,7 @@ def split_segments(segments, intersections,epsilon=0.25,expansion_param=0):
 
     for seg, inter_points in intersections.items():
         # 按照坐标顺序排序交点
-        inter_points = sorted([seg.start_point] + inter_points + [seg.end_point], key=lambda p: (seg.start_point.x-p.x)*(seg.start_point.x-p.x)+(seg.start_point.y-p.y)*(seg.start_point.y-p.y))
+        inter_points = sorted([seg.start_point] + inter_points + [seg.end_point], key=lambda p: (p.x-seg.start_point.x)*(seg.end_point.x-seg.start_point.x)+(p.y-seg.start_point.y)*(seg.end_point.y-seg.start_point.y))
         points=inter_points
         segList=[]
         
@@ -866,6 +1240,27 @@ def split_segments(segments, intersections,epsilon=0.25,expansion_param=0):
             if DSegment(s.end_point, s.start_point) not in edge_map:
                 edge_map[DSegment(s.end_point, s.start_point)] = s  # 反向线段
 
+    segments_set=set()
+    new_seg=[]
+    for s in new_segments:
+        if s not in segments_set and DSegment(s.end_point,s.start_point) not in segments_set:
+            segments_set.add(s)
+            segments_set.add(DSegment(s.end_point,s.start_point,s.ref))
+        else:
+            if s.ref.color in segmentation_config.constraint_color:
+                if s in segments_set:
+                    segments_set.remove(s)
+                if DSegment(s.end_point,s.start_point,s.ref) in segments_set:
+                    segments_set.remove( DSegment(s.end_point,s.start_point,s.ref))
+                segments_set.add(s)
+                segments_set.add(DSegment(s.end_point,s.start_point,s.ref))
+    seg_has_add=set()
+    for s in segments_set:
+        if s not in seg_has_add and DSegment(s.end_point,s.start_point) not in seg_has_add:
+            seg_has_add.add(s)
+            seg_has_add.add(DSegment(s.end_point,s.start_point,s.ref))
+            new_seg.append(s)
+    new_segments=new_seg
     for s in new_segments:
         vs,ve=s.start_point,s.end_point
         if vs not in point_map:
@@ -878,14 +1273,14 @@ def split_segments(segments, intersections,epsilon=0.25,expansion_param=0):
     return new_segments, edge_map,point_map
 
 
-def filter_segments(segments,intersections,point_map,expansion_param=12,iters=3,interval=1):
+def filter_segments(segments,segmentation_config,intersections,point_map,expansion_param=12,iters=3,interval=1):
     new_segments=[]
     edge_map = {}
     new_point_map={}
     for seg, inter_points in intersections.items():
         # 按照坐标顺序排序交点
         
-        inter_points = sorted([seg.start_point] + inter_points + [seg.end_point], key=lambda p: (seg.start_point.x-p.x)*(seg.start_point.x-p.x)+(seg.start_point.y-p.y)*(seg.start_point.y-p.y))
+        inter_points = sorted([seg.start_point] + inter_points + [seg.end_point], key=lambda p: (p.x-seg.start_point.x)*(seg.end_point.x-seg.start_point.x)+(p.y-seg.start_point.y)*(seg.end_point.y-seg.start_point.y))
         points=inter_points
         segList=[]
         
@@ -935,7 +1330,27 @@ def filter_segments(segments,intersections,point_map,expansion_param=12,iters=3,
         #             if DSegment(s.end_point, s.start_point) not in edge_map:
         #                 edge_map[DSegment(s.end_point, s.start_point)] = s  # 反向线段
 
-
+    segments_set=set()
+    new_seg=[]
+    for s in new_segments:
+        if s not in segments_set and DSegment(s.end_point,s.start_point) not in segments_set:
+            segments_set.add(s)
+            segments_set.add(DSegment(s.end_point,s.start_point,s.ref))
+        else:
+            if s.ref.color in segmentation_config.constraint_color:
+                if s in segments_set:
+                    segments_set.remove(s)
+                if DSegment(s.end_point,s.start_point,s.ref) in segments_set:
+                    segments_set.remove( DSegment(s.end_point,s.start_point,s.ref))
+                segments_set.add(s)
+                segments_set.add(DSegment(s.end_point,s.start_point,s.ref))
+    seg_has_add=set()
+    for s in segments_set:
+        if s not in seg_has_add and DSegment(s.end_point,s.start_point) not in seg_has_add:
+            seg_has_add.add(s)
+            seg_has_add.add(DSegment(s.end_point,s.start_point,s.ref))
+            new_seg.append(s)
+    new_segments=new_seg
     for s in new_segments:
         vs,ve=s.start_point,s.end_point
         if vs not in new_point_map:
@@ -957,8 +1372,8 @@ def filter_segments(segments,intersections,point_map,expansion_param=12,iters=3,
         for s in new_segments:
             vs,ve=s.start_point,s.end_point
             div_s,div_e=len(new_point_map[vs]),len(new_point_map[ve])
-            # if vs==ve:
-            #     continue
+            if vs==ve:
+                continue
             if div_s==1 or div_e==1:
                 continue
             # if div_s==3 and (i+1)%interval==0:
@@ -1054,9 +1469,25 @@ def calculate_angle(p1, p2, p3):
     # Ensure the angle is in the range [0, 360]
     if angle_deg < 0:
         angle_deg += 360
-
+    # if p2==DPoint(747,1121):
+    #     print(angle_deg)
     return angle_deg
 
+
+
+def calculate_prior_angle(p1,p2,p3):
+    angle=calculate_angle(p3,p2,p1)
+    if angle>=10 and angle<=170:
+        angle+=180
+    elif angle<=350 and angle>=190:
+        angle-=160
+    elif angle>=170 and angle <=190:
+        angle=10
+    else:
+        angle=0
+    # if p2==DPoint(747,1121):
+    #     print(angle)
+    return angle
 def dfs_paths_with_repline(visited_edges,graph, repline, max_length, timeout=5):
     """
     Perform DFS to find a closed loop starting at repline.start_point,
@@ -1636,12 +2067,14 @@ def process_intersections(chunck,segments,point_map,segmentation_config):
     v1e=chunck[1]
     horizontal_line=[]
     h1e=[]
-    pbar=tqdm(desc="find reference line",total=len(vertical_lines)*len(segments))
+    pbar=tqdm(desc="find reference line",total=len(vertical_lines))
     for i, seg1 in enumerate(vertical_lines):
         y_max=None
         s=None
-        for j, seg2 in enumerate(segments):
-            pbar.update()
+        pbar.update()
+        all_seg=segments.segments_near_segment(seg1)
+        for j, seg2 in enumerate(all_seg):
+            
             if len(point_map[seg2.start_point])==1 and len(point_map[seg2.end_point])==1:
                 continue
             p1, p2 = seg1.start_point, seg1.end_point
@@ -1668,12 +2101,14 @@ def process_intersections2(chunck,segments,point_map,segmentation_config):
     v2e=chunck[1]
     hl2=[]
     h2e=[]
-    pbar=tqdm(desc="find reference lines",total=len(vl2)*len(segments))
+    pbar=tqdm(desc="find reference lines",total=len(vl2))
     for i, seg1 in enumerate(vl2):
         y_min=None
         s=None
-        for j, seg2 in enumerate(segments):
-            pbar.update()
+        pbar.update()
+        all_segs=segments.segments_near_segment(seg1)
+        for j, seg2 in enumerate(all_segs):
+            
             p1, p2 = seg1.start_point, seg1.end_point
             q1, q2 = seg2.start_point, seg2.end_point
             intersection = segment_intersection(p1, p2, q1, q2)
@@ -1732,8 +2167,10 @@ def removeReferenceLines(elements,texts,initial_segments,all_segments,point_map,
     hl2=[]
     h1e=[]
     h2e=[]
+    all_block=build_initial_block(all_segments,segmentation_config)
     n = len(vertical_lines)
-    k= max((n+31)//32,1)
+    L=4
+    k= max((n+L-1)//L,1)
     # Divide segments into chunks of size k
     segment_chunks = [vertical_lines[i:i + k] for i in range(0, n, k)]
     element_chunks=  [v1e[i:i + k] for i in range(0, n, k)]
@@ -1744,14 +2181,15 @@ def removeReferenceLines(elements,texts,initial_segments,all_segments,point_map,
     print(len(segment_chunks))
     print(s_l)
     # Use ProcessPoolExecutor for parallel computation
-    with ProcessPoolExecutor(max_workers=32) as executor:
-        partial_intersections = partial(process_intersections, segments=all_segments,point_map=point_map,segmentation_config=segmentation_config)
+    with ProcessPoolExecutor(max_workers=L) as executor:
+        partial_intersections = partial(process_intersections, segments=all_block,point_map=point_map,segmentation_config=segmentation_config)
         results = list(executor.map(partial_intersections, chuncks))
     for result in results:
         horizontal_line.extend(result[0])
         h1e.extend(result[1])
     n = len(vl2)
-    k= max((n+31)//32,1)
+    L=4
+    k= max((n+L-1)//L,1)
     # Divide segments into chunks of size k
     segment_chunks = [vl2[i:i + k] for i in range(0, n, k)]
     element_chunks=  [v2e[i:i + k] for i in range(0, n, k)]
@@ -1762,8 +2200,8 @@ def removeReferenceLines(elements,texts,initial_segments,all_segments,point_map,
     print(len(segment_chunks))
     print(s_l)
     # Use ProcessPoolExecutor for parallel computation
-    with ProcessPoolExecutor(max_workers=32) as executor:
-        partial_intersections = partial(process_intersections2, segments=all_segments,point_map=point_map,segmentation_config=segmentation_config)
+    with ProcessPoolExecutor(max_workers=L) as executor:
+        partial_intersections = partial(process_intersections2, segments=all_block,point_map=point_map,segmentation_config=segmentation_config)
         results = list(executor.map(partial_intersections, chuncks))
     for result in results:
         hl2.extend(result[0])
@@ -2252,7 +2690,7 @@ def outputLines(segmentation_config,segments,point_map,polys,cornor_holes,star_p
     if segmentation_config.draw_texts:
         for p,t in text_map.items():
             plt.plot(p.x, p.y, 'g.')
-            plt.text(p.x, p.y, [(tt[0].content,tt[1]["Type"],tt[2]) for tt in t], fontsize=10)
+            plt.text(p.x, p.y, [tt[0].content for tt in t], fontsize=10)
         for d_t in dimensions:
             p=d_t[1]
             d=d_t[0]
@@ -2266,6 +2704,11 @@ def outputLines(segmentation_config,segments,point_map,polys,cornor_holes,star_p
                 else:
                     x=p_minus(p_add(d.defpoints[1],l0),p_mul(l0,d10/d00))
                 d1,d2,d3,d4=d.defpoints[0], x,d.defpoints[1],d.defpoints[2]
+
+                # for i,p in enumerate([d1,d2,d3,d4]):
+                #     if p!=DPoint(0,0):
+                #         plt.text(p.x, p.y, str(i+1),color="#EE0000", fontsize=15)
+                #         plt.plot(p.x, p.y, 'b.')
                 ss=[DSegment(d1,d4),DSegment(d4,d3),DSegment(d3,d2)]
                 sss=[DSegment(d2,d1)]
                 ss=expandFixedLength(ss,25,True,False,True)
@@ -2314,33 +2757,72 @@ def outputLines(segmentation_config,segments,point_map,polys,cornor_holes,star_p
                 ab=p_minus(b,a)
                 rotation_angle = np.arctan2(ab.y, -ab.x) * (180 / np.pi)
                 plt.text(q.x, q.y, d.text,rotation=rotation_angle,color="#EEC933", fontsize=15)
-            elif d.dimtype==34:
-                a,b_,b,o=d.defpoints[0],d.defpoints[1],d.defpoints[2],d.defpoints[3]
-                r=DSegment(d.defpoints[4],o).length()
-                ra=DSegment(a,o).length()
-                rb=DSegment(b,o).length()
-                oa_=p_mul(p_minus(a,o),r/ra)
-                ob_=p_mul(p_minus(b,o),r/rb)
-                ao_=p_mul(oa_,-1)
-                bo_=p_mul(ob_,-1)
-                a_= p_add(o, oa_)
-                b_ = p_add(o, ob_)
-                ia_=p_add(o,ao_)
-                ib_=p_add(o,bo_)
-                delta=p_mul(DPoint(oa_.y,-oa_.x),3)
-                sp=p_add(delta,a_)
-                plt.arrow(ia_.x, ia_.y, a_.x-ia_.x,a_.y-ia_.y, head_width=20, head_length=20, fc='red', ec='red')
-                plt.arrow(ib_.x, ib_.y, b_.x-ib_.x,b_.y-ib_.y, head_width=20, head_length=20, fc='red', ec='red')
-                plt.plot([sp.x,a_.x], [sp.y,a_.y], color="#FF0000", lw=2,linestyle='--')
-                q=p_mul(p_add(a_,sp),0.5)
-                rotation_angle = np.arctan2(delta.y, -delta.x) * (180 / np.pi)
-                plt.text(q.x, q.y, d.text,rotation=rotation_angle,color="#EEC933", fontsize=15)
+            elif d.dimtype==34 or d.dimtype==162:
+                
+                s1=DSegment(d.defpoints[3],d.defpoints[0])
+                s2=DSegment(d.defpoints[2],d.defpoints[1])
+                
+                inter=segment_intersection_line(s1.start_point,s1.end_point,s2.start_point,s2.end_point)
+                pos=d.defpoints[4]
+                r=DSegment(pos,inter).length()
+                v1=DPoint((s1.end_point.x-s1.start_point.x)/s1.length()*(r+5),(s1.end_point.y-s1.start_point.y)/s1.length()*(r+5))
+                v2=DPoint((s2.end_point.x-s2.start_point.x)/s2.length()*(r+5),(s2.end_point.y-s2.start_point.y)/s2.length()*(r+5))
+                d1=DPoint(v1.x+inter.x,v1.y+inter.y)
+                d2=DPoint(-v1.x+inter.x,-v1.y+inter.y)
+                d3=DPoint(v2.x+inter.x,v2.y+inter.y)
+                d4=DPoint(-v2.x+inter.x,-v2.y+inter.y)
+                p1=None
+                p2=None
+                if DSegment(pos,d1).length()<DSegment(pos,d2).length():
+                    p1=d1
+                else:
+                    p1=d2
+                if DSegment(pos,d3).length()<DSegment(pos,d4).length():
+                    p2=d3
+                else:
+                    p2=d4
+
+                
+                # if d.dimtype==34:
+                #     for i,p in enumerate([d1,d2,d3,d4]):
+                #         if p!=DPoint(0,0):
+                #             plt.text(p.x, p.y, str(i+1),color="#EE0000", fontsize=15)
+                #             plt.plot(p.x, p.y, 'b.')
+                ss1=DSegment(inter,p1)
+                ss2=DSegment(inter,p2)
+
+                plt.arrow(ss1.start_point.x, ss1.start_point.y, ss1.end_point.x-ss1.start_point.x,ss1.end_point.y-ss1.start_point.y, head_width=20, head_length=20, fc='red', ec='red')
+                plt.arrow(ss2.start_point.x, ss2.start_point.y, ss2.end_point.x-ss2.start_point.x,ss2.end_point.y-ss2.start_point.y, head_width=20, head_length=20, fc='red', ec='red')
+                plt.text(pos.x, pos.y, d.text,rotation=rotation_angle,color="#EEC933", fontsize=15)
+                plt.plot(inter.x,inter.y,'g.')
+                plt.plot([p1.x,p2.x], [p1.y,p2.y], color="#FF0000", lw=2,linestyle='--')
+                # a,b_,b,o=d.defpoints[0],d.defpoints[1],d.defpoints[2],d.defpoints[3]
+                # r=DSegment(d.defpoints[4],o).length()
+                # ra=DSegment(a,o).length()
+                # rb=DSegment(b,o).length()
+                # oa_=p_mul(p_minus(a,o),r/ra)
+                # ob_=p_mul(p_minus(b,o),r/rb)
+                # ao_=p_mul(oa_,-1)
+                # bo_=p_mul(ob_,-1)
+                # a_= p_add(o, oa_)
+                # b_ = p_add(o, ob_)
+                # ia_=p_add(o,ao_)
+                # ib_=p_add(o,bo_)
+                # delta=p_mul(DPoint(oa_.y,-oa_.x),3)
+                # sp=p_add(delta,a_)
+                # plt.arrow(ia_.x, ia_.y, a_.x-ia_.x,a_.y-ia_.y, head_width=20, head_length=20, fc='red', ec='red')
+                # plt.arrow(ib_.x, ib_.y, b_.x-ib_.x,b_.y-ib_.y, head_width=20, head_length=20, fc='red', ec='red')
+                # plt.plot([sp.x,a_.x], [sp.y,a_.y], color="#FF0000", lw=2,linestyle='--')
+                # q=p_mul(p_add(a_,sp),0.5)
+                # rotation_angle = np.arctan2(delta.y, -delta.x) * (180 / np.pi)
+                # plt.text(q.x, q.y, d.text,rotation=rotation_angle,color="#EEC933", fontsize=15)
         #plt.plot(p.x, p.y, marker='o', markerfacecolor="#E38C35",markersize=10)
         
     # for cornor_hole in cornor_holes:
     #     print(cornor_hole.segments)
     plt.gca().axis('equal')
     plt.savefig(linePNGPath)
+    plt.close('all')
     print(f"直线图保存于:{linePNGPath}")
 
 def outputPolysAndGeometry(point_map,polys,path,draw_polys=False,draw_geometry=False,n=10):
@@ -2454,10 +2936,10 @@ def process_text_map(text_map,removed_segments,segmentation_config):
 
 
                        
-            if p not in new_text_map:
+            if p not in new_text_map and d_min is not None:
                 new_text_map[p]=[]
                 new_text_map[p].append([t,result,"top",d_min])
-            else:
+            elif d_min is not None:
                 new_text_map[p].append([t,result,"top",d_min])
 
     for p,texts in text_pos_map2.items():
@@ -2499,10 +2981,10 @@ def process_text_map(text_map,removed_segments,segmentation_config):
                         else:
                             if d_min>d:
                                 d_min=d
-            if p not in new_text_map:
+            if p not in new_text_map and d_min is not None:
                 new_text_map[p]=[]
                 new_text_map[p].append([t,result,"bottom",-d_min])
-            else:
+            elif d_min is not None:
                 new_text_map[p].append([t,result,"bottom",-d_min])
     for p,texts in text_pos_map3.items():
         for t in texts:
@@ -2568,21 +3050,189 @@ def process_text_map(text_map,removed_segments,segmentation_config):
         new_text_map[p].extend(text_wo_d)
 
     return new_text_map
+
+def get_segment_blocks(segment: DSegment, rect, M, N):
+    """
+    计算给定线段在矩形框划分的 MxN 网格中占据的块。
+    
+    参数:
+        segment: DSegment 实例，线段。
+        rect: (rect_x_min, rect_x_max, rect_y_min, rect_y_max)，矩形框范围。
+        M: 列数（块的宽方向划分）。
+        N: 行数（块的高方向划分）。
+    
+    返回:
+        set: 占据的块索引集合，形式为 (row, col)。
+    """
+    rect_x_min, rect_x_max, rect_y_min, rect_y_max = rect
+    cell_width = (rect_x_max - rect_x_min) / M
+    cell_height = (rect_y_max - rect_y_min) / N
+
+    # 获取线段的起点和终点
+    x0, y0 = segment.start_point.x, segment.start_point.y
+    x1, y1 = segment.end_point.x, segment.end_point.y
+
+    # 计算步长比例
+    dx = abs(x1 - x0)
+    dy = abs(y1 - y0)
+
+    # 按网格调整步长
+    sx = cell_width if x0 < x1 else -cell_width
+    sy = cell_height if y0 < y1 else -cell_height
+    sx=sx/4
+    sy=sy/4
+    # 初始化误差项（考虑网格尺寸）
+    err = dx / cell_width - dy / cell_height
+
+    # 存储占据的块索引
+    grids = set()
+    final_col_index = int((x1 - rect_x_min) / cell_width)
+    final_row_index = int((y1 - rect_y_min) / cell_height)
+    while True:
+        # 计算当前点所属的块索引
+        col_index = int((x0 - rect_x_min) / cell_width)
+        row_index = int((y0 - rect_y_min) / cell_height)
+
+        # 确保索引在范围内
+        if 0 <= col_index < M and 0 <= row_index < N:
+            # print(x0,y0,x1,y1,dx,dy)
+            # print((x0-rect_x_min)/cell_width,(y0-rect_y_min)/cell_height)
+            # print(col_index,row_index,final_col_index,final_row_index)
+            grids.add((row_index, col_index))
+        else:
+            #assert(1==2)
+            grids.add((final_row_index, final_col_index))
+            break
+        # 终止条件
+        
+        if col_index == final_col_index and row_index == final_row_index:
+            break
+        if col_index==final_col_index:
+            if row_index==final_row_index+1 or row_index==final_row_index-1:
+                grids.add((row_index, col_index))
+                grids.add((final_row_index, final_col_index))
+                break
+        if row_index == final_row_index:
+            if col_index==final_col_index+1 or col_index==final_col_index-1:
+                grids.add((row_index, col_index))
+                grids.add((final_row_index, final_col_index))
+                break
+        # 更新误差项和当前点
+        e2 = 2 * err
+        if e2 > -dy / cell_height:
+            err -= dy / cell_height
+            x0 += sx
+        if e2 < dx / cell_width:
+            err += dx / cell_width
+            y0 += sy
+
+    return grids
+
+
+def segments_in_blocks(segments,segmentation_config):
+    rect_x_min, rect_x_max, rect_y_min, rect_y_max=float("inf"),float("-inf"),float("inf"),float("-inf")
+    M,N=segmentation_config.M,segmentation_config.N
+    for s in segments:
+        vs,ve=s.start_point,s.end_point
+        rect_x_min=min(vs.x,ve.x,rect_x_min)
+        rect_x_max=max(vs.x,ve.x,rect_x_max)
+        rect_y_min=min(vs.y,ve.y,rect_y_min)
+        rect_y_max=max(vs.y,ve.y,rect_y_max)
+    rect_x_min-=segmentation_config.x_padding
+    rect_x_max+=segmentation_config.x_padding
+    rect_y_min-=segmentation_config.y_padding
+    rect_y_max+=segmentation_config.y_padding
+    rect=(rect_x_min, rect_x_max, rect_y_min, rect_y_max)
+    #print(rect)
+    grid=[]
+    for i in range(M):
+        row=[]
+        for j in range(N):
+            col=[]
+            row.append(col)
+        grid.append(row)
+    pbar=tqdm(total=len(segments),desc="test")
+    for s in segments:
+        pbar.update()
+        block_idxs=get_segment_blocks(s,rect,M,N)
+        for idx in block_idxs:
+            i,j=idx
+            grid[i][j].append(s)
+    pbar.close()
+    return grid,(rect,M,N)
+
+
+def segments_near_poly(poly,grid,meta):
+    grid_set=set()
+    rect,M,N=meta
+    for s in poly:
+        g_set=get_segment_blocks(s,rect,M,N)
+        for g in g_set:
+            grid_set.add(g)
+    segments=[]
+    for g in grid_set:
+        i,j=g
+        segments.extend(grid[i][j])
+    return segments,list(grid_set)
+
+def visualize_grid_and_segment(segments, poly,rect, M, N, blocks):
+    """
+    Visualizes the grid and highlights the segment and occupied blocks.
+
+    Parameters:
+        segment: The DSegment instance to visualize.
+        rect: Tuple defining the rectangular area (x_min, x_max, y_min, y_max).
+        M: Number of columns in the grid.
+        N: Number of rows in the grid.
+        blocks: The set of occupied blocks as (row, col) indices.
+    """
+    rect_x_min, rect_x_max, rect_y_min, rect_y_max = rect
+    cell_width = (rect_x_max - rect_x_min) / M
+    cell_height = (rect_y_max - rect_y_min) / N
+
+    # Create the grid
+    fig, ax = plt.subplots(figsize=(10, 10))
+    for i in range(M + 1):
+        x = rect_x_min + i * cell_width
+        ax.plot([x, x], [rect_y_min, rect_y_max], color='black', linestyle='--', linewidth=0.5)
+    for j in range(N + 1):
+        y = rect_y_min + j * cell_height
+        ax.plot([rect_x_min, rect_x_max], [y, y], color='black', linestyle='--', linewidth=0.5)
+
+    # Highlight the occupied blocks
+    for row, col in blocks:
+        x = rect_x_min + col * cell_width
+        y = rect_y_min + row * cell_height
+        ax.add_patch(plt.Rectangle((x, y), cell_width, cell_height, color='blue', alpha=0.3))
+
+    # Plot the segment
+    for segment in segments:
+        x0, y0 = segment.start_point.x, segment.start_point.y
+        x1, y1 = segment.end_point.x, segment.end_point.y
+        ax.plot([x0, x1], [y0, y1], color='green', linewidth=2)
+    for segment in poly:
+        x0, y0 = segment.start_point.x, segment.start_point.y
+        x1, y1 = segment.end_point.x, segment.end_point.y
+        ax.plot([x0, x1], [y0, y1], color='red', linewidth=2)
+    # Set axis limits and labels
+    ax.set_xlim(rect_x_min, rect_x_max)
+    ax.set_ylim(rect_y_min, rect_y_max)
+    ax.set_aspect('equal')
+    ax.set_title("Grid and Segment Visualization")
+    ax.legend()
+    plt.show()
 def findClosedPolys_via_BFS(elements,texts,dimensions,segments,segmentation_config):
     verbose=segmentation_config.verbose
     # Step 1: 计算交点
     # if verbose:
     #     print("计算交点")
-    if segmentation_config.check:
-        pass 
-    else:
-        isecDic = find_all_intersections(segments,segmentation_config.intersection_epsilon)
+    isecDic = find_all_intersections(segments,segmentation_config,segmentation_config.intersection_epsilon)
 
     # Step 2: 根据交点分割线段
     # if verbose:
     #     print("根据交点分割线段")
-    new_segments, edge_map,point_map= split_segments(segments, isecDic,segmentation_config.segment_filter_length)
-    filtered_segments, filtered_edge_map,filtered_point_map= filter_segments(segments,isecDic,point_map,segmentation_config.segment_filter_length,segmentation_config.segment_filter_iters,segmentation_config.segment_remove_interval)
+    new_segments, edge_map,point_map= split_segments(segments,segmentation_config, isecDic,segmentation_config.segment_filter_length)
+    filtered_segments, filtered_edge_map,filtered_point_map= filter_segments(segments,segmentation_config,isecDic,point_map,segmentation_config.segment_filter_length,segmentation_config.segment_filter_iters,segmentation_config.segment_remove_interval)
     
     
     
@@ -2605,14 +3255,11 @@ def findClosedPolys_via_BFS(elements,texts,dimensions,segments,segmentation_conf
     text_map["bottom"]=(text_set2,text_pos_map2)
     text_map["other"]=(text_set3,text_pos_map3)
     text_map=process_text_map(text_map,removed_segments,segmentation_config)
-    if segmentation_config.check:
-        pass 
-    else:
-        isecDic = find_all_intersections(initial_segments,segmentation_config.intersection_epsilon)
-    new_segments, edge_map,point_map= split_segments(initial_segments, isecDic,segmentation_config.segment_filter_length)
+    isecDic = find_all_intersections(initial_segments,segmentation_config,segmentation_config.intersection_epsilon)
+    new_segments, edge_map,point_map= split_segments(initial_segments,segmentation_config, isecDic,segmentation_config.segment_filter_length)
     #filter lines
 
-    filtered_segments, filtered_edge_map,filtered_point_map= filter_segments(initial_segments,isecDic,point_map,segmentation_config.segment_filter_length,segmentation_config.segment_filter_iters,segmentation_config.segment_remove_interval)
+    filtered_segments, filtered_edge_map,filtered_point_map= filter_segments(initial_segments,segmentation_config,isecDic,point_map,segmentation_config.segment_filter_length,segmentation_config.segment_filter_iters,segmentation_config.segment_remove_interval)
     braket_start_lines=findBraketByHints(filtered_segments,text_map)
     # polys=[]
     # outputLines(new_segments,point_map,polys,segmentation_config.line_image_path,segmentation_config.draw_intersections,segmentation_config.draw_segments,segmentation_config.line_image_drawPolys)
@@ -2669,73 +3316,156 @@ def findClosedPolys_via_BFS(elements,texts,dimensions,segments,segmentation_conf
             replines_set.add(DSegment(rep.end_point,rep.start_point))
     # Step 4: 对每个 repline，使用 BFS 查找路径
     # 多线程加速部分
-    if verbose:
-        pbar = tqdm(total=len(replines), desc="查找闭合路径")
+    # if verbose:
+    #     pbar = tqdm(total=len(replines), desc="查找闭合路径")
 
-    # 使用 ThreadPoolExecutor
-    closed_polys = []
-    multi_thread_start_time = time.time()
-    errors=[]
-    if verbose:
-        print(min(32, os.cpu_count())if segmentation_config.max_workers <=0 else segmentation_config.max_workers)
-    with ProcessPoolExecutor(max_workers=min(32, os.cpu_count()  )if segmentation_config.max_workers <=0 else segmentation_config.max_workers) as executor:
-        # 提交任务到线程池
-        future_to_repline = {executor.submit(process_repline, repline, graph, segmentation_config): repline for repline in replines}
+    # # 使用 ThreadPoolExecutor
+    # closed_polys = []
+    # multi_thread_start_time = time.time()
+    # errors=[]
+    # if verbose:
+    #     print(min(32, os.cpu_count())if segmentation_config.max_workers <=0 else segmentation_config.max_workers)
+    # with ProcessPoolExecutor(max_workers=min(32, os.cpu_count()  )if segmentation_config.max_workers <=0 else segmentation_config.max_workers) as executor:
+    #     # 提交任务到线程池
+    #     future_to_repline = {executor.submit(process_repline, repline, graph, segmentation_config): repline for repline in replines}
         
-        for future in as_completed(future_to_repline):
-            repline = future_to_repline[future]
-            try:
-                # 获取结果，设置超时时间
-                paths = future.result()
-                closed_polys.extend(paths)
-                # print(f"任务 {repline} 完成")
-            except Exception as exc:
-                errors.append(f"处理 {repline} 时发生错误: {exc}")
-            if verbose:
-                pbar.update()
+    #     for future in as_completed(future_to_repline):
+    #         repline = future_to_repline[future]
+    #         try:
+    #             # 获取结果，设置超时时间
+    #             paths = future.result()
+    #             closed_polys.extend(paths)
+    #             # print(f"任务 {repline} 完成")
+    #         except Exception as exc:
+    #             errors.append(f"处理 {repline} 时发生错误: {exc}")
+    #         if verbose:
+    #             pbar.update()
     
-    # print("============")
+    # # print("============")
     
-    # print("=========")
-    # closed_polys=[]
-    # for repline in replines:
-    #     paths=bfs_paths(graph,repline.start_point,repline.end_point,segmentation_config.path_max_length,timeout=1000)
-    #     closed_polys.extend(paths)
-    #     pbar.update()
-    if verbose:
-        pbar.close()
-        print(errors)
-    multi_thread_end_time = time.time()
-    if verbose:
-        print(f"回路探测执行部分耗时: {multi_thread_end_time - multi_thread_start_time:.2f} 秒")
-        print("查找完毕")
+    # # print("=========")
+    # # closed_polys=[]
+    # # for repline in replines:
+    # #     paths=bfs_paths(graph,repline.start_point,repline.end_point,segmentation_config.path_max_length,timeout=1000)
+    # #     closed_polys.extend(paths)
+    # #     pbar.update()
+    # if verbose:
+    #     pbar.close()
+    #     print(errors)
+    # multi_thread_end_time = time.time()
+    # if verbose:
+    #     print(f"回路探测执行部分耗时: {multi_thread_end_time - multi_thread_start_time:.2f} 秒")
+    #     print("查找完毕")
     # for closed_poly in closed_polys:
     #     print(closed_poly)
     #HIDDENs
-    if segmentation_config.dfs_optional:
-        sampled_lines=[]
-        for s in filtered_segments:
-            sampled_lines.append(DSegment(s.start_point,s.end_point,s.ref))
-            sampled_lines.append(DSegment(s.end_point,s.start_point,s.ref))
+    # if segmentation_config.dfs_optional:
+    #     sampled_lines=[]
+    #     for s in filtered_segments:
+    #         sampled_lines.append(DSegment(s.start_point,s.end_point,s.ref))
+    #         sampled_lines.append(DSegment(s.end_point,s.start_point,s.ref))
+    #     visited_edges=set()
+    #     if verbose:
+    #         pbar=tqdm(desc="sampled_lines",total=len(sampled_lines))
+    #     for sampled_line in sampled_lines:
+    #         if verbose:
+    #             pbar.update()
+    #         visited_edges.add((sampled_line[0],sampled_line[1]))
+    #         path=process_repline_with_repline_dfs(visited_edges,sampled_line,graph,segmentation_config)
+    #         if(len(path)>=segmentation_config.path_min_length):
+    #             closed_polys.append(path)
+    #     if verbose:
+    #         pbar.close()
+
+    closed_polys=[]
+    sampled_lines=[]
+    # repline_has_visited=set()
+    for s in replines:
+        sampled_lines.append(DSegment(s.start_point,s.end_point,s.ref))
+        sampled_lines.append(DSegment(s.end_point,s.start_point,s.ref))
+    
+    if verbose:
+        pbar=tqdm(desc="sampled_lines(all the cornor holes)",total=len(sampled_lines))
+    for sampled_line in sampled_lines:
+        if verbose:
+            pbar.update()
         visited_edges=set()
+        visited_edges.add((sampled_line[0],sampled_line[1]))
+        path=process_repline_with_repline_dfs(visited_edges,sampled_line,graph,segmentation_config)
+        if(len(path)>=segmentation_config.path_min_length):
+            closed_polys.append(path)
+            # repline_has_visited.add(sampled_line)
+            # repline_has_visited.add(DSegment(sampled_line.end_point,sampled_line.start_point))
+    if verbose:
+        pbar.close()
+    sampled_lines=[]
+    for s in filtered_segments:
+        sampled_lines.append(DSegment(s.start_point,s.end_point,s.ref))
+        sampled_lines.append(DSegment(s.end_point,s.start_point,s.ref))
+    
+    if verbose:
+        pbar=tqdm(desc="sampled_lines(all the segments)",total=len(sampled_lines))
+    for sampled_line in sampled_lines:
         if verbose:
-            pbar=tqdm(desc="sampled_lines",total=len(sampled_lines))
-        for sampled_line in sampled_lines:
-            if verbose:
-                pbar.update()
-            visited_edges.add((sampled_line[0],sampled_line[1]))
-            path=process_repline_with_repline_dfs(visited_edges,sampled_line,graph,segmentation_config)
-            if(len(path)>=segmentation_config.path_min_length):
-                closed_polys.append(path)
-        if verbose:
-            pbar.close()
+            pbar.update()
+        visited_edges=set()
+        visited_edges.add((sampled_line[0],sampled_line[1]))
+        path=process_repline_with_repline_dfs(visited_edges,sampled_line,graph,segmentation_config)
+        if(len(path)>=segmentation_config.path_min_length):
+            closed_polys.append(path)
+    if verbose:
+        pbar.close()
+    
+    # repline_unvisited=[]
+    # for s in replines:
+    #     if s not in repline_has_visited:
+    #         repline_unvisited.append(s)
+
+    # if verbose:
+    #     pbar = tqdm(total=len(replines), desc="查找闭合路径")
+
+    # multi_thread_start_time = time.time()
+    # errors=[]
+    # with ProcessPoolExecutor(max_workers=4 ) as executor:
+    #     # 提交任务到线程池
+    #     future_to_repline = {executor.submit(process_repline, repline, graph, segmentation_config): repline for repline in repline_unvisited}
+        
+    #     for future in as_completed(future_to_repline):
+    #         repline = future_to_repline[future]
+    #         try:
+    #             # 获取结果，设置超时时间
+    #             paths = future.result()
+    #             closed_polys.extend(paths)
+    #             # print(f"任务 {repline} 完成")
+    #         except Exception as exc:
+    #             errors.append(f"处理 {repline} 时发生错误: {exc}")
+    #         if verbose:
+    #             pbar.update()
+    
+    # # print("============")
+    
+    # # print("=========")
+    # # closed_polys=[]
+    # # for repline in replines:
+    # #     paths=bfs_paths(graph,repline.start_point,repline.end_point,segmentation_config.path_max_length,timeout=1000)
+    # #     closed_polys.extend(paths)
+    # #     pbar.update()
+    # if verbose:
+    #     pbar.close()
+    #     print(errors)
+    # multi_thread_end_time = time.time()
+    # if verbose:
+    #     print(f"回路探测执行部分耗时: {multi_thread_end_time - multi_thread_start_time:.2f} 秒")
+    #     print("查找完毕")
+
+    
     #poly simplify
     print(len(closed_polys))
 
     # 根据边框对多边形进行过滤
     #polys = filterPolys(polys,t=3000,d=5)
     if segmentation_config.bracket_layer is None:
-        polys = filterPolys(closed_polys,segmentation_config.path_max_length,segmentation_config.path_min_length,segmentation_config.bbox_min_area,segmentation_config.bbox_max_area,segmentation_config.bbox_ratio)
+        polys = filterPolys(closed_polys,segmentation_config.dfs_path_max_length,segmentation_config.dfs_path_min_length,segmentation_config.bbox_min_area,segmentation_config.bbox_max_area,segmentation_config.bbox_ratio)
     print(len(polys))
     # 剔除重复路径
     polys = remove_duplicate_polygons(polys,segmentation_config.eps,segmentation_config.min_samples)
@@ -2747,8 +3477,8 @@ def findClosedPolys_via_BFS(elements,texts,dimensions,segments,segmentation_conf
     if verbose:
         print(f"封闭多边形个数:{len(polys)}")
     #outputPolysAndGeometry(filtered_point_map,polys,segmentation_config.poly_image_dir,segmentation_config.draw_polys,segmentation_config.draw_geometry,segmentation_config.draw_poly_nums)
-    if segmentation_config.draw_line_image:
-        outputLines(segmentation_config,filtered_segments,filtered_point_map,polys,cornor_holes,star_pos ,texts,text_map,dimensions,replines,segmentation_config.line_image_path,segmentation_config.draw_intersections,segmentation_config.draw_segments,segmentation_config.line_image_drawPolys,)
+    if segmentation_config.draw_line_image and segmentation_config.mode=="dev":
+        outputLines(segmentation_config,filtered_segments,filtered_point_map,closed_polys,cornor_holes,star_pos ,texts,text_map,dimensions,replines,segmentation_config.line_image_path,segmentation_config.draw_intersections,segmentation_config.draw_segments,segmentation_config.line_image_drawPolys,)
     
     return polys, new_segments, point_map,star_pos_map,cornor_holes,text_map
 
@@ -2805,7 +3535,7 @@ def processDimensions(dimensions):
             #转角标注& 对齐标注
             dim_pos=DPoint((d.defpoints[1].x+d.defpoints[2].x)/2,(d.defpoints[1].y+d.defpoints[2].y)/2)
             ds.append([d,dim_pos]) 
-        elif type==37 or type==34:
+        elif type==37 or type==34 or type==162:
             #三点角度标注
             dim_pos=DPoint(d.defpoints[3].x,d.defpoints[3].y)
             ds.append([d,dim_pos]) 
@@ -2817,3 +3547,5 @@ def processDimensions(dimensions):
             dim_pos=DPoint((d.defpoints[0].x+d.defpoints[3].x)/2,(d.defpoints[0].y+d.defpoints[3].y)/2)
             ds.append([d,dim_pos]) 
     return ds
+
+

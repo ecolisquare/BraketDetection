@@ -13,21 +13,32 @@ from draw_dxf import *
 
 if __name__ == '__main__':
     segmentation_config=SegmentationConfig()
-
+    verbose=segmentation_config.verbose
     json_path = input("请输入路径: ")
     segmentation_config.json_path = json_path
     if segmentation_config.verbose:
         print("读取json文件")
     #文件中线段元素的读取和根据颜色过滤
     elements,segments,ori_segments,stiffeners=readJson(json_path,segmentation_config)
-    #将线进行适当扩张
-    
+   
+    ori_block=build_initial_block(ori_segments,segmentation_config)
+    # grid,meta=segments_in_blocks(ori_segments,segmentation_config)
+    # for row in grid:
+    #     rows=[]
+    #     for col in row:
+    #         rows.append(len(col))
+    #     print(rows)
+
+
     texts ,dimensions=findAllTextsAndDimensions(elements)
+    
     ori_dimensions=dimensions
     dimensions=processDimensions(dimensions)
     texts=processTexts(texts)
     if segmentation_config.verbose:
         print("json文件读取完毕")
+    
+
     #找出所有包含角隅孔圆弧的基本环
     polys, new_segments, point_map,star_pos_map,cornor_holes,text_map=findClosedPolys_via_BFS(elements,texts,dimensions,segments,segmentation_config)
 
@@ -43,19 +54,30 @@ if __name__ == '__main__':
     classi_res = []
     pbar=tqdm(total=len(polys),desc="正在输出结构化信息")
     for i, poly in enumerate(polys):
+        # try:
+        #     res = outputPolyInfo(poly, ori_segments, segmentation_config, point_map, i, star_pos_map, cornor_holes,texts,dimensions,text_pos_map)
+        # except Exception as e:
+        #     res=None
+
+        #     print(e)
+        # segments_nearby,blocks=segments_near_poly(poly,grid,meta)
+        # visualize_grid_and_segment(segments_nearby, poly,meta[0],meta[1],meta[2], blocks)
+        # print(len(segments_nearby))
         try:
-            res = outputPolyInfo(poly, ori_segments, segmentation_config, point_map, i, star_pos_map, cornor_holes,texts,dimensions,text_map,stiffeners)
+            segments_nearby=ori_block.segments_near_poly(poly)
+            res = outputPolyInfo(poly, segments_nearby, segmentation_config, point_map, i, star_pos_map, cornor_holes,texts,dimensions,text_map,stiffeners)
         except Exception as e:
-            res=None
+            res = None
             print(e)
         pbar.update()
         if res is not None:
+            # print(res)
             polys_info.append(res[0])
             classi_res.append(res[1])
     pbar.close()
     print("结构化信息输出完毕，保存于:", segmentation_config.poly_info_dir)
-
-    outputRes(new_segments, point_map, polys_info, segmentation_config.res_image_path,segmentation_config.draw_intersections,segmentation_config.draw_segments,segmentation_config.line_image_drawPolys)
+    if segmentation_config.mode=="dev":
+        outputRes(ori_segments, point_map, polys_info, segmentation_config.res_image_path,segmentation_config.draw_intersections,segmentation_config.draw_segments,segmentation_config.line_image_drawPolys)
 
     #将检测到的肘板标注在原本的dxf文件中
     bboxs = []

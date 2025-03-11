@@ -7,6 +7,10 @@ class SegmentationConfig:
         self.bracket_layer=None
         self.json_path=""
         
+        #grid setting
+      
+
+
         self.line_expand_length=14.5
         self.arc_expand_length=8
         self.line_image_path="./output/line.png"
@@ -31,7 +35,7 @@ class SegmentationConfig:
         #包围盒
         self.bbox_min_area=5000
         self.bbox_max_area=1000*15000
-        self.bbox_ratio=10
+        self.bbox_ratio=12
 
 
         self.remove_tolerance=1e-5
@@ -45,8 +49,8 @@ class SegmentationConfig:
         self.poly_info_dir = "./output"
         self.res_image_path = "./output/res.png"
 
-        self.max_workers=-1
-        self.timeout=5
+        self.max_workers=4
+        self.timeout=2
 
         self.type_path = "./type.json"
 
@@ -58,7 +62,7 @@ class SegmentationConfig:
         self.path_max_length = 30
         self.path_min_length = 3
 
-        self.dfs_path_max_length=40
+        self.dfs_path_max_length=100
         self.dfs_path_min_length=3
         #compute cornor_hole
         self.repline_neighbor_min_length=14
@@ -68,7 +72,7 @@ class SegmentationConfig:
         #is_repline
         self.arc_repline_min_length=20
         self.arc_repline_max_length=200
-        self.line_repline_min_length=13
+        self.line_repline_min_length=12
         self.line_repline_max_length=70
 
         #filter cornor_hole
@@ -92,13 +96,14 @@ class SegmentationConfig:
 
         self.parallel_max_distance_relax=60
         self.parallel_min_distance_relax=5
-        self.contraint_factor=0.96
+        self.contraint_factor=0.98
         self.free_edge_min_length=130
-
+        self.constraint_min_length=52
+        self.toe_length=26
         #bracket bounding box
-        self.bracket_bbox_expand_length=50
+        self.bracket_bbox_expand_length=250
         self.bracket_bbox_expand_ratio=0.25
-        self.bracket_bbox_expand_is_ratio=True
+        self.bracket_bbox_expand_is_ratio=False
 
 
         #is_parallel_tolerance
@@ -107,8 +112,8 @@ class SegmentationConfig:
         #固定边平行判断
         self.is_parallel_tolerance=0.15
         #readJson
-        self.line_type=["BYLAYER", "Continuous","Bylayer","CONTINUOUS","ByBlock","BYBLOCK"]
-        self.color=[3, 7, 8, 4,2,140,254,1,5]
+        self.line_type=["BYLAYER","CONTINUOUS","BYBLOCK"]
+        self.color=[6]
         self.constraint_color=[1,3]
         self.element_type=["line","arc","lwpolyline","polyline","spline"]
 
@@ -116,12 +121,12 @@ class SegmentationConfig:
         # self.remove_layername=["Stiffener_Invisible","Stiffener_Visible","Plate_Invisible","Plate_Visible"]
         self.remove_linetype=[]
 
-        self.remove_layername=["分段总段划分"]
+        self.remove_layername=["分段总段划分","braket","split","holes","肘板标注"]
         self.remove_layername.extend(self.stiffener_name)
         #check is bracket
         #偏离凸多边形的程度
         self.near_convex_tolerance=0.05
-        self.near_rectangle_tolerance = 0.05
+        self.near_rectangle_tolerance = 0.01
         #自由边角度下限
         self.min_angle_in_free_edge=45
         #自由边占比
@@ -130,4 +135,11 @@ class SegmentationConfig:
         #约束边分割角度
         self.constraint_split_angle=30
 
-        self.contraint_edge_min_length=50
+        #加速结构
+        self.min_cell_length=500
+        self.min_segments_num=50
+        self.M=2
+        self.N=2
+        self.x_padding=100
+        self.y_padding=100
+        

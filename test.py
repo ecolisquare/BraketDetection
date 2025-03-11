@@ -87,6 +87,7 @@ def process_json_data(json_path, output_path, training_data_output_folder, train
         print("读取json文件")
     #文件中线段元素的读取和根据颜色过滤
     elements,segments,ori_segments,stiffeners=readJson(json_path,segmentation_config)
+    ori_block=build_initial_block(ori_segments,segmentation_config)
     #将线进行适当扩张
     
     texts ,dimensions=findAllTextsAndDimensions(elements)
@@ -105,20 +106,23 @@ def process_json_data(json_path, output_path, training_data_output_folder, train
     #结构化输出每个肘板信息
     polys_info = []
     classi_res = []
+    idxs=[]
     print("正在输出结构化信息...")
     for i, poly in enumerate(ppolys):
         try:
-            res = outputPolyInfo(poly, ori_segments, segmentation_config, point_map, i, star_pos_map, cornor_holes,texts,dimensions,text_map,stiffeners)
+            segments_nearby=ori_block.segments_near_poly(poly)
+            res = outputPolyInfo(poly, segments_nearby, segmentation_config, point_map, i, star_pos_map, cornor_holes,texts,dimensions,text_map,stiffeners)
         except Exception as e:
             res=None
             print(e)
         if res is not None:
             polys_info.append(res[0])
             classi_res.append(res[1])
+            idxs.append(i)
 
     print("结构化信息输出完毕，保存于:", segmentation_config.poly_info_dir)
-
-    outputRes(new_segments, point_map, polys_info, segmentation_config.res_image_path,segmentation_config.draw_intersections,segmentation_config.draw_segments,segmentation_config.line_image_drawPolys)
+    if segmentation_config.mode=="dev":
+        outputRes(ori_segments, point_map, polys_info, segmentation_config.res_image_path,segmentation_config.draw_intersections,segmentation_config.draw_segments,segmentation_config.line_image_drawPolys)
 
     #将检测到的肘板标注在原本的dxf文件中
     bboxs = []
@@ -143,11 +147,11 @@ def process_json_data(json_path, output_path, training_data_output_folder, train
     
     dxf_path = os.path.splitext(segmentation_config.json_path)[0] + '.dxf'
     dxf_output_folder = segmentation_config.dxf_output_folder
-    draw_rectangle_in_dxf(dxf_path, dxf_output_folder, bboxs, classi_res)
+    draw_rectangle_in_dxf(dxf_path, dxf_output_folder, bboxs, classi_res,idxs)
 
 
 if __name__ == '__main__':
-    folder_path = "../jndata"
+    folder_path = "./data/split"
     output_folder = "./output"
     training_data_output_folder = "./DGCNN/data_folder"
     training_img_output_folder = "./training_img"

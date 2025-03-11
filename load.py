@@ -876,6 +876,7 @@ def isEntityHidden(entity):
     
     # 检查图层状态
     is_layer_off = layer.is_off()
+    is_layer_frozen = layer.is_frozen()
     # is_layer_frozen = layer.is_frozen_in_layout(model_space)
 
     # # 检查实体自身的可见性
@@ -883,7 +884,7 @@ def isEntityHidden(entity):
     # is_entity_ltype_invisible = entity.dxf.linetype == "None"
     is_entity_invisible = entity.dxf.invisible
     # 结论
-    return is_layer_off  or is_entity_invisible  
+    return is_layer_off  or is_entity_invisible or is_layer_frozen 
 
 
 # 此函数内部与converBlocks内部有些不同，例如convertBlock还要处理Solid,ATTDEF，故暂且用到convertBlock中
@@ -976,11 +977,11 @@ def dxf2json(dxfpath,dxfname,output_folder):
 
 if __name__ == "__main__":
     
-    dxfpath = '/home/user10/code/BraketDetection/data/split'
-    dxfname = 'all.dxf'
+    dxfpath = './data'
+    dxfname = 'Drawing_high_ratio.dxf'
     dxf2json(dxfpath,dxfname, dxfpath)
-    # folder_path = '/home/user10/code/BraketDetection/data/board_example'
-    # output_foler='/home/user10/code/BraketDetection/data/board_example'
+    # folder_path = './data/dimension_data'
+    # output_foler='./data/dimension_data'
     # for filename in os.listdir(folder_path):
     #     # 检查文件是否是JSON文件
     #     if filename.endswith('.dxf'):
