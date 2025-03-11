@@ -7,6 +7,7 @@ from scipy.spatial import ConvexHull
 import matplotlib.pyplot as plt
 from shapely.geometry import Point, Polygon
 from bracket_parameter_extraction import parse_elbow_plate
+import json
 def is_point_in_polygon(point, polygon_edges):
     
     polygon_points = set()  # Concave polygon example
@@ -1533,10 +1534,11 @@ def outputPolyInfo(poly, segments, segmentation_config, point_map, index,star_po
     free_order=True
     # cons_order=True
     if output_template is not None:
+        pass
         #根据输出模板整理轮廓信息
-        free_edges_seq=output_template["free_edges"]
-        # non_free_edges_seq=output_template["non_free_edges"]
-        free_order=compara_free_order(free_edges[0],free_edges_seq)
+        # free_edges_seq=output_template["free_edges"]
+        # # non_free_edges_seq=output_template["non_free_edges"]
+        # free_order=compara_free_order(free_edges[0],free_edges_seq)
         # cons_order=compara_cons_order(edges,non_free_edges_seq)
         
     # step7: 输出几何中心和边界信息
@@ -1713,9 +1715,31 @@ def outputPolyInfo(poly, segments, segmentation_config, point_map, index,star_po
 
     log_to_file(file_path, f"肘板类别为{classification_res}")
     if classification_res == "Unclassified":
-        log_to_file("./output/Unclassified.txt", f"{os.path.splitext(os.path.basename(segmentation_config.json_path))[0]}_infopoly{index}")
+        # log_to_file("./output/Unclassified.txt", f"{os.path.splitext(os.path.basename(segmentation_config.json_path))[0]}_infopoly{index}")
         return poly_refs, classification_res
-    else:
-        if len(classification_res.split(","))>1:
-            log_to_file("./output/duplicate_class.txt",f"{os.path.splitext(os.path.basename(segmentation_config.json_path))[0]}_infopoly{index}")
+    # else:
+    #     if len(classification_res.split(","))>1:
+    #         log_to_file("./output/duplicate_class.txt",f"{os.path.splitext(os.path.basename(segmentation_config.json_path))[0]}_infopoly{index}")
+    
+    
+    with open("./standard_type.json", 'r',encoding='UTF-8') as f:
+        standard_classification_table = json.load(f)  # Load the JSON file
+    standard_types=[]
+    for name,value in standard_classification_table.items():
+        standard_types.append(name)
+    
+    matched_standard_types = []
+    matched_other_types=[]
+    for t in classification_res.split(','):
+        if t.strip()=="":
+            continue
+        if t in standard_types:
+            matched_standard_types.append(t)
+        else:
+            matched_other_types.append(t)
+    if len(matched_standard_types)>1:
+        log_to_file("./output/duplicate_standard_class.txt",f"{os.path.splitext(os.path.basename(segmentation_config.json_path))[0]}_infopoly{index}   {str(matched_standard_types)}")
+    if len(matched_standard_types)>=1 and len(matched_other_types)>=1:
+        log_to_file("./output/duplicate_class.txt",f"{os.path.splitext(os.path.basename(segmentation_config.json_path))[0]}_infopoly{index}   {str(matched_standard_types+matched_other_types)}")
+    
     return poly_refs, classification_res

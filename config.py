@@ -126,7 +126,7 @@ class SegmentationConfig:
         #check is bracket
         #偏离凸多边形的程度
         self.near_convex_tolerance=0.05
-        self.near_rectangle_tolerance = 0.01
+        self.near_rectangle_tolerance = 0.0002
         #自由边角度下限
         self.min_angle_in_free_edge=45
         #自由边占比
