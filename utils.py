@@ -2093,7 +2093,7 @@ def process_intersections(chunck,segments,point_map,segmentation_config):
                         s=seg2
         if s is not None:
             text_pos=seg1.start_point
-            if (text_pos.y-y_max)<=segmentation_config.reference_text_max_distance and s.ref.color==7 and (len(point_map[s.start_point])==1 or len(point_map[s.end_point])==1):
+            if (text_pos.y-y_max)<=segmentation_config.reference_text_max_distance  and (len(point_map[s.start_point])==1 or len(point_map[s.end_point])==1):
                 horizontal_line.append(s)
                 h1e.append(v1e[i])
     pbar.close()
@@ -2125,7 +2125,7 @@ def process_intersections2(chunck,segments,point_map,segmentation_config):
                         s=seg2
         if s is not None:
             text_pos=seg1.start_point
-            if (y_min-text_pos.y)<=segmentation_config.reference_text_max_distance and s.ref.color==7 and (len(point_map[s.start_point])==1 or len(point_map[s.end_point])==1):
+            if (y_min-text_pos.y)<=segmentation_config.reference_text_max_distance  and (len(point_map[s.start_point])==1 or len(point_map[s.end_point])==1):
                 hl2.append(s)
                 h2e.append(v2e[i])
     pbar.close()
