@@ -161,7 +161,7 @@ def combine_the_same_line(poly,segmentation_config):
 
             s1,s2=poly[i],poly[j]
             #print(i,j,point_segment_position(s1.start_point,s2,anno=False),point_segment_position(s1.end_point,s2,anno=False))
-            if point_segment_position(s1.start_point,s2,epsilon=0.25,anno=False)!="not_on_line" and point_segment_position(s1.end_point,s2,epsilon=0.25,anno=False)!="not_on_line":
+            if point_segment_position(s1.start_point,s2,epsilon=0.2,anno=False)!="not_on_line" and point_segment_position(s1.end_point,s2,epsilon=0.2,anno=False)!="not_on_line":
                 # print(i,j)
                 if j==i+1:
                     if s1.end_point ==s2.start_point:
@@ -198,56 +198,56 @@ def combine_the_same_line(poly,segmentation_config):
                             new_poly.append(poly[k])
                         return new_poly,True
                 
-                if s1.length()<150 or s2.length()<150:
-                    continue
-                if point_segment_position(s1.start_point,s2,epsilon=0.1,anno=False)=="not_on_line" or point_segment_position(s1.end_point,s2,epsilon=0.1,anno=False)=="not_on_line":
-                    continue
-                inner_l,outer_l=0,0
-                for k in range(i+1,j):
-                    inner_l+=poly[k].length()
-                for k in range(i):
-                    outer_l+=poly[k].length()
-                for k in range(j+1,n):
-                    outer_l+=poly[k].length()
-                if inner_l<outer_l:
-                    #remove inner
-                    prev,next=poly[(i-1+n)%n],poly[(j+1)%n]
-                    if prev.end_point == s1.start_point:
-                        ref=calculate_combined_ref([s1,s2],segmentation_config)
-                        new_segment=DSegment(s1.start_point,s2.end_point,ref)
-                        for k in range(i):
-                            new_poly.append(poly[k])
-                        new_poly.append(new_segment)
-                        for k in range(j+1,n):
-                            new_poly.append(poly[k])
-                        return new_poly,True
-                    else:
-                        #prev.start_point==s1.end_point
-                        ref=calculate_combined_ref([s1,s2],segmentation_config)
-                        new_segment=DSegment(s2.start_point,s1.end_point,ref)
-                        for k in range(i):
-                            new_poly.append(poly[k])
-                        new_poly.append(new_segment)
-                        for k in range(j+1,n):
-                            new_poly.append(poly[k])
-                        return new_poly,True
-                else:
-                    #remove outer
-                    prev,next=poly[(i-1+n)%n],poly[(j+1)%n]
-                    if prev.end_point == s1.start_point:
-                        ref=calculate_combined_ref([s1,s2],segmentation_config)
-                        new_segment=DSegment(s2.start_point,s1.end_point,ref)
-                        for k in range(i+1,j):
-                            new_poly.append(poly[k])
-                        new_poly.append(new_segment)
-                        return new_poly,True
-                    else:
-                        ref=calculate_combined_ref([s1,s2],segmentation_config)
-                        new_segment=DSegment(s1.start_point,s2.end_point,ref)
-                        for k in range(i+1,j):
-                            new_poly.append(poly[k])
-                        new_poly.append(new_segment)
-                        return new_poly,True
+                # if s1.length()<150 or s2.length()<150:
+                #     continue
+                # if point_segment_position(s1.start_point,s2,epsilon=0.1,anno=False)=="not_on_line" or point_segment_position(s1.end_point,s2,epsilon=0.1,anno=False)=="not_on_line":
+                #     continue
+                # inner_l,outer_l=0,0
+                # for k in range(i+1,j):
+                #     inner_l+=poly[k].length()
+                # for k in range(i):
+                #     outer_l+=poly[k].length()
+                # for k in range(j+1,n):
+                #     outer_l+=poly[k].length()
+                # if inner_l<outer_l:
+                #     #remove inner
+                #     prev,next=poly[(i-1+n)%n],poly[(j+1)%n]
+                #     if prev.end_point == s1.start_point:
+                #         ref=calculate_combined_ref([s1,s2],segmentation_config)
+                #         new_segment=DSegment(s1.start_point,s2.end_point,ref)
+                #         for k in range(i):
+                #             new_poly.append(poly[k])
+                #         new_poly.append(new_segment)
+                #         for k in range(j+1,n):
+                #             new_poly.append(poly[k])
+                #         return new_poly,True
+                #     else:
+                #         #prev.start_point==s1.end_point
+                #         ref=calculate_combined_ref([s1,s2],segmentation_config)
+                #         new_segment=DSegment(s2.start_point,s1.end_point,ref)
+                #         for k in range(i):
+                #             new_poly.append(poly[k])
+                #         new_poly.append(new_segment)
+                #         for k in range(j+1,n):
+                #             new_poly.append(poly[k])
+                #         return new_poly,True
+                # else:
+                #     #remove outer
+                #     prev,next=poly[(i-1+n)%n],poly[(j+1)%n]
+                #     if prev.end_point == s1.start_point:
+                #         ref=calculate_combined_ref([s1,s2],segmentation_config)
+                #         new_segment=DSegment(s2.start_point,s1.end_point,ref)
+                #         for k in range(i+1,j):
+                #             new_poly.append(poly[k])
+                #         new_poly.append(new_segment)
+                #         return new_poly,True
+                #     else:
+                #         ref=calculate_combined_ref([s1,s2],segmentation_config)
+                #         new_segment=DSegment(s1.start_point,s2.end_point,ref)
+                #         for k in range(i+1,j):
+                #             new_poly.append(poly[k])
+                #         new_poly.append(new_segment)
+                #         return new_poly,True
     return poly,False
 def calculate_poly_refs(poly,segmentation_config):
     new_poly=poly
@@ -641,7 +641,7 @@ def match_a_anno(a_anno,free_edges):
             if target not in a_map:
                 a_map[target]=[]
             a_map[target].append((p1,p2,inter,d))
-            if l<52:
+            if l<56:
                 toe_angle_anno.append(d)
             else:
                 angle_anno.append(d)

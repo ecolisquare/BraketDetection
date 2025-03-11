@@ -73,7 +73,7 @@ class SegmentationConfig:
         self.arc_repline_min_length=20
         self.arc_repline_max_length=200
         self.line_repline_min_length=12
-        self.line_repline_max_length=70
+        self.line_repline_max_length=80
 
         #filter cornor_hole
         self.cornor_hole_total_length=10

@@ -449,7 +449,7 @@ def process_lwpoline(vs,vs_type,color,handle,meta,isClosed,hasArc,line_type):
             else:
                 new_vs.append([start_point.x,start_point.y])
                 new_vs.append([end_point.x,end_point.y])
-            if r>1000:
+            if r>1500:
                 # line=DLine(start_point,end_point,color,handle,meta)
                 # elements.append(line)
                 # segments.append(DSegment(line.start_point,line.end_point,line))
@@ -792,21 +792,22 @@ def process_block(T_is_contained,block_datas,blockName,scales,rotation,insert,bl
                 ele_linetype=block_linetype.upper()
             if ele.get("layerName") is not None and ele["layerName"] in layname:
                 if ele["layerName"] in segmentation_config.stiffener_name:
-                    e=DLine(simplified_ps[0],simplified_ps[-1],ele_linetype,ele["color"],ele["handle"],meta=block_meta_data)
-                    # l=len(simplified_ps)
-                    # for i in range(l - 1):
-                    # if simplified_ps[i].y>-48500 or simplified_ps[i+1].y>-48500:
-                    stiffeners.append(DSegment(simplified_ps[0], simplified_ps[-1], e))
+                    l = len(simplified_ps)
+                    for i in range(l - 1):
+                        # if simplified_ps[i].y>-48500 or simplified_ps[i+1].y>-48500:
+                        e=DLine(simplified_ps[i], simplified_ps[i + 1],ele_linetype,ele["color"],ele["handle"],meta=block_meta_data)
+                        stiffeners.append(DSegment(simplified_ps[i], simplified_ps[i + 1], e))
+                    
                 if ele["layerName"] in segmentation_config.remove_layername:
                     continue
             if ele["color"]  in color:
                 continue
-            e=DLine(simplified_ps[0],simplified_ps[-1],ele_linetype,ele["color"],ele["handle"],meta=block_meta_data)
-            elements.append(e)
-            # l = len(simplified_ps)
-            # for i in range(l - 1):
+            l = len(simplified_ps)
+            for i in range(l - 1):
                 # if simplified_ps[i].y>-48500 or simplified_ps[i+1].y>-48500:
-            segments.append(DSegment(simplified_ps[0], simplified_ps[-1], e))
+                e=DLine(simplified_ps[i], simplified_ps[i + 1],ele_linetype,ele["color"],ele["handle"],meta=block_meta_data)
+                segments.append(DSegment(simplified_ps[i], simplified_ps[i + 1], e))
+                elements.append(e)
         elif ele["type"]=="lwpolyline" :
                 # 颜色过滤
             # if ele["color"] not in color:
@@ -1027,17 +1028,19 @@ def readJson(path,segmentation_config):
         elements,segments,arc_splits,ori_segments,stiffeners=process_block(False,block_datas,"TOP",[1.0,1.0],0,[0,0],"CONTINUOUS",[],None,data_list[0],segmentation_config)
         new_segments=[]
         new_arc_splits=[]
-
+        new_ori_segments=[]
         for s in segments:
             if s.ref.linetype in segmentation_config.line_type:
                 new_segments.append(s)
         for s in arc_splits:
             if s.ref.linetype in segmentation_config.line_type:
                 new_arc_splits.append(s)
-        
+        for s in ori_segments:
+            if s.ref.linetype in segmentation_config.line_type:
+                new_ori_segments.append(s)
         segments=new_segments
         arc_splits=new_arc_splits
-        
+        ori_segments=new_ori_segments
         segments=expandFixedLength(segments,segmentation_config.line_expand_length)
         arc_splits=expandFixedLength(arc_splits,segmentation_config.arc_expand_length)
            
