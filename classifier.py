@@ -858,6 +858,8 @@ def refine_poly_classifier(classification_table, mixed_types, edges_sequence, re
         if current_max_similarity > max_similarity:
             max_similarity = current_max_similarity
             matched_type = type
+        elif current_max_similarity == max_similarity:
+            matched_type = type if matched_type is None else f"{matched_type},{type}"
 
     return matched_type
 
