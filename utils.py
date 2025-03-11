@@ -2573,7 +2573,10 @@ def findClosedPolys_via_BFS(elements,texts,dimensions,segments,segmentation_conf
     # Step 1: 计算交点
     # if verbose:
     #     print("计算交点")
-    isecDic = find_all_intersections(segments,segmentation_config.intersection_epsilon)
+    if segmentation_config.check:
+        pass 
+    else:
+        isecDic = find_all_intersections(segments,segmentation_config.intersection_epsilon)
 
     # Step 2: 根据交点分割线段
     # if verbose:
@@ -2602,7 +2605,10 @@ def findClosedPolys_via_BFS(elements,texts,dimensions,segments,segmentation_conf
     text_map["bottom"]=(text_set2,text_pos_map2)
     text_map["other"]=(text_set3,text_pos_map3)
     text_map=process_text_map(text_map,removed_segments,segmentation_config)
-    isecDic = find_all_intersections(initial_segments,segmentation_config.intersection_epsilon)
+    if segmentation_config.check:
+        pass 
+    else:
+        isecDic = find_all_intersections(initial_segments,segmentation_config.intersection_epsilon)
     new_segments, edge_map,point_map= split_segments(initial_segments, isecDic,segmentation_config.segment_filter_length)
     #filter lines
 

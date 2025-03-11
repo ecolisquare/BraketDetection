@@ -1,5 +1,6 @@
 class SegmentationConfig:
     def __init__(self):
+        self.check=False
         self.verbose=True
         # self.mode="dev"
         self.mode="pro"
@@ -14,7 +15,7 @@ class SegmentationConfig:
         self.draw_segments=True
         self.line_image_drawPolys=True
         self.draw_line_image = True
-        self.draw_texts=True
+        self.draw_texts=False
 
         self.draw_poly_nums=1000
         self.poly_image_dir="./output"
@@ -128,3 +129,5 @@ class SegmentationConfig:
         
         #约束边分割角度
         self.constraint_split_angle=30
+
+        self.contraint_edge_min_length=50

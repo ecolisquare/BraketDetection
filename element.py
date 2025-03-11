@@ -101,7 +101,7 @@ class DElement:
         sine=math.sin(rr)
 
         # x,y=(p[0]*scales[0]+100)/200,(p[1]*scales[1]+100)/200
-        x,y=((cosine*p[0]-sine*p[1])*scales[0])+insert[0],((sine*p[0]+cosine*p[1])*scales[1])+insert[1]
+        x,y=(cosine*p[0]*scales[0]-sine*p[1]*scales[1])+insert[0],(sine*p[0]*scales[0]+cosine*p[1]*scales[1])+insert[1]
         return DPoint(x,y)
     def transform_point(self,point,meta):
         return self.coordinatesmap(point,meta.insert,meta.scales,meta.rotation)
@@ -248,8 +248,8 @@ class DArc(DElement):
         # self.end_point=DPoint(self.center[0]+self.radius*c2,self.center[1]+self.radius*s2)
         self.start_point=self.transform_point(self.start_point,self.meta)
         self.end_point=self.transform_point(self.end_point,self.meta)
-        self.start_angle=math.atan2(self.start_point.y-self.center.y,self.start_point.x-self.center.x)
-        self.end_angle=math.atan2(self.end_point.y-self.center.y,self.end_point.x-self.center.x)
+        self.start_angle= math.degrees(math.atan2(self.start_point.y-self.center.y,self.start_point.x-self.center.x))
+        self.end_angle= math.degrees(math.atan2(self.end_point.y-self.center.y,self.end_point.x-self.center.x))
   
 
 class DText(DElement):  

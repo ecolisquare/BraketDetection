@@ -10,8 +10,9 @@ if __name__ == "__main__":
         # ("FB150X10", "bottom", True), ("FL200", "bottom", False),
         # (" FB150X12 ~ DH ", "bottom", False),
         # ("   AC ", "bottom", False)
-        ("20.0X185.5", "top", False),("$~ F123", "bottom", False),("100.8X20.6 &~ AH", "bottom", True),("  100.0456 ", "other", False),
-        ("8.0X100.0X150.2","top",False),("8.0X150.0 ~& DH","bottom",False),("8.0X150.0 ~& DH","bottom",True),(" $&%~~ F1180","bottom",False),
+        # ("20.0X185.5", "top", False),("$~ F123", "bottom", False),("100.8X20.6 &~ AH", "bottom", True),("  100.0456 ", "other", False),
+        # ("8.0X100.0X150.2","top",False),("8.0X150.0 ~& DH","bottom",False),("8.0X150.0 ~& DH","bottom",True),(" $&%~~ F1180","bottom",False),
+        (" F180","bottom",False)
     ]
     for label, position, is_fb_flag in labels:
         result = parse_elbow_plate(label, annotation_position=position, is_fb=is_fb_flag)
