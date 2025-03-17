@@ -815,10 +815,11 @@ def match_edge_anno(constraint_edges,free_edges,edges,all_anno,all_map):
 
     all_edge_map={}
 
-    for  edge in cons_edge:
+    for  edge in cons_edges:
         all_edge_map[edge]={}
         all_edge_map[edge]["边长标注"]=[]
         all_edge_map[edge]["垂直标注"]=[]
+
     #TODO
     # cons_maps=(l_whole_map,l_ver_map,l_ver_single_map)
     # cons_annos=(whole_anno,vertical_anno)
@@ -850,6 +851,7 @@ def match_edge_anno(constraint_edges,free_edges,edges,all_anno,all_map):
             all_edge_map[edge]["与自由边长度控制"]=[]
     
     for edge in corner_hole_start_edge:
+        all_edge_map[edge]={}
         all_edge_map[edge]["短边尺寸标注"]=[]
         all_edge_map[edge]["半径尺寸标注"]=[]
         all_edge_map[edge]["短边是否平行于相邻边"]=False
@@ -874,7 +876,7 @@ def match_edge_anno(constraint_edges,free_edges,edges,all_anno,all_map):
     #         point_segment_position(p1,,epsilon=0.2,anno=False)!="not_on_line"
             
         
-    return all_edge_map
+    return all_edge_map,edge_type
 def is_vu(edge):
     if len(edge)!=2:
         return False
@@ -1647,7 +1649,7 @@ def outputPolyInfo(poly, segments, segmentation_config, point_map, index,star_po
     all_map=(r_map,l_whole_map,l_half_map,l_cornor_map,l_para_map,l_para_single_map,l_n_para_map,l_n_para_single_map,l_ver_map,l_ver_single_map,d_map,a_map)
 
 
-    all_edge_map=match_edge_anno(constraint_edges,free_edges,edges,all_anno,all_map)
+    all_edge_map,edge_types=match_edge_anno(constraint_edges,free_edges,edges,all_anno,all_map)
 
     # for s,lts in half_map.items():
     #     print(s, lts)
@@ -1777,88 +1779,74 @@ def outputPolyInfo(poly, segments, segmentation_config, point_map, index,star_po
                             anno_des=f"{anno_des},{anno[1]}"
                         des=f"{des};{ty}:{anno_des}"
                     log_to_file(file_path, f"           标注:{des}")
-        # for seg in edge:
-        #     if isinstance(seg.ref, DArc):
-        #         # actual_radius= seg.ref.radius if seg not in r_map else r_map[seg].content.lstrip("R")
-        #         log_to_file(file_path, f"       起点：{seg.ref.start_point}、终点：{seg.ref.end_point}、圆心：{seg.ref.center}、半径：{seg.ref.radius}（圆弧）、句柄: {seg.ref.handle}")
-        #     else:
-                
-        #         log_to_file(file_path, f"       起点：{seg.start_point}、终点{seg.end_point}（直线）、句柄: {seg.ref.handle}")
-                # if seg in l_whole_map:
-                #     log_to_file(file_path,f"        边全长标注信息:"+"\n            "+tidy_anno_output(l_whole_map[seg]))
-                # if seg in l_half_map:   
-                #     log_to_file(file_path,f"        边半长标注信息:"+"\n            "+tidy_anno_output(l_half_map[seg]))
-                # if seg in l_cornor_map:
-                #     log_to_file(file_path,f"        边角孔标注信息:"+"\n            "+tidy_anno_output(l_cornor_map[seg]))
-                # if seg in l_para_single_map:
-                #     log_to_file(file_path,f"        边平行标注信息:"+"\n            "+tidy_anno_output2(l_para_single_map[seg]))
-                # if seg in l_n_para_single_map:
-                #     log_to_file(file_path,f"        边非平行标注信息:"+"\n            "+tidy_anno_output2(l_n_para_single_map[seg]))
-                # if seg in l_ver_single_map:
-                #     log_to_file(file_path,f"        边垂直标注信息:"+"\n            "+tidy_anno_output2(l_ver_single_map[seg]))
-    # for i, edge in enumerate(constraint_edges):
-    #     log_to_file(file_path, f"边界颜色{i + 1}: {edge[0].ref.color}")
-    #     log_to_file(file_path, f"边界轮廓{i + 1}: ")
-    #     for seg in edge:
-    #         if isinstance(seg.ref, DArc):
-    #             actual_radius= seg.ref.radius if seg not in r_map else r_map[seg].content.lstrip("R")
-    #             log_to_file(file_path, f"起点：{seg.ref.start_point}、终点：{seg.ref.end_point}、圆心：{seg.ref.center}、半径：{seg.ref.radius}[实际半径:{actual_radius}]（圆弧）、句柄: {seg.ref.handle}")
-    #         else:
-                
-    #             log_to_file(file_path, f"起点：{seg.start_point}、终点{seg.end_point}（直线）、句柄: {seg.ref.handle}")
-    #             if seg in l_whole_map:
-    #                 log_to_file(file_path,f"边全长标注信息:"+tidy_anno_output(l_whole_map[seg]))
-    #             if seg in l_half_map:
-    #                 log_to_file(file_path,f"边半长标注信息:"+tidy_anno_output(l_half_map[seg]))
-    #             if seg in l_cornor_map:
-    #                 log_to_file(file_path,f"边角孔标注信息:"+tidy_anno_output(l_cornor_map[seg]))
-    #             if seg in l_para_single_map:
-    #                 log_to_file(file_path,f"边平行标注信息:"+tidy_anno_output2(l_para_single_map[seg]))
-    #             if seg in l_n_para_single_map:
-    #                 log_to_file(file_path,f"边非平行标注信息:"+tidy_anno_output2(l_n_para_single_map[seg]))
-    #             if seg in l_ver_single_map:
-    #                 log_to_file(file_path,f"边垂直标注信息:"+tidy_anno_output2(l_ver_single_map[seg]))
+
     # step8: 输出自由边信息
     log_to_file(file_path, "自由边轮廓：")
     free_idx=0
     for seg in free_edges[0]:
         log_to_file(file_path, f"   自由边{free_idx+1}")
+        log_to_file(file_path, f"        类型：{edge_types[seg]}")
+
+            # for edge in fr_edges:
+        # all_edge_map[edge]={}
+        # if edge_type[edge]=="line":
+        #     all_edge_map[edge]["边长标注"]=[]
+        #     all_edge_map[edge]["延长线与约束边交点标注"]=[]
+        #     all_edge_map[edge]["与趾端夹角标注"]=[]
+        #     all_edge_map[edge]["与约束边及其平行线夹角标注"]=[]
+        #     all_edge_map[edge]["与约束边垂直标注"]=[]
+        #     all_edge_map[edge]["是否与约束边平行"]=False
+        #     all_edge_map[edge]["平行标注"]=[]
+        # elif edge_type[edge]=="arc":
+        #     all_edge_map[edge]["是否相切"]=False
+        #     all_edge_map[edge]["半径标注"]=[]
+        # elif edge_type[edge]=="toe":
+        #     all_edge_map[edge]["边长标注"]=[]
+        # elif edge_type[edge]=="KS_corner":
+        #     all_edge_map[edge]["与自由边夹角控制"]=[]
+        #     all_edge_map[edge]["与自由边长度控制"]=[]
         free_idx+=1
-        if isinstance(seg.ref, DArc):
-            actual_radius= seg.ref.radius if seg not in r_map else r_map[seg].content.lstrip("R")
-            log_to_file(file_path, f"       起点：{seg.ref.start_point}、终点：{seg.ref.end_point}、圆心：{seg.ref.center}、半径：{seg.ref.radius}[实际半径:{actual_radius}]（圆弧）、句柄: {seg.ref.handle}")
-        else:
+        if edge_types[seg]=="arc":
+            log_to_file(file_path, f"       起点：{seg.ref.start_point}、终点：{seg.ref.end_point}、圆心：{seg.ref.center}、半径：{seg.ref.radius}（圆弧）、句柄: {seg.ref.handle}")
+            anno_des=""
+            for anno in all_edge_map[seg]["半径标注"]:
+                anno_des=f"{anno_des},{anno[1]}"
+            des=f"是否相切:{all_edge_map[seg]["是否相切"]} 半径标注:{anno_des}"
+           
+            log_to_file(file_path, f"           标注:{des}")        
+        elif edge_types[seg]=="line":
             
             log_to_file(file_path, f"       起点：{seg.start_point}、终点{seg.end_point}、长度：{seg.length()}（直线）、句柄: {seg.ref.handle}")
-            if seg in d_map:
-                log_to_file(file_path,f"        D标注信息:"+"\n            "+tidy_anno_output(d_map[seg]))
-            if seg in l_para_single_map:
-                log_to_file(file_path,f"        边平行标注信息:"+"\n            "+tidy_anno_output2(l_para_single_map[seg]))
-            if seg in l_n_para_single_map:
-                log_to_file(file_path,f"        边非平行标注信息:"+"\n            "+tidy_anno_output2(l_n_para_single_map[seg]))
-            if seg in a_map:
-                log_to_file(file_path,f"        边角度标注信息:"+"\n            "+tidy_anno_output3(a_map[seg]))
-            
+            des=f"是否与约束边平行:{all_edge_map[seg]["是否与约束边平行"]}"
+            for ty,annos in all_edge_map[seg].items():
+                if ty=="是否与约束边平行":
+                    continue
+                anno_des=""
+                for anno in annos:
+                    anno_des=f"{anno_des},{anno[1]}"
+                des=f"{des};{ty}:{anno_des}"
+            log_to_file(file_path, f"           标注:{des}")
+        elif edge_types[seg]=="toe":  
+            log_to_file(file_path, f"       起点：{seg.start_point}、终点{seg.end_point}、长度：{seg.length()}（直线）、句柄: {seg.ref.handle}")
+            des=f""
+            for ty,annos in all_edge_map[seg].items():
+                anno_des=""
+                for anno in annos:
+                    anno_des=f"{anno_des},{anno[1]}"
+                des=f"{des};{ty}:{anno_des}"
+            log_to_file(file_path, f"           标注:{des}")
+        elif edge_types[seg]=="KS_corner":
+            log_to_file(file_path, f"       起点：{seg.start_point}、终点{seg.end_point}、长度：{seg.length()}（直线）、句柄: {seg.ref.handle}")
+            des=f""
+            for ty,annos in all_edge_map[seg].items():
+                anno_des=""
+                for anno in annos:
+                    anno_des=f"{anno_des},{anno[1]}"
+                des=f"{des};{ty}:{anno_des}"
+            log_to_file(file_path, f"           标注:{des}")   
+    
 
-    # step9: 输出角隅孔信息
-    # cornerhole_index = 1
-    # for edge in edges:
-    #     # 圆弧角隅孔和直线角隅孔
-    #     if edge[0].isCornerhole:
-    #         log_to_file(file_path, f"角隅孔{cornerhole_index}轮廓：")
-    #         for seg in edge:
-    #             if isinstance(seg.ref, DArc):
-    #                 actual_radius= seg.ref.radius if seg not in r_map else r_map[seg].content.lstrip("R")
-    #                 log_to_file(file_path, f"起点：{seg.ref.start_point}、终点：{seg.ref.end_point}、圆心：{seg.ref.center}、半径：{seg.ref.radius}[实际半径:{actual_radius}]（圆弧）、句柄: {seg.ref.handle}")
-    #             else:
-                    
-    #                 log_to_file(file_path, f"起点：{seg.start_point}、终点{seg.end_point}、长度：{seg.length()}（直线）、句柄: {seg.ref.handle}")
-    #         cornerhole_index += 1
-    #     # 星形角隅孔
-    #     if seg.StarCornerhole is not None:
-    #         log_to_file(file_path, f"角隅孔{cornerhole_index}轮廓：")
-    #         log_to_file(file_path, f"坐标：{seg.StarCornerhole}（星形角隅孔）")
-    #         cornerhole_index += 1
+   
     #输出加强信息
     s_info="没有加强提示"
     has_fb_text=0
@@ -1885,48 +1873,6 @@ def outputPolyInfo(poly, segments, segmentation_config, point_map, index,star_po
     
 
     log_to_file(file_path, f"肘板加强类别为:{s_info}")
-    # step10:输出周围标注信息
-    k=0
-    log_to_file(file_path, f"标注信息")
-    for i,t_t in enumerate(tis):
-        t=t_t[0]
-        pos=t_t[1]
-        content=t.content
-        if t_t[2]["Type"] in ["B","FB","BK","FL"] and not point_is_inside(pos,polygon):
-            continue
-        if t_t[2]["Type"]=="None":
-            continue
-        log_to_file(file_path,f"    标注{i+1}:")
-        log_to_file(file_path,f"        位置: {pos}、内容: {content}、颜色: {t.color}、句柄: {t.handle}")
-        log_to_file(file_path,str(t_t[2]))
-        # log_to_file(file_path,t_t[3])
-        k+=1
-    for i,d_t in enumerate(ds): 
-        d=d_t[0]
-        pos=d_t[1]
-        content=d.text
-        log_to_file(file_path,f"    标注{i+1+k}:")
-        log_to_file(file_path,f"        位置: {pos}、内容: {content}、颜色: {d.color}、类型： {d.dimtype}、句柄: {d.handle}")
-    # log_to_file(file_path,"全长标注:")
-    # for s,l_t in whole_map.items():
-    #     d=l_t[2]
-    #     content=d.text
-    #     log_to_file(file_path,f"起始点:{l_t[0]}、终止点:{l_t[1]}、内容: {content}、颜色: {d.color}、类型： {d.dimtype}、句柄: {d.handle}")
-    # log_to_file(file_path,"半长标注:")
-    # for s,lts in half_map.items():
-    #     for l_t in lts:
-    #         d=l_t[2]
-    #         content=d.text
-    #         log_to_file(file_path,f"起始点:{l_t[0]}、终止点:{l_t[1]}、内容: {content}、颜色: {d.color}、类型： {d.dimtype}、句柄: {d.handle}")
-    log_to_file(file_path,f"    平行标注:")
-    for key,annos in l_para_map.items():
-        log_to_file(file_path,f"        约束边: {key[0].start_point}->{key[0].end_point}  自由边: {key[1].start_point}->{key[1].end_point} {tidy_anno_output2(annos)}")
-    log_to_file(file_path,f"    非平行标注:")
-    for key,annos in l_n_para_map.items():
-        log_to_file(file_path,f"        约束边: {key[0].start_point}->{key[0].end_point}  自由边: {key[1].start_point}->{key[1].end_point} {tidy_anno_output2(annos)}")
-    log_to_file(file_path,f"    垂直标注:")
-    for key,annos in l_ver_map.items():
-        log_to_file(file_path,f"        起始边: {key[0].start_point}->{key[0].end_point}  底边: {key[1].start_point}->{key[1].end_point} {tidy_anno_output2(annos)}")
 
     log_to_file(file_path, f"肘板类别为{classification_res}")
     if classification_res == "Unclassified":
