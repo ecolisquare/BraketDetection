@@ -108,7 +108,7 @@ def get_text_center(text):
     center_y = (y1 + y2) / 2
     return Point(center_x, center_y)
 
-def find_nearest_text(poly, texts, extra_range = 8000):
+def find_nearest_text(poly, texts, standard_bracket_type, extra_range = 8000):
     """
     在包围盒对角线的一半范围内寻找最近的文本框
     """
@@ -127,15 +127,30 @@ def find_nearest_text(poly, texts, extra_range = 8000):
             # if distance < min_distance:
                 # nearest_text = text
                 # min_distance = distance
-            nearest_texts.append(text)
+            if text.content in standard_bracket_table:
+                nearest_texts.append(text)
 
     return nearest_texts
+
+def load_classification_table(file_path):
+    """
+    Load the classification table from a JSON file.
+    """
+    with open(file_path, 'r',encoding='UTF-8') as f:
+        classification_table = json.load(f)  # Load the JSON file
+    return classification_table
 
 if __name__ == '__main__':
     test_dxf_path = "./output/Large8_braket.dxf"
     gt_dxf_path = "./gt/Large8gt.dxf"
     test_bracket_layer = "Braket"
     gt_bracket_layer = "分段总段划分"
+
+    standard_file_path = "./standard_type.json"
+    standard_bracket_table = load_classification_table(standard_file_path)
+    standard_bracket_type = []
+    for key_name, row in standard_bracket_table.items():
+        standard_bracket_type.append(key_name)
 
     # test_dxf_path = input("请输入待评估图纸路径：")
     # test_bracket_layer = input("请输入待评估图纸中肘板标记所在图层名：")
@@ -186,11 +201,11 @@ if __name__ == '__main__':
     # 评估肘板分类正确率
     gt_total_with_labels = 0
     successful_classifications = 0
-    wrong_GT_num = 25
+    wrong_GT_num = 10
     correct_polys = []
     incorrect_polys = []
     for gt_poly in gt_polys:
-        nearest_gt_texts = find_nearest_text(gt_poly, gt_texts)
+        nearest_gt_texts = find_nearest_text(gt_poly, gt_texts, standard_bracket_type)
         # if nearest_gt_text is None:
         #     continue
         if len(nearest_gt_texts)==0:
@@ -201,7 +216,7 @@ if __name__ == '__main__':
         for test_poly in test_polys:
             test_polygon = Polygon(test_poly)
             if test_polygon.intersects(gt_polygon):
-                nearest_test_texts = find_nearest_text(test_poly, test_texts)
+                nearest_test_texts = find_nearest_text(test_poly, test_texts, standard_bracket_type)
                 if len(nearest_test_texts)==0:
                     continue
                 for gt_text in nearest_gt_texts:
