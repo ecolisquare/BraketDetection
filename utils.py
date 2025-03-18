@@ -202,6 +202,8 @@ def nearest_free_edge(point,free_edges):
     free_edge=None
     distance=float('inf')
     for edge in free_edges:
+        if isinstance(edge.ref,DArc):
+            continue
         l1,l2=DSegment(edge.start_point,point).length(),DSegment(edge.end_point,point).length()
         dis=min(l1,l2)
         if distance>dis:
