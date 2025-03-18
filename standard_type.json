@@ -17,7 +17,7 @@
       "type": "constraint",
       "edges": ["line"]
       }],
-    "code": "no_anno",
+    "code": ["no_anno"],
     "default": "True"
   },
   "DAC(VUF-R)":{
@@ -38,7 +38,7 @@
       "type": "constraint",
       "edges": ["line"]
       }],
-    "code": "short_anno",
+    "code": ["short_anno"],
     "default": "False"
   },
   "DPK(R)":{
@@ -59,7 +59,7 @@
       "type": "constraint",
       "edges": ["line"]
       }],
-    "code": "long_anno",
+    "code": ["long_anno"],
     "default": "True"
   },
   "LDPK(R-R)":{
@@ -80,7 +80,7 @@
       "type": "constraint",
       "edges": ["line"]
       }],
-    "code": "short_anno",
+    "code": ["short_anno"],
     "default": "False"
   },
   "LDPK-1(R-R)":{
@@ -101,7 +101,7 @@
       "type": "constraint",
       "edges": ["line"]
       }],
-    "code": "short_anno_para",
+    "code": ["short_anno_para"],
     "default": "False"
   },
   "DPKN(KS-KS)":{
@@ -122,7 +122,7 @@
       "type": "constraint",
       "edges": ["line"]
       }],
-    "code": "long_anno",
+    "code": ["long_anno"],
     "default": "Ture"
   },
   "LDPKN(KS-KS)":{
@@ -143,7 +143,7 @@
       "type": "constraint",
       "edges": ["line"]
       }],
-    "code": "short_anno",
+    "code": ["short_anno"],
     "default": "False"
   }
 }
