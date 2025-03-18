@@ -828,15 +828,23 @@ def match_edge_anno(constraint_edges,free_edges,edges,all_anno,all_map):
 
     #TODO
     for seg, ds in l_whole_map.items():
+        for d_t in ds:
+            p1,p2,d=d_t
+            all_edge_map[seg]["边长标注"].append([d,f"句柄：{d.handle}，值：{d.text}，箭头起点：{p1}，箭头终点：{p2}"])
+    k=0
+    for key, ds in l_ver_map.items():
+        start_edge,base_edge=key
         for d in ds:
-            p1,p2=get_anno_position(d,constraint_edges)
-            all_edge_map[seg]["边长标注"].append([d,f"起始点:{p1}、终止点:{p2}、标注内容:{d.text}、标注句柄:{d.handle}"])
-    
-    for segs, ds in l_ver_map.items():
-        for d in ds:
+            k+=1
             p1, p2 = get_anno_position(d, constraint_edges)
-            all_edge_map[segs[0]]["垂直标注"].append([d,f"起始点:{p1}、终止点:{p2}、标注内容:{d.text}、标注句柄:{d.handle}，垂边"])
-            all_edge_map[segs[1]]["垂直标注"].append([d,f"起始点:{p1}、终止点:{p2}、标注内容:{d.text}、标注句柄:{d.handle}，底边"])
+            all_edge_map[start_edge]["垂直标注"].append([d,f"句柄：{d.handle}，值：{d.text}，参考边：约束边{constraint_edge_no[base_edge]}，箭头起点：{v1}，箭头终点：{v2}，垂边"])
+            all_edge_map[base_edge]["垂直标注"].append([d,f"句柄：{d.handle}，值：{d.text}，参考边：约束边{constraint_edge_no[start_edge]}，箭头起点：{v1}，箭头终点：{v2}，底边"])
+    if k==0:
+        features.add('ff')
+    elif k==1:
+        features.add('tf')
+    else:
+        features.add('tt')
     # cons_maps=(l_whole_map,l_ver_map,l_ver_single_map)
     # cons_annos=(whole_anno,vertical_anno)
     #cons_edges
@@ -1038,6 +1046,20 @@ def match_edge_anno(constraint_edges,free_edges,edges,all_anno,all_map):
 
     return all_edge_map,edge_type,list(features)
 
+def  get_edge_des(edge):
+    des=""
+    for s in edge:
+        if isinstance(s.ref,DArc):
+            des+="arc,"
+        else:
+            des+="line,"
+    return des[:-1]
+def get_free_edge_des(edge,edge_types):
+    des=""
+    for s in edge:
+       
+        des+=edge_types[s]+","
+    return des[:-1]
 def outputPolyInfo(poly, segments, segmentation_config, point_map, index,star_pos_map,cornor_holes,texts,dimensions,text_map,stiffeners):
     # step1: 计算几何中心坐标
     poly_centroid = calculate_poly_centroid(poly)
@@ -1805,7 +1827,7 @@ def outputPolyInfo(poly, segments, segmentation_config, point_map, index,star_po
 
 
     all_edge_map,edge_types,features=match_edge_anno(constraint_edges,free_edges,edges,all_anno,all_map)
-    print(features)
+    # print(features)
     # for s,lts in half_map.items():
     #     print(s, lts)
     # print("===============")
@@ -1849,7 +1871,7 @@ def outputPolyInfo(poly, segments, segmentation_config, point_map, index,star_po
         if edge[0].isCornerhole:
             cornerhole_num+=1
 
-    classification_res,output_template = poly_classifier(all_anno,poly_refs, tis,ds,cornerhole_num, free_edges, edges, 
+    classification_res,output_template = poly_classifier(features,all_anno,poly_refs, tis,ds,cornerhole_num, free_edges, edges, 
                                          segmentation_config.type_path, segmentation_config.standard_type_path, segmentation_config.json_output_path, 
                                          f"{os.path.splitext(os.path.basename(segmentation_config.json_path))[0]}_infopoly{index}",
                                          is_output_json=True)
@@ -1876,11 +1898,11 @@ def outputPolyInfo(poly, segments, segmentation_config, point_map, index,star_po
         if (not edge[0].isConstraint) and (not edge[0].isCornerhole):
             continue
         log_to_file(file_path, f"边界颜色{k}: {edge[0].ref.color}")
-        log_to_file(file_path, f"边界轮廓{k}: ")
+        log_to_file(file_path, f"边界轮廓{k}({get_edge_des(edge)}): ")
         k+=1
         if edge[0].isCornerhole:
             corner_hole_start_edge=edge[0]
-            log_to_file(file_path,f"    角隅孔{cornerhole_idx+1}")
+            log_to_file(file_path,f"    角隅孔{cornerhole_idx+1}({get_edge_des(edge)})")
             cornerhole_idx+=1
             if len(edge)>1 and is_vu(edge):
         #               all_edge_map[edge]["短边尺寸标注"]=[]
@@ -1918,7 +1940,7 @@ def outputPolyInfo(poly, segments, segmentation_config, point_map, index,star_po
                         
                         log_to_file(file_path, f"       起点：{seg.start_point}、终点{seg.end_point}（直线）、句柄: {seg.ref.handle}")
         else:
-            log_to_file(file_path,f"    约束边{constarint_idx+1}")
+            log_to_file(file_path,f"    约束边{constarint_idx+1}({get_edge_des(edge)})")
             constarint_idx+=1
             for seg in edge:
                 if isinstance(seg.ref, DArc):
@@ -1936,7 +1958,7 @@ def outputPolyInfo(poly, segments, segmentation_config, point_map, index,star_po
                     log_to_file(file_path, f"           标注:{des}")
 
     # step8: 输出自由边信息
-    log_to_file(file_path, "自由边轮廓：")
+    log_to_file(file_path, f"自由边轮廓({get_free_edge_des(free_edges[0],edge_types)})：")
     free_idx=0
     for seg in free_edges[0]:
         log_to_file(file_path, f"   自由边{free_idx+1}")
@@ -2038,6 +2060,7 @@ def outputPolyInfo(poly, segments, segmentation_config, point_map, index,star_po
     log_to_file(file_path, f"肘板加强类别为:{s_info}")
 
     log_to_file(file_path, f"肘板类别为{classification_res}")
+    log_to_file(file_path, f"肘板混淆类分类特征为:{str(features)}")
     if classification_res == "Unclassified":
         # log_to_file("./output/Unclassified.txt", f"{os.path.splitext(os.path.basename(segmentation_config.json_path))[0]}_infopoly{index}")
         return poly_refs, classification_res

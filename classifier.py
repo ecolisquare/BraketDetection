@@ -345,7 +345,7 @@ def find_cons_edge(poly_refs,seg):
         if s.start_point==seg.start_point or s.start_point == seg.end_point or s.end_point ==seg.start_point or s.end_point==seg.end_point:
             return s
         
-def poly_classifier(all_anno,poly_refs, texts,dimensions,conerhole_num, poly_free_edges, edges, classification_file_path, standard_classification_file_path, info_json_path, keyname, is_output_json = False):
+def poly_classifier(features,all_anno,poly_refs, texts,dimensions,conerhole_num, poly_free_edges, edges, classification_file_path, standard_classification_file_path, info_json_path, keyname, is_output_json = False):
     classification_table = load_classification_table(classification_file_path)
 
     # Step 1: 获取角隅孔数
@@ -485,19 +485,21 @@ def poly_classifier(all_anno,poly_refs, texts,dimensions,conerhole_num, poly_fre
         standard_bracket_type.append(key_name)
     matched_std_type = []
     matched_ustd_type = []
-    for type_name in matched_type:
+    for type_name in matched_type.split(','):
+        if type_name.strip()=="":
+            continue
         if type_name in standard_bracket_type:
             matched_std_type.append(type_name)
         else:
             matched_ustd_type.append(type_name)
-    
     # 如果没有标准肘板分类，则直接返回首个非标准肘板分类的模板
     if len(matched_std_type) == 0:
-        return "Unclassified", classification_table[matched_ustd_type[0]]
+        if len(matched_ustd_type)!=0:
+            return "Unclassified", classification_table[matched_ustd_type[0]]
+        else:
+            return "Unclassified", None
+
     
-    # 如果有标准肘板分类，则提取肘板特征
-    features = []
-    # TODO：对features进行赋值
 
     # 匹配最佳标准肘板分类，feature必须是该类别的子集，且特征占比最高
     max_feature_num = -1
