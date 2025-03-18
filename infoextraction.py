@@ -827,6 +827,16 @@ def match_edge_anno(constraint_edges,free_edges,edges,all_anno,all_map):
         all_edge_map[edge]["垂直标注"]=[]
 
     #TODO
+    for seg, ds in l_whole_map.items():
+        for d in ds:
+            p1,p2=get_anno_position(d,constraint_edges)
+            all_edge_map[seg]["边长标注"].append([d,f"起始点:{p1}、终止点:{p2}、标注内容:{d.text}、标注句柄:{d.handle}"])
+    
+    for segs, ds in l_ver_map.items():
+        for d in ds:
+            p1, p2 = get_anno_position(d, constraint_edges)
+            all_edge_map[segs[0]]["垂直标注"].append([d,f"起始点:{p1}、终止点:{p2}、标注内容:{d.text}、标注句柄:{d.handle}，垂边"])
+            all_edge_map[segs[1]]["垂直标注"].append([d,f"起始点:{p1}、终止点:{p2}、标注内容:{d.text}、标注句柄:{d.handle}，底边"])
     # cons_maps=(l_whole_map,l_ver_map,l_ver_single_map)
     # cons_annos=(whole_anno,vertical_anno)
     #cons_edges
@@ -1839,8 +1849,8 @@ def outputPolyInfo(poly, segments, segmentation_config, point_map, index,star_po
         if edge[0].isCornerhole:
             cornerhole_num+=1
 
-    classification_res,output_template = poly_classifier(features,all_anno,poly_refs, tis,ds,cornerhole_num, free_edges, edges, 
-                                         segmentation_config.type_path, segmentation_config.json_output_path, 
+    classification_res,output_template = poly_classifier(all_anno,poly_refs, tis,ds,cornerhole_num, free_edges, edges, 
+                                         segmentation_config.type_path, segmentation_config.standard_type_path, segmentation_config.json_output_path, 
                                          f"{os.path.splitext(os.path.basename(segmentation_config.json_path))[0]}_infopoly{index}",
                                          is_output_json=True)
     free_order=True
