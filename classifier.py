@@ -345,7 +345,7 @@ def find_cons_edge(poly_refs,seg):
         if s.start_point==seg.start_point or s.start_point == seg.end_point or s.end_point ==seg.start_point or s.end_point==seg.end_point:
             return s
         
-def poly_classifier(all_anno,poly_refs, texts,dimensions,conerhole_num, poly_free_edges, edges, classification_file_path,info_json_path, keyname, is_output_json = False):
+def poly_classifier(features,all_anno,poly_refs, texts,dimensions,conerhole_num, poly_free_edges, edges, classification_file_path,info_json_path, keyname, is_output_json = False):
     classification_table = load_classification_table(classification_file_path)
 
     # Step 1: 获取角隅孔数
