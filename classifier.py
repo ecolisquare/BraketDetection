@@ -688,6 +688,7 @@ def poly_classifier_v2(features,all_anno,poly_refs, texts,dimensions,conerhole_n
     
     matched_type = free_edges_sequence_classifier(classification_table, free_edges_sequence,reversed_free_edges_sequence, matched_type)
     
+    # 后续增加整体以及混淆匹配
     if len(matched_type.split(","))<=1 and matched_type!="Unclassified":
         return matched_type,classification_table[matched_type]
     elif matched_type=="Unclassified":

@@ -1060,12 +1060,55 @@ def get_free_edge_des(edge,edge_types):
        
         des+=edge_types[s]+","
     return des[:-1]
-def match_template(edges,detected_free_edges,template):
+def get_score(free_edges_types,non_free_edges,non_free_edges_types,free_edge_seq,non_free_edges_seq,non_free_edges_types_seq):
+    new_free_edges_types=[]
+    for t in free_edges_types:
+        if t!="Ks_corner":
+            new_free_edges_types.append(t)
+    new_free_edges_types_seq=[]
+    for t in free_edge_seq:
+        if t!="Ks_corner":
+            new_free_edges_types_seq.append(t)
+    total=0
+    for i in range(len(new_free_edges_types)):
+        if new_free_edges_types[i]== new_free_edges_types_seq[i]:
+            total+=1
+    new_non_free_edges=[]
+    new_non_free_edges_types=[]
+    for i,edge in enumerate(non_free_edges):
+        if non_free_edges_types[i]=="cornerhole" and len(edge)==1 and isinstance(edge[0].ref,DLine):
+            continue
+        new_non_free_edges.append(edge)
+        new_non_free_edges_types.append(non_free_edges_types[i])
+    new_non_free_edges_seq=[]
+    new_non_free_edges_types_seq=[]
+    for i,edge in enumerate(non_free_edges_seq):
+        if non_free_edges_types_seq[i]=="cornerhole" and len(edge)==1 and edge[0]=="line":
+            continue
+        new_non_free_edges_seq.append(edge)
+        new_non_free_edges_types_seq.append(non_free_edges_types_seq[i])
+    for i in range(len(new_non_free_edges)):
+        edges1=new_non_free_edges[i]
+        edges2=new_non_free_edges_seq[i]
+        if new_non_free_edges_types[i]==new_non_free_edges_types_seq[i] and len(edges1)==len(edges2):
+            edges3=[]
+            for edge in edges1:
+                if isinstance(edge.ref,DArc):
+                    edges3.append('arc')
+                else:
+                    edges3.append('line')
+            if edges3==edges2:
+                total+=1
+    return total
+def match_template(edges,detected_free_edges,template,edge_types):
+
     non_free_edges=[]
     non_free_edges_types=[]
     free_edges=[]
+    free_edges_types=[]
     for edge in detected_free_edges[0]:
         free_edges.append(edge)
+        free_edges_types.append(edge_types[edge])
     for i,edge in enumerate(edges):
         if (not edge[0].isConstraint) and (not edge[0].isCornerhole):
             continue
@@ -1084,13 +1127,56 @@ def match_template(edges,detected_free_edges,template):
     r_non_free_edges=non_free_edges[::-1]
     r_non_free_edges_types=non_free_edges_types[::-1]
     r_free_edges=free_edges[::-1]
+    r_free_edges_types=free_edges_types[::-1]
     new_edges=[]
     for edge in r_non_free_edges:
         new_edges.append(edge[::-1])
     r_non_free_edges=new_edges
+    free_edge_seq=template["free_edges"]
+    non_free_seq=template["non_free_edges"]
+    non_free_edges_seq=[]
+    non_free_edges_types_seq=[]
+    for edge in non_free_seq:
+        non_free_edges_types_seq.append(edge["type"])
+        non_free_edges_seq.append(edge["edges"])
 
+    total,r_total=0,0
+    
+    
+    total=get_score(free_edges_types,non_free_edges,non_free_edges_types,free_edge_seq,non_free_edges_seq,non_free_edges_types_seq)
+    r_total=get_score(r_free_edges_types,r_non_free_edges,r_non_free_edges_types,free_edge_seq,non_free_edges_seq,non_free_edges_types_seq)
     
 
+    if total<r_total:
+        free_edges=r_free_edges
+        free_edges_types=r_free_edges_types
+        non_free_edges=r_non_free_edges
+        non_free_edges_types=r_non_free_edges_types
+    template_map={}
+    j=0
+    for i in range(len(free_edge_seq)):
+        key=f"free{i+1}"
+        if free_edge_seq[i]=='Ks_corner'and free_edges_types[j]!='Ks_corner':
+            template_map[key]=[]
+        else:
+            template_map[key]=[free_edges[j]]
+            j+=1
+    cornerhole_idx=0
+    constraint_idx=0
+    j=0
+    for i in range(len(non_free_edges_seq)):
+        if non_free_edges_types_seq[i]=="cornerhole":
+            cornerhole_idx+=1
+            key=f"cornerhole{cornerhole_idx}"
+        else:
+            constraint_idx+=1
+            key=f"constraint{constraint_idx}"
+        if non_free_edges_types_seq[i]=="cornerhole" and len(non_free_edges_seq[i])==1 and non_free_edges_seq[i][0]=="line" and not(non_free_edges_types[i]=="cornerhole" and len(non_free_edges[i])==1 and isinstance(non_free_edges[i][0].ref,DLine)):
+            template_map[key]=[]
+        else:
+            template_map[key]=non_free_edges[j]
+            j+=1
+    return template_map
 def outputPolyInfo(poly, segments, segmentation_config, point_map, index,star_pos_map,cornor_holes,texts,dimensions,text_map,stiffeners):
     # step1: 计算几何中心坐标
     poly_centroid = calculate_poly_centroid(poly)
