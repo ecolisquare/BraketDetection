@@ -505,7 +505,19 @@ def poly_classifier(features,all_anno,poly_refs, texts,dimensions,conerhole_num,
     max_feature_num = -1
     res_matched_type = "Unclassified"
     for type_name in matched_std_type:
-        code = standard_bracket_table[type_name]["code"]
+        free_code = standard_bracket_table[type_name]["free_code"]
+        no_free_code = standard_bracket_table[type_name]["no_free_code"]
+        # 方案1：特征类型统计，不归属到具体边
+        code = []
+        for c in free_code:
+            for f in c:
+                if f not in code:
+                    code.append(f)
+        for c in no_free_code:
+            for f in c:
+                if f not in code:
+                    code.append(f)
+
         # 判断是否是子集且计算特征数
         flag = True
         f_num = 0
