@@ -1060,6 +1060,37 @@ def get_free_edge_des(edge,edge_types):
        
         des+=edge_types[s]+","
     return des[:-1]
+def match_template(edges,detected_free_edges,template):
+    non_free_edges=[]
+    non_free_edges_types=[]
+    free_edges=[]
+    for edge in detected_free_edges[0]:
+        free_edges.append(edge)
+    for i,edge in enumerate(edges):
+        if (not edge[0].isConstraint) and (not edge[0].isCornerhole):
+            continue
+        if edge[0].isCornerhole:
+            non_free_edges_types.append('cornerhole')
+            segs=[]
+            for s in edge:
+                segs.append(s)
+            non_free_edges.append(segs)
+        else:
+            non_free_edges_types.append('constraint')
+            segs=[]
+            for s in edge:
+                segs.append(s)
+            non_free_edges.append(segs)
+    r_non_free_edges=non_free_edges[::-1]
+    r_non_free_edges_types=non_free_edges_types[::-1]
+    r_free_edges=free_edges[::-1]
+    new_edges=[]
+    for edge in r_non_free_edges:
+        new_edges.append(edge[::-1])
+    r_non_free_edges=new_edges
+
+    
+
 def outputPolyInfo(poly, segments, segmentation_config, point_map, index,star_pos_map,cornor_holes,texts,dimensions,text_map,stiffeners):
     # step1: 计算几何中心坐标
     poly_centroid = calculate_poly_centroid(poly)
