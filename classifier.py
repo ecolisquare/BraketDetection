@@ -487,7 +487,9 @@ def poly_classifier(features,all_anno,poly_refs, texts,dimensions,conerhole_num,
     # 匹配最佳标准肘板分类，feature必须是该类别的子集，且特征占比最高
     max_feature_num = -1
     res_matched_type = "Unclassified"
-    for type_name in matched_type:
+    for type_name in matched_type.split(','):
+        if type_name.strip()=="":
+            continue
         free_code = classification_table[type_name]["free_code"]
         no_free_code = classification_table[type_name]["no_free_code"]
         # 方案1：特征类型统计，不归属到具体边

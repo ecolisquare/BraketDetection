@@ -2181,7 +2181,7 @@ def outputPolyInfo(poly, segments, segmentation_config, point_map, index,star_po
         template_edges=[]
         # print("============")
         while True:
-            print(constarint_idx,cornerhole_idx)
+            # print(constarint_idx,cornerhole_idx)
             if f'constraint{constarint_idx}' in template_map:
                 template_edges.append(template_map[f'constraint{constarint_idx}'])
                 constarint_idx+=1
