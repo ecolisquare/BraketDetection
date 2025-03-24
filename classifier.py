@@ -344,9 +344,11 @@ def find_cons_edge(poly_refs,seg):
             continue
         if s.start_point==seg.start_point or s.start_point == seg.end_point or s.end_point ==seg.start_point or s.end_point==seg.end_point:
             return s
-        
-def poly_classifier(features,all_anno,poly_refs, texts,dimensions,conerhole_num, poly_free_edges, edges, classification_file_path, standard_classification_file_path, info_json_path, keyname, is_output_json = False):
-    classification_table = load_classification_table(classification_file_path)
+
+
+# 标准肘板的匹配分类函数
+def poly_classifier(features,all_anno,poly_refs, texts,dimensions,conerhole_num, poly_free_edges, edges, standard_classification_file_path, info_json_path, keyname, is_output_json = False):
+    classification_table = load_classification_table(standard_classification_file_path)
 
     # Step 1: 获取角隅孔数
 
@@ -478,35 +480,16 @@ def poly_classifier(features,all_anno,poly_refs, texts,dimensions,conerhole_num,
 
     # 混淆类分类
     matched_type = tidy_matched_type(matched_type)
-    # 将标准肘板分类和非标准肘板分类区分开
-    standard_bracket_table = load_classification_table(standard_classification_file_path)
-    standard_bracket_type = []
-    for key_name, row in standard_bracket_table.items():
-        standard_bracket_type.append(key_name)
-    matched_std_type = []
-    matched_ustd_type = []
-    for type_name in matched_type.split(','):
-        if type_name.strip()=="":
-            continue
-        if type_name in standard_bracket_type:
-            matched_std_type.append(type_name)
-        else:
-            matched_ustd_type.append(type_name)
-    # 如果没有标准肘板分类，则直接返回首个非标准肘板分类的模板
-    if len(matched_std_type) == 0:
-        if len(matched_ustd_type)!=0:
-            return "Unclassified", classification_table[matched_ustd_type[0]]
-        else:
-            return "Unclassified", None
-
     
+    if len(matched_type) == 0:
+        return "Unclassified", None
 
     # 匹配最佳标准肘板分类，feature必须是该类别的子集，且特征占比最高
     max_feature_num = -1
     res_matched_type = "Unclassified"
-    for type_name in matched_std_type:
-        free_code = standard_bracket_table[type_name]["free_code"]
-        no_free_code = standard_bracket_table[type_name]["no_free_code"]
+    for type_name in matched_type:
+        free_code = classification_table[type_name]["free_code"]
+        no_free_code = classification_table[type_name]["no_free_code"]
         # 方案1：特征类型统计，不归属到具体边
         code = []
         for c in free_code:
@@ -538,10 +521,10 @@ def poly_classifier(features,all_anno,poly_refs, texts,dimensions,conerhole_num,
     # 如果成功匹配到标准肘板类别，则返回该类别；否则，则仅返回其中一类别模板
     if res_matched_type == "Unclassified":
         matched_type = res_matched_type
-        output_template = standard_bracket_table[matched_std_type[0]]
+        output_template = None
     else:
         matched_type = ",".join(res_matched_type)
-        output_template = standard_bracket_table[res_matched_type[0]]
+        output_template = classification_table[res_matched_type[0]]
 
     return matched_type,output_template
 
