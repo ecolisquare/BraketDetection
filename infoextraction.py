@@ -965,10 +965,10 @@ def match_edge_anno(constraint_edges,free_edges,edges,all_anno,all_map):
                 features.add('is_para')
             if free_edge_no[seg]==1 or free_edge_no[seg]==len(fr_edges):
                 cons_edge=find_cons_edge(cons_edges,seg)
-                flag=is_vertical_(seg.start_point,seg.end_point,cons_edge,0.35)
+                flag=is_vertical_(seg.start_point,seg.end_point,cons_edge,0.15)
                 all_edge_map[seg]["是否与相邻约束边夹角为90度"]=flag
                 if flag:
-                    features.add('is ver')
+                    features.add('is_ver')
             else:
                 all_edge_map[seg]["是否与相邻约束边夹角为90度"]=False
         elif edge_type[seg]=="arc":
