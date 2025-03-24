@@ -2107,7 +2107,7 @@ def outputPolyInfo(poly, segments, segmentation_config, point_map, index,star_po
             cornerhole_num+=1
 
     classification_res,output_template = poly_classifier(features,all_anno,poly_refs, tis,ds,cornerhole_num, free_edges, edges, 
-                                         segmentation_config.type_path, segmentation_config.standard_type_path, segmentation_config.json_output_path, 
+                                         segmentation_config.standard_type_path, segmentation_config.json_output_path, 
                                          f"{os.path.splitext(os.path.basename(segmentation_config.json_path))[0]}_infopoly{index}",
                                          is_output_json=True)
     free_order=True
