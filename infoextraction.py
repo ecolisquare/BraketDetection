@@ -839,12 +839,12 @@ def match_edge_anno(constraint_edges,free_edges,edges,all_anno,all_map):
             p1, p2 = get_anno_position(d, constraint_edges)
             all_edge_map[start_edge]["垂直标注"].append([d,f"句柄：{d.handle}，值：{d.text}，参考边：约束边{constraint_edge_no[base_edge]}，箭头起点：{v1}，箭头终点：{v2}，垂边"])
             all_edge_map[base_edge]["垂直标注"].append([d,f"句柄：{d.handle}，值：{d.text}，参考边：约束边{constraint_edge_no[start_edge]}，箭头起点：{v1}，箭头终点：{v2}，底边"])
-    if k==0:
-        features.add('ff')
-    elif k==1:
-        features.add('tf')
-    else:
-        features.add('tt')
+    # if k==0:
+    #     features.add('ff')
+    # elif k==1:
+    #     features.add('tf')
+    # else:
+    #     features.add('tt')
     # cons_maps=(l_whole_map,l_ver_map,l_ver_single_map)
     # cons_annos=(whole_anno,vertical_anno)
     #cons_edges
@@ -901,7 +901,7 @@ def match_edge_anno(constraint_edges,free_edges,edges,all_anno,all_map):
         for d_t in ds:
             v1,v2,d=d_t
             for idx,free_edge in enumerate(fr_edges):
-                if idx==0 or idx==len(fr_edges)-1:
+                if edge_type[free_edge]!="line":
                     continue
                 if isinstance(free_edge.ref,DArc):
                     continue
@@ -1024,7 +1024,7 @@ def match_edge_anno(constraint_edges,free_edges,edges,all_anno,all_map):
                     short_edge=edge[0] if isinstance(edge[0].ref,DLine) else edge[1] 
                     if is_near(DSegment(v1,v2),short_edge):
                         all_edge_map[start_edge]["短边尺寸标注"].append([d,f"句柄：{d.handle}，值：{d.text}，箭头起点：{v1}，箭头终点：{v2}"])
-                        features.add('vuf')
+                        # features.add('vuf')
                         break
     #自由边直线平行标注
     for key,ds in l_para_map.items():
@@ -1036,13 +1036,13 @@ def match_edge_anno(constraint_edges,free_edges,edges,all_anno,all_map):
                 all_edge_map[free_edge]["平行标注"].append([d,f"句柄：{d.handle}，值：{d.text}，参考边：约束边{constraint_edge_no[cons_edge]}，箭头起点：{v1}，箭头终点：{v2}"])
     
     #半径标注
-    for seg,ts in r_map.items():
-        for t in ts:
-            if seg in edge_type and edge_type[seg]=="arc":
-                all_edge_map[seg]["半径标注"].append([t,f"句柄：{t.handle}，值：{t.content}"])
-            elif seg in corner_hole_arc:
-                start_edge=corner_hole_arc[seg]
-                all_edge_map[start_edge]["半径标注"].append([t,f"句柄：{t.handle}，值：{t.content}"])
+    for seg,t in r_map.items():
+
+        if seg in edge_type and edge_type[seg]=="arc":
+            all_edge_map[seg]["半径标注"].append([t,f"句柄：{t.handle}，值：{t.content}"])
+        elif seg in corner_hole_arc:
+            start_edge=corner_hole_arc[seg]
+            all_edge_map[start_edge]["半径标注"].append([t,f"句柄：{t.handle}，值：{t.content}"])
 
     return all_edge_map,edge_type,list(features)
 
@@ -1156,7 +1156,9 @@ def match_template(edges,detected_free_edges,template,edge_types):
     j=0
     for i in range(len(free_edge_seq)):
         key=f"free{i+1}"
-        if free_edge_seq[i]=='Ks_corner'and free_edges_types[j]!='Ks_corner':
+        if free_edge_seq[i]=='Ks_corner'and j>=len(free_edges_types):
+            template_map[key]=[]
+        elif free_edge_seq[i]=='Ks_corner'and free_edges_types[j]!='Ks_corner':
             template_map[key]=[]
         else:
             template_map[key]=[free_edges[j]]
@@ -1171,7 +1173,9 @@ def match_template(edges,detected_free_edges,template,edge_types):
         else:
             constraint_idx+=1
             key=f"constraint{constraint_idx}"
-        if non_free_edges_types_seq[i]=="cornerhole" and len(non_free_edges_seq[i])==1 and non_free_edges_seq[i][0]=="line" and not(non_free_edges_types[i]=="cornerhole" and len(non_free_edges[i])==1 and isinstance(non_free_edges[i][0].ref,DLine)):
+        if non_free_edges_types_seq[i]=="cornerhole" and len(non_free_edges_seq[i])==1 and non_free_edges_seq[i][0]=="line" and j>=len(non_free_edges_types):
+            template_map[key]=[]
+        elif non_free_edges_types_seq[i]=="cornerhole" and len(non_free_edges_seq[i])==1 and non_free_edges_seq[i][0]=="line" and not(non_free_edges_types[j]=="cornerhole" and len(non_free_edges[j])==1 and isinstance(non_free_edges[j][0].ref,DLine)):
             template_map[key]=[]
         else:
             template_map[key]=non_free_edges[j]
@@ -2028,7 +2032,7 @@ def outputPolyInfo(poly, segments, segmentation_config, point_map, index,star_po
                 anno_des=""
                 for anno in all_edge_map[corner_hole_start_edge]["短边尺寸标注"]:
                     anno_des=f"{anno_des},{anno[1]}"
-                des=f"短边是否平行于相邻边:{all_edge_map[corner_hole_start_edge]["短边是否平行于相邻边"]};圆心是否在趾端延长线上:{all_edge_map[corner_hole_start_edge]["圆心是否在趾端延长线上"]}短边尺寸标注:{anno_des}"
+                des=f"短边是否平行于相邻边:{all_edge_map[corner_hole_start_edge]["短边是否平行于相邻边"]};短边尺寸标注:{anno_des}"
                 log_to_file(file_path,f"        VU孔标注:{des}")
                 for seg in edge:
                     if isinstance(seg.ref, DArc):
@@ -2113,7 +2117,7 @@ def outputPolyInfo(poly, segments, segmentation_config, point_map, index,star_po
             anno_des=""
             for anno in all_edge_map[seg]["半径标注"]:
                 anno_des=f"{anno_des},{anno[1]}"
-            des=f"是否相切:{all_edge_map[seg]["是否相切"]} 半径标注:{anno_des}"
+            des=f"是否相切:{all_edge_map[seg]["是否相切"]} 半径标注:{anno_des} 圆心是否在趾端延长线上:{all_edge_map[seg]["圆心是否在趾端延长线上"]}"
            
             log_to_file(file_path, f"           标注:{des}")        
         elif edge_types[seg]=="line":

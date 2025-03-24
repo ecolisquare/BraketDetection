@@ -531,15 +531,17 @@ def poly_classifier(features,all_anno,poly_refs, texts,dimensions,conerhole_num,
         if flag:
             if f_num > max_feature_num:
                 max_feature_num = f_num
-                res_matched_type = type_name
+                res_matched_type = [type_name]
+            elif f_num == max_feature_num:
+                res_matched_type.append(type_name)
     
     # 如果成功匹配到标准肘板类别，则返回该类别；否则，则仅返回其中一类别模板
     if res_matched_type == "Unclassified":
         matched_type = res_matched_type
         output_template = standard_bracket_table[matched_std_type[0]]
     else:
-        matched_type = res_matched_type
-        output_template = standard_bracket_table[res_matched_type]
+        matched_type = ",".join(res_matched_type)
+        output_template = standard_bracket_table[res_matched_type[0]]
 
     return matched_type,output_template
 
