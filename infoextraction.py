@@ -759,6 +759,7 @@ def is_near(cons_edge,short_edge):
     return False
 def match_edge_anno(constraint_edges,free_edges,edges,all_anno,all_map):
     features=set()
+    feature_map={}
     corner_holes=[]
     corner_hole_start_edge=[]
     constraint_edge_no={}
@@ -774,14 +775,17 @@ def match_edge_anno(constraint_edges,free_edges,edges,all_anno,all_map):
             for s in edge:
                 if isinstance(s.ref,DArc):
                     corner_hole_arc[s]=edge[0]
+                feature_map[s]=set()
         else:
             for s in  edge:
                 constraint_edge_no[s]=k
+                feature_map[s]=set()
             k+=1
     cons_edges=[]
     fr_edges=free_edges[0]
     free_edge_no={}
     for i,s in enumerate(fr_edges):
+        feature_map[s]=set()
         free_edge_no[s]=i+1
     for constraint_edge in constraint_edges:
         for edge in constraint_edge:
@@ -908,6 +912,7 @@ def match_edge_anno(constraint_edges,free_edges,edges,all_anno,all_map):
                 if point_segment_position(v1,free_edge,epsilon=0.2,anno=False)!="not_on_line" or point_segment_position(v2,free_edge,epsilon=0.2,anno=False)!="not_on_line":
                     all_edge_map[free_edge]["延长线与约束边交点标注"].append([d,f"句柄：{d.handle}，值：{d.text}，参考边：约束边{constraint_edge_no[seg]}，箭头起点：{v1}，箭头终点：{v2}"])
                     features.add('short_anno')
+                    feature_map[free_edge].add('short_anno')
                     break
             # point_segment_position(p1,,epsilon=0.2,anno=False)!="not_on_line"
     
@@ -924,6 +929,7 @@ def match_edge_anno(constraint_edges,free_edges,edges,all_anno,all_map):
                             #句柄：FF280， 值：14.5，参考边：2，箭头起点：Point(1126156.00605, -283084.451961)，箭头终点：Point(1126156.00605, -283084.451961
                             all_edge_map[s]["与趾端夹角标注"].append([d,f"句柄：{d.handle}，值：{d.text}，参考边： 自由边{free_edge_no[seg]}(趾端)，参考点1：{p1}，参考点2：{p2}，参考中心： {inter}"])
                             features.add('toe_angle')
+                            feature_map[s].add('toe_angle')
                             break
                 if idx==len(fr_edges):
                     for s in fr_edges[::-1]:
@@ -931,14 +937,17 @@ def match_edge_anno(constraint_edges,free_edges,edges,all_anno,all_map):
                             #句柄：FF280， 值：14.5，参考边：2，箭头起点：Point(1126156.00605, -283084.451961)，箭头终点：Point(1126156.00605, -283084.451961
                             all_edge_map[s]["与趾端夹角标注"].append([d,f"句柄：{d.handle}，值：{d.text}，参考边： 自由边{free_edge_no[seg]}(趾端)，参考点1：{p1}，参考点2：{p2}，参考中心： {inter}"])
                             features.add('toe_angle')
+                            feature_map[s].add('toe_angle')
                             break
             elif edge_type[seg]=="line":
                 #(TODO:寻找参考边)
                 features.add('angl')
                 all_edge_map[seg]["与约束边及其平行线夹角标注"].append([d,f"句柄：{d.handle}，值：{d.text}，参考点1：{p1}，参考点2：{p2}，参考中心： {inter}"])
+                feature_map[seg].add('angl')
             elif edge_type[seg]=="KS_corner":
                 #(TODO:寻找参考边)
                 features.add('angl')
+                feature_map[seg].add('angl')
                 all_edge_map[seg]["与自由边夹角标注"].append([d,f"句柄：{d.handle}，值：{d.text}，参考点1：{p1}，参考点2：{p2}，参考中心： {inter}"])
     #自由边直线与约束边垂直标注/自由边倒角与约束边距离标注
     for key,ds in l_n_para_map.items():
@@ -947,9 +956,11 @@ def match_edge_anno(constraint_edges,free_edges,edges,all_anno,all_map):
             v1,v2=get_anno_position(d,constraint_edges)
             if edge_type[free_edge]=="line":
                 features.add('cons_vert')
+                feature_map[free_edge].add('cons_vert')
                 all_edge_map[free_edge]["与约束边垂直标注"].append([d,f"句柄：{d.handle}，值：{d.text}，参考边：约束边{constraint_edge_no[cons_edge]}，箭头起点：{v1}，箭头终点：{v2}"])
             elif edge_type[free_edge]=="KS_corner":
                 features.add('cons_vert')
+                feature_map[free_edge].add('cons_vert')
                 all_edge_map[free_edge]["与自由边长度标注"].append([d,f"句柄：{d.handle}，值：{d.text}，参考边：约束边{constraint_edge_no[cons_edge]}，箭头起点：{v1}，箭头终点：{v2}"])
     #自由边直线几何特征（平行与垂直）/自由边圆弧几何特征
     for seg in fr_edges:
@@ -963,12 +974,14 @@ def match_edge_anno(constraint_edges,free_edges,edges,all_anno,all_map):
             all_edge_map[seg]["是否与约束边平行"]=flag
             if flag:
                 features.add('is_para')
+                feature_map[seg].add('is_para')
             if free_edge_no[seg]==1 or free_edge_no[seg]==len(fr_edges):
                 cons_edge=find_cons_edge(cons_edges,seg)
                 flag=is_vertical_(seg.start_point,seg.end_point,cons_edge,0.15)
                 all_edge_map[seg]["是否与相邻约束边夹角为90度"]=flag
                 if flag:
                     features.add('is_ver')
+                    feature_map[seg].add('is_ver')
             else:
                 all_edge_map[seg]["是否与相邻约束边夹角为90度"]=False
         elif edge_type[seg]=="arc":
@@ -993,6 +1006,7 @@ def match_edge_anno(constraint_edges,free_edges,edges,all_anno,all_map):
             all_edge_map[seg]["是否相切"]=flag
             if flag:
                 features.add('is_tangent')
+                feature_map[seg].add('is_tangent')
             flag=False
             for toe_line in all_toe:
                 if point_segment_position(o,toe_line,epsilon=0.2,anno=False)!="not_on_line":
@@ -1002,6 +1016,7 @@ def match_edge_anno(constraint_edges,free_edges,edges,all_anno,all_map):
             all_edge_map[seg]["圆心是否在趾端延长线上"]=flag
             if flag:
                 features.add('is_ontoe')
+                feature_map[seg].add('is_ontoe')
 
     #vu角隅孔几何特征
     for i,seg in enumerate(corner_hole_start_edge):
@@ -1035,6 +1050,7 @@ def match_edge_anno(constraint_edges,free_edges,edges,all_anno,all_map):
             v1,v2=get_anno_position(d,constraint_edges)
             if edge_type[free_edge]=="line":
                 features.add('short_anno_para')
+                feature_map[free_edge].add('short_anno_para')
                 all_edge_map[free_edge]["平行标注"].append([d,f"句柄：{d.handle}，值：{d.text}，参考边：约束边{constraint_edge_no[cons_edge]}，箭头起点：{v1}，箭头终点：{v2}"])
     
     #半径标注
@@ -1045,7 +1061,9 @@ def match_edge_anno(constraint_edges,free_edges,edges,all_anno,all_map):
         elif seg in corner_hole_arc:
             all_edge_map[seg]["半径标注"].append([t,f"句柄：{t.handle}，值：{t.content}"])
     
-    return all_edge_map,edge_type,list(features)
+    for s,fs in feature_map.items():
+        feature_map[s]=list(fs)
+    return all_edge_map,edge_type,list(features),feature_map
 
 def  get_edge_des(edge):
     des=""
@@ -1948,9 +1966,9 @@ def outputPolyInfo(poly, segments, segmentation_config, point_map, index,star_po
     all_map=(r_map,l_whole_map,l_half_map,l_cornor_map,l_para_map,l_para_single_map,l_n_para_map,l_n_para_single_map,l_ver_map,l_ver_single_map,d_map,a_map)
 
 
-    all_edge_map,edge_types,features=match_edge_anno(constraint_edges,free_edges,edges,all_anno,all_map)
-    
-    #TODO:是否是标准肘板的判断
+    all_edge_map,edge_types,features,feature_map=match_edge_anno(constraint_edges,free_edges,edges,all_anno,all_map)
+    # for s,fs in feature_map.items():
+    #     print(s,fs)
     is_standard_elbow=True
     for t_t in tis:
         content=t_t[0].content.strip()
