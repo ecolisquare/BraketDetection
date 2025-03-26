@@ -437,7 +437,7 @@ def match_r_anno(r_anno,free_edges):
             if isinstance(s.ref,DArc):
                 center=s.ref.center
                 distance=DSegment(center,pos).length()
-                if distance>1000:
+                if distance>100:
                     continue
                 if target is None:
                     target=s
@@ -1182,7 +1182,7 @@ def match_template(edges,detected_free_edges,template,edge_types):
             template_map[key]=non_free_edges[j]
             j+=1
     return template_map
-def outputPolyInfo(poly, segments, segmentation_config, point_map, index,star_pos_map,cornor_holes,texts,dimensions,text_map,stiffeners):
+def calculate_poly_features(poly, segments, segmentation_config, point_map, index,star_pos_map,cornor_holes,texts,dimensions,text_map,stiffeners):
     # step1: 计算几何中心坐标
     poly_centroid = calculate_poly_centroid(poly)
 
@@ -1196,14 +1196,6 @@ def outputPolyInfo(poly, segments, segmentation_config, point_map, index,star_po
     for ref in poly_refs:
         ref.initialize()
 
-    # plot_polys({},poly_refs,"./check")
-    # step3: 标记角隅孔
-    # for corner_hole in cornor_holes:
-    #     for seg in corner_hole.segments:
-    #         seg.isCornerHole=True
-    # print(len(cornor_holes))
-    # for cornor_hole in cornor_holes:
-    #     print(cornor_hole.segments)
     cornor_holes_map={}
     for cornor_hole in cornor_holes:
         for s in cornor_hole.segments:
@@ -1223,40 +1215,7 @@ def outputPolyInfo(poly, segments, segmentation_config, point_map, index,star_po
             for ss in star_pos_map[s]:
                 star_set.add(ss)
     stars_pos=list(star_set)
-    # for p in stars_pos:
-    #     x,y=p.x,p.y
-    #     lines=[]
-    #     lines.append(DSegment(DPoint(x,y),DPoint(x-5000,y)))
-    #     lines.append(DSegment(DPoint(x,y),DPoint(x+5000,y)))
-    #     lines.append(DSegment(DPoint(x,y),DPoint(x,y+5000)))
-    #     lines.append(DSegment(DPoint(x,y),DPoint(x,y-5000)))
-    #     cornor=[]
-    #     for i, seg1 in enumerate(lines):
-    #         dist=None
-    #         s=None
-    #         for j, seg2 in enumerate(poly_refs):
-    #             p1, p2 = seg1.start_point, seg1.end_point
-    #             q1, q2 = seg2.start_point, seg2.end_point
-    #             intersection = segment_intersection(p1, p2, q1, q2)
-    #             if intersection:
-    #                 if dist is None:
-    #                     dist=(intersection[0]-p1.x)*(intersection[0]-p1.x)+(intersection[1]-p1.y)*(intersection[1]-p1.y)
-    #                     s=seg2
-    #                 else:
-    #                     if dist>(intersection[0]-p1.x)*(intersection[0]-p1.x)+(intersection[1]-p1.y)*(intersection[1]-p1.y):
-    #                         dist=(intersection[0]-p1.x)*(intersection[0]-p1.x)+(intersection[1]-p1.y)*(intersection[1]-p1.y)
-    #                         s=seg2
-    #         if s is not None:
-    #            cornor.append((dist,s,p))
-    #     cornor=sorted(cornor,key=lambda p:p[0])
-    #     if len(cornor)>=2:
-    #         cornor[0][1].isConstraint=True
-    #         cornor[0][1].isCornerhole=False
-    #         cornor[0][1].StarCornerhole=cornor[0][2]
-    #         cornor[1][1].isConstraint=True
-    #         cornor[1][1].isCornerhole=False
-    #         cornor[1][1].StarCornerhole=cornor[1][2]
-    
+
 
    
     # step4: 标记固定边
@@ -1281,61 +1240,6 @@ def outputPolyInfo(poly, segments, segmentation_config, point_map, index,star_po
             if flag:
                 segment.isConstraint = True
                 poly_refs[i].isConstraint = True
-        # elif isinstance(segment.ref,DLine) and segment.length()<0.85*DSegment(segment.ref.start_point,segment.ref.end_point).length():
-        #     segment.isConstraint = True
-        #     poly_refs[i].isConstraint = True
-        # 平行线确定
-        # else:
-        #     dx_1 = segment.end_point.x - segment.start_point.x
-        #     dy_1 = segment.end_point.y - segment.start_point.y
-        #     mid_point=DPoint((segment.end_point.x+segment.start_point.x)/2,(segment.end_point.y+segment.start_point.y)/2)
-        #     l = (dx_1**2 + dy_1**2)**0.5
-        #     v_1 = (dy_1 / l * segmentation_config.parallel_max_distance, -dx_1 / l * segmentation_config.parallel_max_distance)
-        #     point1,point2,point3=DSegment(segment.start_point,mid_point).mid_point(),DSegment(segment.end_point,mid_point).mid_point(),mid_point
-        #     for j, other in enumerate(segments):
-        #         if segment == other:
-        #             continue
-                
-        #         if is_parallel(segment, other,segmentation_config.is_parallel_tolerance):
-        #             #print(segment,other)
-        #             s1 = DSegment(
-        #                 DPoint(point1.x + v_1[0], point1.y + v_1[1]),
-        #                 DPoint(point1.x - v_1[0], point1.y - v_1[1])
-        #             )
-        #             s2 = DSegment(
-        #                 DPoint(point2.x + v_1[0], point2.y + v_1[1]),
-        #                 DPoint(point2.x - v_1[0], point2.y - v_1[1])
-        #             )
-        #             s3 = DSegment(
-        #                 DPoint(mid_point.x + v_1[0], mid_point.y + v_1[1]),
-        #                 DPoint(mid_point.x - v_1[0], mid_point.y - v_1[1])
-        #             )
-
-        #             i1 = segment_intersection(s1.start_point, s1.end_point, other.start_point, other.end_point)
-        #             if i1 == other.end_point or i1 == other.start_point:
-        #                 i1 = None
-                    
-        #             i2 = segment_intersection(s2.start_point, s2.end_point, other.start_point, other.end_point)
-        #             if i2 == other.end_point or i2 == other.start_point:
-        #                 i2 = None
-        #             i3 = segment_intersection(s3.start_point, s3.end_point, other.start_point, other.end_point)
-        #             if i3 == other.end_point or i3 == other.start_point:
-        #                 i3 = None
-        #             if i1 is not None and DSegment(i1,point1).length()<segmentation_config.parallel_min_distance:
-        #                 i1=None
-        #             if i2 is not None and DSegment(i2,point2).length()<segmentation_config.parallel_min_distance:
-        #                 i2=None
-        #             if i3 is not None and DSegment(i3,point3).length()<segmentation_config.parallel_min_distance:
-        #                 i3=None
-        #             if i1 is not None and i2 is not None and i3 is not None:
-        #                 segment.isConstraint = True
-        #                 poly_refs[i].isConstraint = True
-        #                 # if poly_refs[i].length()<=27 and poly_refs[i].length()>=25:
-        #                 #     print(poly_refs[i])
-        #                 #     print(other)
-        #                 #     print(i1,i2,i3)
-        #                 #print(segment,other)
-        #                 break
     
             
    
@@ -1397,12 +1301,6 @@ def outputPolyInfo(poly, segments, segmentation_config, point_map, index,star_po
                 i3 = segment_intersection(s3.start_point, s3.end_point, other.start_point, other.end_point)
                 if i3 == other.end_point or i3 == other.start_point:
                     i3 = None
-                # if i1 is not None and DSegment(i1,point1).length()<segmentation_config.parallel_min_distance_relax:
-                #     i1=None
-                # if i2 is not None and DSegment(i2,point2).length()<segmentation_config.parallel_min_distance_relax:
-                #     i2=None
-                # if i3 is not None and DSegment(i3,point3).length()<segmentation_config.parallel_min_distance_relax:
-                #     i3=None
 
                 if i1 is not None:
                     d=DSegment(i1,point1).length()
@@ -1436,57 +1334,7 @@ def outputPolyInfo(poly, segments, segmentation_config, point_map, index,star_po
                             if d<d3:
                                 seg3=other
                                 d3=d
-            
-                # if i1 is not None and i2 is not None and i3 is not None:
-                #     distance=DSegment(i3,point3).length()
-                #     l1=segment.length()
-                #     l2=other.length()
-                #     if  distance<segmentation_config.parallel_min_distance:
-                #         continue
-                #     q1,q2=other.start_point,other.end_point
-                #     q3=other.mid_point()
-                #     q4,q5=DSegment(q3,q1).mid_point(),DSegment(q3,q2).mid_point()
-                #     count=0
-                #     for q in [q1,q2,q3,q4,q5]:
-                #         if point_is_inside(q,polygon) :
-                #             count+=1
-                #     if count>2:
-                #         is_inside=True
-                #     else:
-                #         is_inside=False
-                #     if distance < segmentation_config.parallel_max_distance and is_inside==False:
-                #         #contraint
-                #         others.add(other)
-                #         segment.isPart=True
-                #         poly_refs[i].isPart=True
-                #         segment.isConstraint = True
-                #         poly_refs[i].isConstraint = True
-                #     elif l1<l2 *segmentation_config.contraint_factor and is_inside==False:
-                #         #constraint
-                #         others.add(other)
-                #         segment.isPart=True
-                #         poly_refs[i].isPart=True
-                #         segment.isConstraint = True
-                #         poly_refs[i].isConstraint = True
-                #     elif l1<segmentation_config.free_edge_min_length:
-                #         others.add(other)
-                #         segment.isPart=True
-                #         poly_refs[i].isPart=True
-                #         segment.isConstraint = True
-                #         poly_refs[i].isConstraint = True
-                #     else:
-                #         if is_inside:
-                #             is_fb=True
-                #             fb_segments.add(other)
-                #             other.isFb=True
-                #         else:
-                #             fl_segments.add(other)
 
-                #         # others.add(other)
-                #         segment.isPart=True
-                #         poly_refs[i].isPart=True
-         
-                            # st_segments.add(segment)
         other_refs.append([seg1,seg2,seg3])
         distances.append([d1,d2,d3])
     
@@ -1572,32 +1420,6 @@ def outputPolyInfo(poly, segments, segmentation_config, point_map, index,star_po
         if not segment.isCornerhole and poly_refs[(i-1+len(poly_refs))%len(poly_refs)].isConstraint and poly_refs[(i+1+len(poly_refs))%len(poly_refs)].isConstraint:
             segment.isConstraint = True
             poly_refs[i].isConstraint = True
-
-    # for a in range(len(poly_refs)):
-    #     for b in range(len(poly_refs)):
-    #         if isinstance(poly_refs[a].ref, DLwpolyline) and isinstance(poly_refs[b].ref, DLwpolyline):
-    #             if poly_refs[a].ref.points[0] == poly_refs[b].ref.points[0] and poly_refs[a].ref.points[-1] == poly_refs[b].ref.points[-1]:
-    #                 poly_refs[b].isConstraint = poly_refs[a].isConstraint or poly_refs[b].isConstraint
-    #                 poly_refs[a].isConstraint = poly_refs[a].isConstraint or poly_refs[b].isConstraint
-    #         if isinstance(poly_refs[a].ref, DLine) and isinstance(poly_refs[b].ref, DLine):
-    #             if poly_refs[a].ref.start_point == poly_refs[b].ref.start_point and poly_refs[a].ref.end_point == poly_refs[b].ref.end_point:
-    #                 poly_refs[b].isConstraint = poly_refs[a].isConstraint or poly_refs[b].isConstraint
-    #                 poly_refs[a].isConstraint = poly_refs[a].isConstraint or poly_refs[b].isConstraint
-
-
-    #相邻夹角小的边，如果有一个是固定边，则所有都是固定边
-    # for i,s in enumerate(poly):
-    #     current=i
-    #     next=(i+1)%len(poly)
-       
-    #     if conpute_angle_of_two_segments(poly[current],poly[next])  <segmentation_config.constraint_split_angle:
-            
-    #         if poly[current].isConstraint:
-             
-    #             # print(poly[current],poly[next])
-    #             poly[next].isConstraint=True
-    #         if  poly[next].isConstraint:
-    #             poly[current].isConstraint=True
 
 
 
@@ -1705,43 +1527,9 @@ def outputPolyInfo(poly, segments, segmentation_config, point_map, index,star_po
                 cornerhole_edges.append(current_edge)
                 edges.append(current_edge)
 
-
-  
-    # step 5.5：找到所有的标注
-    
-    # print(len(stiffeners))
-    # print(len(sfs))
-    
-    # if len(sfs)>0:
-    #     is_fb=True
-    #     print(f"回路{index}有加强边！")
-    # else:
-    #     print(f"回路{index}没有加强边！")
     
     tis=textsInPoly(text_map,poly,segmentation_config,is_fb)
     ds=dimensionsInPoly(dimensions,poly,segmentation_config)
-    # print(free_edges)
-    # print(cornor_holes[0].segments)
-    # for s in poly_refs:
-    #     print(s.isCornerhole)
-    # print(current_edge)
-    # print(current_type)
-    # # 附加：添加筛选条件
-    # # 如果有多于两条的自由边则判定为不是肘板，不进行输出
-    # print(constraint_edges)
-    # print(free_edges)
-    # print(cornerhole_edges)
-    # for s in poly:
-    #     print(s.isCornerhole)
- 
-  
-        
-
-    # print(constraint_edges)
-    # print("===========")
-    # print(free_edges)
-    # print("=============")
-    # print(cornerhole_edges)
     if segmentation_config.mode=="dev":
         plot_info_poly(polygon,poly_refs, os.path.join(segmentation_config.poly_info_dir, f'infopoly{index}.png'),tis,ds,sfs,others)
     if len(free_edges) > 1:
@@ -1892,8 +1680,8 @@ def outputPolyInfo(poly, segments, segmentation_config, point_map, index,star_po
     # step6: 绘制对边分类后的几何图像
     plot_info_poly(polygon,poly_refs, os.path.join(segmentation_config.poly_info_dir, f'infopoly{index}.png'),tis,ds,sfs,others)
 
-    # for i,t_t in enumerate(tis):
-    #     print(t_t[0].content)
+
+
     #标注匹配
     r_anno=[]
     l_anno=[]
@@ -1952,10 +1740,45 @@ def outputPolyInfo(poly, segments, segmentation_config, point_map, index,star_po
     
     #TODO:是否是标准肘板的判断
     is_standard_elbow=True
-    for t_t in tis:
-        content=t_t[0].content.strip()
-        if t_t[2]["Type"]=="B" and '~' in content:
-            is_standard_elbow=False
+    bracket_parameter=None
+    strengthen_parameter=None
+    has_hint=True
+    meta_info=(is_standard_elbow,bracket_parameter,strengthen_parameter,has_hint)
+    edges_info=(free_edges,edges)
+    hint_info=(all_edge_map,edge_types,features)
+    return edges_info,poly_centroid,hint_info,meta_info
+
+def is_similar(edges_info,other_edges_info):
+    return False
+def calculate_new_hint_info(edges_info,other_edges_info,hint_info,other_hint_info,meta_info,other_meta_info):
+    new_hint_info,new_meta_info=None,()
+    return new_hint_info,new_meta_info
+def diffusion_step(edges_infos,poly_centroids,hint_infos,meta_infos):
+    new_edges_infos,new_poly_centroids,new_hint_infos,new_meta_infos=[],[],[],[]
+    for i in range(len(meta_infos)):
+        edges_info,poly_centroid,hint_info,meta_info=edges_infos[i],poly_centroids[i],hint_infos[i],meta_infos[i]
+        is_standard_elbow,bracket_parameter,strengthen_parameter,has_hint=meta_info
+        if has_hint==False and is_standard_elbow:
+            for j in range(len(meta_infos)):
+                if j!=i:
+                    other_poly_centroid=poly_centroids[j]
+                    other_is_standard_elbow,other_bracket_parameter,other_strengthen_parameter,other_has_hint=meta_infos[j]
+                    if other_is_standard_elbow  and other_has_hint==True and DSegment(poly_centroid,other_poly_centroid)<5000 and is_similar(edges_info,edges_infos[j]):
+                        new_hint_info,new_meta_info=calculate_new_hint_info(edges_info,edges_infos[j],hint_info,hint_infos[j],meta_info,meta_infos[j])
+                        
+                        new_edges_infos.append(edges_info)
+                        new_poly_centroids.append(poly_centroid)
+                        new_hint_infos.append(new_hint_info)
+                        new_meta_infos.append(new_meta_info)
+                        break
+        else:
+            new_edges_infos.append(edges_info)
+            new_poly_centroids.append(poly_centroid)
+            new_hint_infos.append(new_hint_info)
+            new_meta_infos.append(meta_info)
+
+def outputPolyInfo(poly, segments, segmentation_config, point_map, index,star_pos_map,cornor_holes,texts,dimensions,text_map,stiffeners):
+   
     if is_standard_elbow==False:
         file_path = os.path.join(segmentation_config.poly_info_dir, f'info{index}.txt')
         clear_file(file_path)
@@ -1980,7 +1803,7 @@ def outputPolyInfo(poly, segments, segmentation_config, point_map, index,star_po
                     for anno in all_edge_map[corner_hole_start_edge]["短边尺寸标注"]:
                         anno_des=f"{anno_des},{anno[1]}"
                     des=f"短边是否平行于相邻边:{all_edge_map[corner_hole_start_edge]["短边是否平行于相邻边"]};短边尺寸标注:{anno_des}"
-                    log_to_file(file_path,f"        VU孔标注:\n\t\t\t{des}")
+                    log_to_file(file_path,f"        VU孔标注:{des}")
                     for seg in edge:
                         if isinstance(seg.ref, DArc):
                             log_to_file(file_path, f"       起点：{seg.ref.start_point}、终点：{seg.ref.end_point}、圆心：{seg.ref.center}、半径：{seg.ref.radius}（圆弧）、句柄: {seg.ref.handle}")
@@ -1988,7 +1811,7 @@ def outputPolyInfo(poly, segments, segmentation_config, point_map, index,star_po
                             for anno in all_edge_map[seg]["半径尺寸标注"]:
                                 anno_des=f"{anno_des},{anno[1]}"
                             des=f"半径尺寸标注:{anno_des}"
-                            log_to_file(file_path, f"           标注:\n\t\t\t{des}")                  
+                            log_to_file(file_path, f"           标注:{des}")                  
                         else:
                             
                             log_to_file(file_path, f"       起点：{seg.start_point}、终点{seg.end_point}（直线）、句柄: {seg.ref.handle}")
@@ -2001,7 +1824,7 @@ def outputPolyInfo(poly, segments, segmentation_config, point_map, index,star_po
                             for anno in all_edge_map[seg]["半径尺寸标注"]:
                                 anno_des=f"{anno_des},{anno[1]}"
                             des=f"半径尺寸标注:{anno_des}"
-                            log_to_file(file_path, f"           标注:\n\t\t\t{des}")                  
+                            log_to_file(file_path, f"           标注:{des}")                  
                         else:
                             
                             log_to_file(file_path, f"       起点：{seg.start_point}、终点{seg.end_point}（直线）、句柄: {seg.ref.handle}")
@@ -2019,7 +1842,7 @@ def outputPolyInfo(poly, segments, segmentation_config, point_map, index,star_po
                             anno_des=""
                             for anno in annos:
                                 anno_des=f"{anno_des},{anno[1]}"
-                            des=f"{des}\n\t\t\t{ty}:{anno_des}"
+                            des=f"{des};{ty}:{anno_des}"
                         log_to_file(file_path, f"           标注:{des}")
 
         # step8: 输出自由边信息
@@ -2036,13 +1859,13 @@ def outputPolyInfo(poly, segments, segmentation_config, point_map, index,star_po
                 anno_des=""
                 for anno in all_edge_map[seg]["半径标注"]:
                     anno_des=f"{anno_des},{anno[1]}"
-                des=f"是否相切:{all_edge_map[seg]["是否相切"]}\n\t\t\t半径标注:{anno_des}\n\t\t\t圆心是否在趾端延长线上:{all_edge_map[seg]["圆心是否在趾端延长线上"]}"
+                des=f"是否相切:{all_edge_map[seg]["是否相切"]} 半径标注:{anno_des} 圆心是否在趾端延长线上:{all_edge_map[seg]["圆心是否在趾端延长线上"]}"
             
-                log_to_file(file_path, f"           标注:\n\t\t\t{des}")        
+                log_to_file(file_path, f"           标注:{des}")        
             elif edge_types[seg]=="line":
                 
                 log_to_file(file_path, f"       起点：{seg.start_point}、终点{seg.end_point}、长度：{seg.length()}（直线）、句柄: {seg.ref.handle}")
-                des=f"是否与约束边平行:{all_edge_map[seg]["是否与约束边平行"]}\n\t\t\t是否与相邻约束边夹角为90度:{all_edge_map[seg]["是否与相邻约束边夹角为90度"]}"
+                des=f"是否与约束边平行:{all_edge_map[seg]["是否与约束边平行"]};是否与相邻约束边夹角为90度:{all_edge_map[seg]["是否与相邻约束边夹角为90度"]}"
                 for ty,annos in all_edge_map[seg].items():
                     if ty=="是否与约束边平行" or ty=="是否与相邻约束边夹角为90度" :
                         continue
@@ -2050,7 +1873,7 @@ def outputPolyInfo(poly, segments, segmentation_config, point_map, index,star_po
                     for anno in annos:
                         anno_des=f"{anno_des},{anno[1]}"
                     des=f"{des};{ty}:{anno_des}"
-                log_to_file(file_path, f"           标注:\n\t\t\t{des}")
+                log_to_file(file_path, f"           标注:{des}")
             elif edge_types[seg]=="toe":  
                 log_to_file(file_path, f"       起点：{seg.start_point}、终点{seg.end_point}、长度：{seg.length()}（直线）、句柄: {seg.ref.handle}")
                 des=f""
@@ -2067,7 +1890,7 @@ def outputPolyInfo(poly, segments, segmentation_config, point_map, index,star_po
                     anno_des=""
                     for anno in annos:
                         anno_des=f"{anno_des},{anno[1]}"
-                    des=f"{des}\n\t\t\t{ty}:{anno_des}"
+                    des=f"{des};{ty}:{anno_des}"
                 log_to_file(file_path, f"           标注:{des}")   
         
 
@@ -2100,7 +1923,7 @@ def outputPolyInfo(poly, segments, segmentation_config, point_map, index,star_po
         log_to_file(file_path, f"肘板加强类别为:{s_info}")
         log_to_file(file_path, f"非标准肘板")
         
-        return poly_refs, "Unstandard"
+        return poly_refs, classification_res
 
 
     cornerhole_num=0
@@ -2144,21 +1967,21 @@ def outputPolyInfo(poly, segments, segmentation_config, point_map, index,star_po
                 anno_des=""
                 for anno in all_edge_map[seg]["半径标注"]:
                     anno_des=f"{anno_des},{anno[1]}"
-                des=f"是否相切:{all_edge_map[seg]["是否相切"]}\n\t\t\t半径标注:{anno_des}\n\t\t\t圆心是否在趾端延长线上:{all_edge_map[seg]["圆心是否在趾端延长线上"]}"
+                des=f"是否相切:{all_edge_map[seg]["是否相切"]} 半径标注:{anno_des} 圆心是否在趾端延长线上:{all_edge_map[seg]["圆心是否在趾端延长线上"]}"
             
-                log_to_file(file_path, f"           标注:\n\t\t\t{des}")        
+                log_to_file(file_path, f"           标注:{des}")        
             elif edge_types[seg]=="line":
                 
                 log_to_file(file_path, f"       起点：{seg.start_point}、终点{seg.end_point}、长度：{seg.length()}（直线）、句柄: {seg.ref.handle}")
-                des=f"是否与约束边平行:{all_edge_map[seg]["是否与约束边平行"]}\n\t\t\t是否与相邻约束边夹角为90度:{all_edge_map[seg]["是否与相邻约束边夹角为90度"]}"
+                des=f"是否与约束边平行:{all_edge_map[seg]["是否与约束边平行"]};是否与相邻约束边夹角为90度:{all_edge_map[seg]["是否与相邻约束边夹角为90度"]}"
                 for ty,annos in all_edge_map[seg].items():
                     if ty=="是否与约束边平行" or ty=="是否与相邻约束边夹角为90度" :
                         continue
                     anno_des=""
                     for anno in annos:
                         anno_des=f"{anno_des},{anno[1]}"
-                    des=f"{des}\n\t\t\t{ty}:{anno_des}"
-                log_to_file(file_path, f"           标注:\n\t\t\t{des}")
+                    des=f"{des};{ty}:{anno_des}"
+                log_to_file(file_path, f"           标注:{des}")
             elif edge_types[seg]=="toe":  
                 log_to_file(file_path, f"       起点：{seg.start_point}、终点{seg.end_point}、长度：{seg.length()}（直线）、句柄: {seg.ref.handle}")
                 des=f""
@@ -2166,7 +1989,7 @@ def outputPolyInfo(poly, segments, segmentation_config, point_map, index,star_po
                     anno_des=""
                     for anno in annos:
                         anno_des=f"{anno_des},{anno[1]}"
-                    des=f"{des}\n\t\t\t{ty}:{anno_des}"
+                    des=f"{des};{ty}:{anno_des}"
                 log_to_file(file_path, f"           标注:{des}")
             elif edge_types[seg]=="KS_corner":
                 log_to_file(file_path, f"       起点：{seg.start_point}、终点{seg.end_point}、长度：{seg.length()}（直线）、句柄: {seg.ref.handle}")
@@ -2175,7 +1998,7 @@ def outputPolyInfo(poly, segments, segmentation_config, point_map, index,star_po
                     anno_des=""
                     for anno in annos:
                         anno_des=f"{anno_des},{anno[1]}"
-                    des=f"{des}\n\t\t\t{ty}:{anno_des}"
+                    des=f"{des};{ty}:{anno_des}"
                 log_to_file(file_path, f"           标注:{des}")   
             
             free_idx+=1
@@ -2215,8 +2038,8 @@ def outputPolyInfo(poly, segments, segmentation_config, point_map, index,star_po
                     anno_des=""
                     for anno in all_edge_map[corner_hole_start_edge]["短边尺寸标注"]:
                         anno_des=f"{anno_des},{anno[1]}"
-                    des=f"短边是否平行于相邻边:{all_edge_map[corner_hole_start_edge]["短边是否平行于相邻边"]}\n短边尺寸标注:{anno_des}"
-                    log_to_file(file_path,f"        VU孔标注:\n\t\t\t{des}")
+                    des=f"短边是否平行于相邻边:{all_edge_map[corner_hole_start_edge]["短边是否平行于相邻边"]};短边尺寸标注:{anno_des}"
+                    log_to_file(file_path,f"        VU孔标注:{des}")
                     for seg in edge:
                         if isinstance(seg.ref, DArc):
                             # actual_radius= seg.ref.radius if seg not in r_map else r_map[seg].content.lstrip("R")
@@ -2225,7 +2048,7 @@ def outputPolyInfo(poly, segments, segmentation_config, point_map, index,star_po
                             for anno in all_edge_map[seg]["半径尺寸标注"]:
                                 anno_des=f"{anno_des},{anno[1]}"
                             des=f"半径尺寸标注:{anno_des}"
-                            log_to_file(file_path, f"           标注:\n\t\t\t{des}")                  
+                            log_to_file(file_path, f"           标注:{des}")                  
                         else:
                             
                             log_to_file(file_path, f"       起点：{seg.start_point}、终点{seg.end_point}（直线）、句柄: {seg.ref.handle}")
@@ -2239,7 +2062,7 @@ def outputPolyInfo(poly, segments, segmentation_config, point_map, index,star_po
                             for anno in all_edge_map[seg]["半径尺寸标注"]:
                                 anno_des=f"{anno_des},{anno[1]}"
                             des=f"半径尺寸标注:{anno_des}"
-                            log_to_file(file_path, f"           标注:\n\t\t\t{des}")                  
+                            log_to_file(file_path, f"           标注:{des}")                  
                         else:
                             
                             log_to_file(file_path, f"       起点：{seg.start_point}、终点{seg.end_point}（直线）、句柄: {seg.ref.handle}")
@@ -2258,7 +2081,7 @@ def outputPolyInfo(poly, segments, segmentation_config, point_map, index,star_po
                             anno_des=""
                             for anno in annos:
                                 anno_des=f"{anno_des},{anno[1]}"
-                            des=f"{des}\n\t\t\t{ty}:{anno_des}"
+                            des=f"{des};{ty}:{anno_des}"
                         log_to_file(file_path, f"           标注:{des}")
 
     
@@ -2293,7 +2116,6 @@ def outputPolyInfo(poly, segments, segmentation_config, point_map, index,star_po
 
         log_to_file(file_path, f"肘板类别为{classification_res}")
         log_to_file(file_path, f"肘板混淆类分类特征为:{str(features)}")
-        log_to_file(file_path, f"标准肘板")
         if classification_res == "Unclassified":
             # log_to_file("./output/Unclassified.txt", f"{os.path.splitext(os.path.basename(segmentation_config.json_path))[0]}_infopoly{index}")
             return poly_refs, classification_res
@@ -2332,8 +2154,8 @@ def outputPolyInfo(poly, segments, segmentation_config, point_map, index,star_po
                     anno_des=""
                     for anno in all_edge_map[corner_hole_start_edge]["短边尺寸标注"]:
                         anno_des=f"{anno_des},{anno[1]}"
-                    des=f"短边是否平行于相邻边:{all_edge_map[corner_hole_start_edge]["短边是否平行于相邻边"]}\n短边尺寸标注:{anno_des}"
-                    log_to_file(file_path,f"        VU孔标注:\n\t\t\t{des}")
+                    des=f"短边是否平行于相邻边:{all_edge_map[corner_hole_start_edge]["短边是否平行于相邻边"]};短边尺寸标注:{anno_des}"
+                    log_to_file(file_path,f"        VU孔标注:{des}")
                     for seg in edge:
                         if isinstance(seg.ref, DArc):
                             log_to_file(file_path, f"       起点：{seg.ref.start_point}、终点：{seg.ref.end_point}、圆心：{seg.ref.center}、半径：{seg.ref.radius}（圆弧）、句柄: {seg.ref.handle}")
@@ -2341,7 +2163,7 @@ def outputPolyInfo(poly, segments, segmentation_config, point_map, index,star_po
                             for anno in all_edge_map[seg]["半径尺寸标注"]:
                                 anno_des=f"{anno_des},{anno[1]}"
                             des=f"半径尺寸标注:{anno_des}"
-                            log_to_file(file_path, f"           标注:\n\t\t\t{des}")                  
+                            log_to_file(file_path, f"           标注:{des}")                  
                         else:
                             
                             log_to_file(file_path, f"       起点：{seg.start_point}、终点{seg.end_point}（直线）、句柄: {seg.ref.handle}")
@@ -2354,7 +2176,7 @@ def outputPolyInfo(poly, segments, segmentation_config, point_map, index,star_po
                             for anno in all_edge_map[seg]["半径尺寸标注"]:
                                 anno_des=f"{anno_des},{anno[1]}"
                             des=f"半径尺寸标注:{anno_des}"
-                            log_to_file(file_path, f"           标注:\n\t\t\t{des}")                  
+                            log_to_file(file_path, f"           标注:{des}")                  
                         else:
                             
                             log_to_file(file_path, f"       起点：{seg.start_point}、终点{seg.end_point}（直线）、句柄: {seg.ref.handle}")
@@ -2372,7 +2194,7 @@ def outputPolyInfo(poly, segments, segmentation_config, point_map, index,star_po
                             anno_des=""
                             for anno in annos:
                                 anno_des=f"{anno_des},{anno[1]}"
-                            des=f"{des}\n\t\t\t{ty}:{anno_des}"
+                            des=f"{des};{ty}:{anno_des}"
                         log_to_file(file_path, f"           标注:{des}")
 
         # step8: 输出自由边信息
@@ -2389,21 +2211,21 @@ def outputPolyInfo(poly, segments, segmentation_config, point_map, index,star_po
                 anno_des=""
                 for anno in all_edge_map[seg]["半径标注"]:
                     anno_des=f"{anno_des},{anno[1]}"
-                des=f"是否相切:{all_edge_map[seg]["是否相切"]}\n\t\t\t半径标注:{anno_des}\n\t\t\t圆心是否在趾端延长线上:{all_edge_map[seg]["圆心是否在趾端延长线上"]}"
+                des=f"是否相切:{all_edge_map[seg]["是否相切"]} 半径标注:{anno_des} 圆心是否在趾端延长线上:{all_edge_map[seg]["圆心是否在趾端延长线上"]}"
             
-                log_to_file(file_path, f"           标注:\n\t\t\t{des}")        
+                log_to_file(file_path, f"           标注:{des}")        
             elif edge_types[seg]=="line":
                 
                 log_to_file(file_path, f"       起点：{seg.start_point}、终点{seg.end_point}、长度：{seg.length()}（直线）、句柄: {seg.ref.handle}")
-                des=f"是否与约束边平行:{all_edge_map[seg]["是否与约束边平行"]}\n\t\t\t是否与相邻约束边夹角为90度:{all_edge_map[seg]["是否与相邻约束边夹角为90度"]}"
+                des=f"是否与约束边平行:{all_edge_map[seg]["是否与约束边平行"]};是否与相邻约束边夹角为90度:{all_edge_map[seg]["是否与相邻约束边夹角为90度"]}"
                 for ty,annos in all_edge_map[seg].items():
                     if ty=="是否与约束边平行" or ty=="是否与相邻约束边夹角为90度" :
                         continue
                     anno_des=""
                     for anno in annos:
                         anno_des=f"{anno_des},{anno[1]}"
-                    des=f"{des}\n\t\t\t{ty}:{anno_des}"
-                log_to_file(file_path, f"           标注:\n\t\t\t{des}")
+                    des=f"{des};{ty}:{anno_des}"
+                log_to_file(file_path, f"           标注:{des}")
             elif edge_types[seg]=="toe":  
                 log_to_file(file_path, f"       起点：{seg.start_point}、终点{seg.end_point}、长度：{seg.length()}（直线）、句柄: {seg.ref.handle}")
                 des=f""
@@ -2411,7 +2233,7 @@ def outputPolyInfo(poly, segments, segmentation_config, point_map, index,star_po
                     anno_des=""
                     for anno in annos:
                         anno_des=f"{anno_des},{anno[1]}"
-                    des=f"{des}\n\t\t\t{ty}:{anno_des}"
+                    des=f"{des};{ty}:{anno_des}"
                 log_to_file(file_path, f"           标注:{des}")
             elif edge_types[seg]=="KS_corner":
                 log_to_file(file_path, f"       起点：{seg.start_point}、终点{seg.end_point}、长度：{seg.length()}（直线）、句柄: {seg.ref.handle}")
@@ -2420,7 +2242,7 @@ def outputPolyInfo(poly, segments, segmentation_config, point_map, index,star_po
                     anno_des=""
                     for anno in annos:
                         anno_des=f"{anno_des},{anno[1]}"
-                    des=f"{des}\n\t\t\t{ty}:{anno_des}"
+                    des=f"{des};{ty}:{anno_des}"
                 log_to_file(file_path, f"           标注:{des}")   
         
 
@@ -2454,7 +2276,6 @@ def outputPolyInfo(poly, segments, segmentation_config, point_map, index,star_po
 
         log_to_file(file_path, f"肘板类别为{classification_res}")
         log_to_file(file_path, f"肘板混淆类分类特征为:{str(features)}")
-        log_to_file(file_path, f"标准肘板")
         return poly_refs, classification_res
 
     return poly_refs, classification_res

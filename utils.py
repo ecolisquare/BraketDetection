@@ -945,8 +945,15 @@ def process_block(T_is_contained,block_datas,blockName,scales,rotation,insert,bl
                 # 虚线过滤
                 # if ele.get("linetype") is not None and ele["linetype"] in linetype:
                 #     continue
-                e=DText(ele["bound"],ele["insert"], ele["color"],ele["content"].strip(),ele["height"],ele["handle"],meta=block_meta_data)
-                elements.append(e)
+                content=ele["content"].strip()
+                for ct in content.split("/"):
+                    if ct.strip()!="":
+                        if "R" in ct.strip():
+                            e=DText(ele["bound"],[ele["insert"][0],ele["insert"][1]-5], ele["color"],ct.strip(),ele["height"],ele["handle"],meta=block_meta_data)
+                            elements.append(e)
+                        else:
+                            e=DText(ele["bound"],ele["insert"], ele["color"],ct.strip(),ele["height"],ele["handle"],meta=block_meta_data)
+                            elements.append(e)           
         elif  ele["type"]=="mtext":
             if ele.get("layerName") is not None and ele["layerName"] in layname:
                     continue
@@ -955,8 +962,15 @@ def process_block(T_is_contained,block_datas,blockName,scales,rotation,insert,bl
             #     continue
             string = ele["text"].strip()
             cleaned_string = re.sub(r"^\\A1;", "", string)
-            e=DText(ele["bound"],ele["insert"], ele["color"],cleaned_string,ele["width"],ele["handle"],meta=block_meta_data,is_mtext=True)
-            elements.append(e)
+            for ct in cleaned_string.split("/"):
+                if ct.strip()!="":
+                    if "R" in ct.strip():
+                        e=DText(ele["bound"],[ele["insert"][0],ele["insert"][1]-5], ele["color"],ct.strip(),ele["width"],ele["handle"],meta=block_meta_data,is_mtext=True)
+                        elements.append(e)
+                    else:
+                        e=DText(ele["bound"],ele["insert"], ele["color"],ct.strip(),ele["width"],ele["handle"],meta=block_meta_data,is_mtext=True)
+                        elements.append(e)
+
         elif ele["type"]=="dimension":
             if ele.get("layerName") is not None and ele["layerName"] in layname:
                 continue
