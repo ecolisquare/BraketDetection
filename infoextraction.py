@@ -2187,14 +2187,16 @@ def outputPolyInfo(poly, segments, segmentation_config, point_map, index,star_po
     free_order=True
     # cons_order=True
     if output_template is not None:
+        template_map=match_template(edges,free_edges,output_template,edge_types)
         # print(output_template)
         free_edge_template_no={}
         free_idx=1
         while f'free{free_idx}' in template_map:
             if len(template_map[f'free{free_idx}'])==0:
+                free_idx+=1
                 continue
             seg=template_map[f'free{free_idx}'][0]
-            free_edge_template_no[seg]==free_idx
+            free_edge_template_no[seg]=free_idx
             free_idx+=1
         constranit_edge_template_no={}
         constarint_idx=1
@@ -2211,7 +2213,6 @@ def outputPolyInfo(poly, segments, segmentation_config, point_map, index,star_po
                 break
             if f'cornerhole{cornerhole_idx}' in template_map:  
                 cornerhole_idx+=1
-
 
         new_all_edge_map={}
         for s,dic in all_edge_map.items():
@@ -2238,7 +2239,7 @@ def outputPolyInfo(poly, segments, segmentation_config, point_map, index,star_po
 
 
 
-        template_map=match_template(edges,free_edges,output_template,edge_types)
+
         file_path = os.path.join(segmentation_config.poly_info_dir, f'info{index}.txt')
         clear_file(file_path)
         log_to_file(file_path, f"几何中心坐标：{poly_centroid}")
