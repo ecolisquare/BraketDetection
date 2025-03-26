@@ -841,8 +841,8 @@ def match_edge_anno(constraint_edges,free_edges,edges,all_anno,all_map):
         for d in ds:
             k+=1
             p1, p2 = get_anno_position(d, constraint_edges)
-            all_edge_map[start_edge]["垂直标注"].append([d,f"句柄：{d.handle}，值：{d.text}，参考边：约束边{constraint_edge_no[base_edge]}，箭头起点：{v1}，箭头终点：{v2}，垂边"])
-            all_edge_map[base_edge]["垂直标注"].append([d,f"句柄：{d.handle}，值：{d.text}，参考边：约束边{constraint_edge_no[start_edge]}，箭头起点：{v1}，箭头终点：{v2}，底边"])
+            all_edge_map[start_edge]["垂直标注"].append([d,f"句柄：{d.handle}，值：{d.text}，箭头起点：{v1}，箭头终点：{v2}，垂边，参考边：约束边",base_edge])
+            all_edge_map[base_edge]["垂直标注"].append([d,f"句柄：{d.handle}，值：{d.text}，箭头起点：{v1}，箭头终点：{v2}，底边，参考边：约束边",start_edge])
     # if k==0:
     #     features.add('ff')
     # elif k==1:
@@ -910,7 +910,7 @@ def match_edge_anno(constraint_edges,free_edges,edges,all_anno,all_map):
                 if isinstance(free_edge.ref,DArc):
                     continue
                 if point_segment_position(v1,free_edge,epsilon=0.2,anno=False)!="not_on_line" or point_segment_position(v2,free_edge,epsilon=0.2,anno=False)!="not_on_line":
-                    all_edge_map[free_edge]["延长线与约束边交点标注"].append([d,f"句柄：{d.handle}，值：{d.text}，参考边：约束边{constraint_edge_no[seg]}，箭头起点：{v1}，箭头终点：{v2}"])
+                    all_edge_map[free_edge]["延长线与约束边交点标注"].append([d,f"句柄：{d.handle}，值：{d.text}，箭头起点：{v1}，箭头终点：{v2}，参考边：约束边",seg])
                     features.add('short_anno')
                     feature_map[free_edge].add('short_anno')
                     break
@@ -927,7 +927,7 @@ def match_edge_anno(constraint_edges,free_edges,edges,all_anno,all_map):
                     for s in fr_edges:
                         if edge_type[s]=="line":
                             #句柄：FF280， 值：14.5，参考边：2，箭头起点：Point(1126156.00605, -283084.451961)，箭头终点：Point(1126156.00605, -283084.451961
-                            all_edge_map[s]["与趾端夹角标注"].append([d,f"句柄：{d.handle}，值：{d.text}，参考边： 自由边{free_edge_no[seg]}(趾端)，参考点1：{p1}，参考点2：{p2}，参考中心： {inter}"])
+                            all_edge_map[s]["与趾端夹角标注"].append([d,f"句柄：{d.handle}，值：{d.text}，参考点1：{p1}，参考点2：{p2}，参考中心： {inter}，参考边： (趾端)自由边",seg])
                             features.add('toe_angle')
                             feature_map[s].add('toe_angle')
                             break
@@ -935,7 +935,7 @@ def match_edge_anno(constraint_edges,free_edges,edges,all_anno,all_map):
                     for s in fr_edges[::-1]:
                         if edge_type[s]=="line":
                             #句柄：FF280， 值：14.5，参考边：2，箭头起点：Point(1126156.00605, -283084.451961)，箭头终点：Point(1126156.00605, -283084.451961
-                            all_edge_map[s]["与趾端夹角标注"].append([d,f"句柄：{d.handle}，值：{d.text}，参考边： 自由边{free_edge_no[seg]}(趾端)，参考点1：{p1}，参考点2：{p2}，参考中心： {inter}"])
+                            all_edge_map[s]["与趾端夹角标注"].append([d,f"句柄：{d.handle}，值：{d.text}，参考点1：{p1}，参考点2：{p2}，参考中心： {inter}，参考边： (趾端)自由边",seg])
                             features.add('toe_angle')
                             feature_map[s].add('toe_angle')
                             break
@@ -957,11 +957,11 @@ def match_edge_anno(constraint_edges,free_edges,edges,all_anno,all_map):
             if edge_type[free_edge]=="line":
                 features.add('cons_vert')
                 feature_map[free_edge].add('cons_vert')
-                all_edge_map[free_edge]["与约束边垂直标注"].append([d,f"句柄：{d.handle}，值：{d.text}，参考边：约束边{constraint_edge_no[cons_edge]}，箭头起点：{v1}，箭头终点：{v2}"])
+                all_edge_map[free_edge]["与约束边垂直标注"].append([d,f"句柄：{d.handle}，值：{d.text}，箭头起点：{v1}，箭头终点：{v2}，参考边：约束边",cons_edge])
             elif edge_type[free_edge]=="KS_corner":
                 features.add('cons_vert')
                 feature_map[free_edge].add('cons_vert')
-                all_edge_map[free_edge]["与自由边长度标注"].append([d,f"句柄：{d.handle}，值：{d.text}，参考边：约束边{constraint_edge_no[cons_edge]}，箭头起点：{v1}，箭头终点：{v2}"])
+                all_edge_map[free_edge]["与自由边长度标注"].append([d,f"句柄：{d.handle}，值：{d.text}，箭头起点：{v1}，箭头终点：{v2}，参考边：约束边",cons_edge])
     #自由边直线几何特征（平行与垂直）/自由边圆弧几何特征
     for seg in fr_edges:
         if edge_type[seg]=="line":
@@ -1051,7 +1051,7 @@ def match_edge_anno(constraint_edges,free_edges,edges,all_anno,all_map):
             if edge_type[free_edge]=="line":
                 features.add('short_anno_para')
                 feature_map[free_edge].add('short_anno_para')
-                all_edge_map[free_edge]["平行标注"].append([d,f"句柄：{d.handle}，值：{d.text}，参考边：约束边{constraint_edge_no[cons_edge]}，箭头起点：{v1}，箭头终点：{v2}"])
+                all_edge_map[free_edge]["平行标注"].append([d,f"句柄：{d.handle}，值：{d.text}，箭头起点：{v1}，箭头终点：{v2}，参考边：约束边",cons_edge])
     
     #半径标注
     for seg,t in r_map.items():
@@ -1063,7 +1063,7 @@ def match_edge_anno(constraint_edges,free_edges,edges,all_anno,all_map):
     
     for s,fs in feature_map.items():
         feature_map[s]=list(fs)
-    return all_edge_map,edge_type,list(features),feature_map
+    return all_edge_map,edge_type,list(features),feature_map,constraint_edge_no,free_edge_no
 
 def  get_edge_des(edge):
     des=""
@@ -1907,6 +1907,40 @@ def outputPolyInfo(poly, segments, segmentation_config, point_map, index,star_po
         print("肘板轮廓接近矩形！")
         return None
 
+
+    for i,edge in enumerate(edges):
+        if (not edge[0].isConstraint) and (not edge[0].isCornerhole):
+            #自由边
+            continue
+        if edge[0].isCornerhole:
+            #角隅孔
+            continue
+        else:
+            #约束边
+            continue
+    
+
+
+    is_standard_elbow=True
+    bracket_parameter={}
+    thickness=0
+    for t_t in tis:
+        content=t_t[0].content.strip()
+        if t_t[2]["Type"]=="B" and '~' in content:
+            is_standard_elbow=False
+    for t_t in tis:
+        content=t_t[0].content.strip()
+        if t_t[2]["Type"]=="B" and '~' not in content:
+            bracket_parameter=t_t[2]
+            if bracket_parameter["Thickness"] is not None:
+                thickness=bracket_parameter["Thickness"]
+    if is_standard_elbow:
+
+        #TODO:标准肘板缺省角隅孔的添加
+        # [-1] line 
+        # [0] line 
+        #edges poly_refs constraint_edges
+        pass
     # step6: 绘制对边分类后的几何图像
     plot_info_poly(polygon,poly_refs, os.path.join(segmentation_config.poly_info_dir, f'infopoly{index}.png'),tis,ds,sfs,others)
 
@@ -1966,15 +2000,33 @@ def outputPolyInfo(poly, segments, segmentation_config, point_map, index,star_po
     all_map=(r_map,l_whole_map,l_half_map,l_cornor_map,l_para_map,l_para_single_map,l_n_para_map,l_n_para_single_map,l_ver_map,l_ver_single_map,d_map,a_map)
 
 
-    all_edge_map,edge_types,features,feature_map=match_edge_anno(constraint_edges,free_edges,edges,all_anno,all_map)
+    all_edge_map,edge_types,features,feature_map,constraint_edge_no,free_edge_no=match_edge_anno(constraint_edges,free_edges,edges,all_anno,all_map)
+
     # for s,fs in feature_map.items():
     #     print(s,fs)
-    is_standard_elbow=True
-    for t_t in tis:
-        content=t_t[0].content.strip()
-        if t_t[2]["Type"]=="B" and '~' in content:
-            is_standard_elbow=False
+
     if is_standard_elbow==False:
+        new_all_edge_map={}
+        for s,dic in all_edge_map.items():
+            new_dic={}
+            for ty,ds in dic.items():
+                if isinstance(ds,list):
+                    new_ds=[]
+                    for d_t in ds:
+                        if len(d_t)==3:
+                            d,des,seg=d_t 
+                            if seg in constraint_edge_no:
+                                des+=str(constraint_edge_no[seg])
+                            else:
+                                des+=str(free_edge_no[seg])
+                            new_ds.append([d,des])
+                        else:
+                            new_ds.append(d_t)
+                    new_dic[ty]=new_ds
+                else:
+                    new_dic[ty]=ds
+            new_all_edge_map[s]=new_dic
+        all_edge_map=new_all_edge_map
         file_path = os.path.join(segmentation_config.poly_info_dir, f'info{index}.txt')
         clear_file(file_path)
         log_to_file(file_path, f"几何中心坐标：{poly_centroid}")
@@ -2136,6 +2188,56 @@ def outputPolyInfo(poly, segments, segmentation_config, point_map, index,star_po
     # cons_order=True
     if output_template is not None:
         # print(output_template)
+        free_edge_template_no={}
+        free_idx=1
+        while f'free{free_idx}' in template_map:
+            if len(template_map[f'free{free_idx}'])==0:
+                continue
+            seg=template_map[f'free{free_idx}'][0]
+            free_edge_template_no[seg]==free_idx
+            free_idx+=1
+        constranit_edge_template_no={}
+        constarint_idx=1
+        cornerhole_idx=1
+        while True:
+            # print(constarint_idx,cornerhole_idx)
+            if f'constraint{constarint_idx}' in template_map:
+                for edge in template_map[f'constraint{constarint_idx}']:
+
+                    constranit_edge_template_no[edge]=constarint_idx
+                
+                constarint_idx+=1
+            else:
+                break
+            if f'cornerhole{cornerhole_idx}' in template_map:  
+                cornerhole_idx+=1
+
+
+        new_all_edge_map={}
+        for s,dic in all_edge_map.items():
+            new_dic={}
+            for ty,ds in dic.items():
+                if isinstance(ds,list):
+                    new_ds=[]
+                    for d_t in ds:
+                        if len(d_t)==3:
+                            d,des,seg=d_t 
+                            if seg in constranit_edge_template_no:
+                                des+=str(constranit_edge_template_no[seg])
+                            else:
+                                des+=str(free_edge_template_no[seg])
+                            new_ds.append([d,des])
+                        else:
+                            new_ds.append(d_t)
+                    new_dic[ty]=new_ds
+                else:
+                    new_dic[ty]=ds
+            new_all_edge_map[s]=new_dic
+        all_edge_map=new_all_edge_map
+
+
+
+
         template_map=match_template(edges,free_edges,output_template,edge_types)
         file_path = os.path.join(segmentation_config.poly_info_dir, f'info{index}.txt')
         clear_file(file_path)
@@ -2328,7 +2430,29 @@ def outputPolyInfo(poly, segments, segmentation_config, point_map, index,star_po
         if len(matched_types)>1 :
             log_to_file("./output/duplicate_class.txt",f"{os.path.splitext(os.path.basename(segmentation_config.json_path))[0]}_infopoly{index}   {str(matched_types)}")
     else:
+        new_all_edge_map={}
+        for s,dic in all_edge_map.items():
+            new_dic={}
+            for ty,ds in dic.items():
+                if isinstance(ds,list):
+                    new_ds=[]
+                    for d_t in ds:
+                        if len(d_t)==3:
+                            d,des,seg=d_t 
+                            if seg in constraint_edge_no:
+                                des+=str(constraint_edge_no[seg])
+                            else:
+                                des+=str(free_edge_no[seg])
+                            new_ds.append([d,des])
+                        else:
+                            new_ds.append(d_t)
+                    new_dic[ty]=new_ds
+                else:
+                    new_dic[ty]=ds
+            new_all_edge_map[s]=new_dic
+        all_edge_map=new_all_edge_map
         file_path = os.path.join(segmentation_config.poly_info_dir, f'info{index}.txt')
+
         clear_file(file_path)
         log_to_file(file_path, f"几何中心坐标：{poly_centroid}")
         log_to_file(file_path, f"边界数量（含自由边）：{len(constraint_edges) + len(free_edges)}")
