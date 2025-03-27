@@ -485,6 +485,7 @@ def poly_classifier(features,all_anno,poly_refs, texts,dimensions,conerhole_num,
         return "Unclassified", None
 
     # 匹配最佳标准肘板分类，feature必须是该类别的子集，且特征占比最高
+    strict_feature = ["is_tangent", "is_para", "is_ver", "is_ontoe"]
     max_feature_num = -1
     res_matched_type = "Unclassified"
     for type_name in matched_type.split(','):
@@ -507,11 +508,19 @@ def poly_classifier(features,all_anno,poly_refs, texts,dimensions,conerhole_num,
         flag = True
         f_num = 0
         for feature in features:
+            if feature in strict_feature:
+                continue
             if feature in code:
                 f_num += 1
             else:
                 flag = False
                 break
+
+        # 部分特征要严格执行
+        for c in code:
+            if c in strict_feature and c not in features:
+                flag = False
+        
         # 如果是子集，则比较特征数
         if flag:
             if f_num > max_feature_num:
