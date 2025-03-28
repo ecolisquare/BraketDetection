@@ -1080,7 +1080,7 @@ def get_free_edge_des(edge,edge_types):
        
         des+=edge_types[s]+","
     return des[:-1]
-def get_score(free_edges_types,non_free_edges,non_free_edges_types,free_edge_seq,non_free_edges_seq,non_free_edges_types_seq):
+def get_score(free_edges_types,non_free_edges,non_free_edges_types,free_edge_seq,non_free_edges_seq,non_free_edges_types_seq,ignore_types):
     new_free_edges_types=[]
     for t in free_edges_types:
         if t!="KS_corner":
@@ -1096,14 +1096,18 @@ def get_score(free_edges_types,non_free_edges,non_free_edges_types,free_edge_seq
     new_non_free_edges=[]
     new_non_free_edges_types=[]
     for i,edge in enumerate(non_free_edges):
-        if non_free_edges_types[i]=="cornerhole" and len(edge)==1 and isinstance(edge[0].ref,DLine):
+        if ignore_types[0]=="line"and  non_free_edges_types[i]=="cornerhole" and len(edge)==1 and isinstance(edge[0].ref,DLine) :
+            continue
+        if ignore_types[0]=="arc"and  non_free_edges_types[i]=="cornerhole" and len(edge)==1 and isinstance(edge[0].ref,DArc) :
             continue
         new_non_free_edges.append(edge)
         new_non_free_edges_types.append(non_free_edges_types[i])
     new_non_free_edges_seq=[]
     new_non_free_edges_types_seq=[]
     for i,edge in enumerate(non_free_edges_seq):
-        if non_free_edges_types_seq[i]=="cornerhole" and len(edge)==1 and edge[0]=="line":
+        if ignore_types[0]=="line"and non_free_edges_types_seq[i]=="cornerhole" and len(edge)==1 and edge[0]=="line":
+            continue
+        if ignore_types[0]=="arc"and non_free_edges_types_seq[i]=="cornerhole" and len(edge)==1 and edge[0]=="arc":
             continue
         new_non_free_edges_seq.append(edge)
         new_non_free_edges_types_seq.append(non_free_edges_types_seq[i])
@@ -1120,8 +1124,11 @@ def get_score(free_edges_types,non_free_edges,non_free_edges_types,free_edge_seq
             if edges3==edges2:
                 total+=1
     return total
-def match_template(edges,detected_free_edges,template,edge_types):
-
+def match_template(edges,detected_free_edges,template,edge_types,thickness):
+    if thickness>25:
+        ignore_types=["arc"]
+    else:
+        ignore_types=["line"]
     non_free_edges=[]
     non_free_edges_types=[]
     free_edges=[]
@@ -1163,8 +1170,8 @@ def match_template(edges,detected_free_edges,template,edge_types):
     total,r_total=0,0
     
     
-    total=get_score(free_edges_types,non_free_edges,non_free_edges_types,free_edge_seq,non_free_edges_seq,non_free_edges_types_seq)
-    r_total=get_score(r_free_edges_types,r_non_free_edges,r_non_free_edges_types,free_edge_seq,non_free_edges_seq,non_free_edges_types_seq)
+    total=get_score(free_edges_types,non_free_edges,non_free_edges_types,free_edge_seq,non_free_edges_seq,non_free_edges_types_seq,ignore_types)
+    r_total=get_score(r_free_edges_types,r_non_free_edges,r_non_free_edges_types,free_edge_seq,non_free_edges_seq,non_free_edges_types_seq,ignore_types)
     
 
     if total<r_total:
@@ -1193,9 +1200,13 @@ def match_template(edges,detected_free_edges,template,edge_types):
         else:
             constraint_idx+=1
             key=f"constraint{constraint_idx}"
-        if non_free_edges_types_seq[i]=="cornerhole" and len(non_free_edges_seq[i])==1 and non_free_edges_seq[i][0]=="line" and j>=len(non_free_edges_types):
+        if ignore_types[0]=="line" and non_free_edges_types_seq[i]=="cornerhole" and len(non_free_edges_seq[i])==1 and non_free_edges_seq[i][0]=="line" and j>=len(non_free_edges_types):
             template_map[key]=[]
-        elif non_free_edges_types_seq[i]=="cornerhole" and len(non_free_edges_seq[i])==1 and non_free_edges_seq[i][0]=="line" and not(non_free_edges_types[j]=="cornerhole" and len(non_free_edges[j])==1 and isinstance(non_free_edges[j][0].ref,DLine)):
+        elif ignore_types[0]=="line" and non_free_edges_types_seq[i]=="cornerhole" and len(non_free_edges_seq[i])==1 and non_free_edges_seq[i][0]=="line" and not(non_free_edges_types[j]=="cornerhole" and len(non_free_edges[j])==1 and isinstance(non_free_edges[j][0].ref,DLine)):
+            template_map[key]=[]
+        elif ignore_types[0]=="arc" and non_free_edges_types_seq[i]=="cornerhole" and len(non_free_edges_seq[i])==1 and non_free_edges_seq[i][0]=="arc" and j>=len(non_free_edges_types):
+            template_map[key]=[]
+        elif ignore_types[0]=="arc" and non_free_edges_types_seq[i]=="cornerhole" and len(non_free_edges_seq[i])==1 and non_free_edges_seq[i][0]=="arc" and not(non_free_edges_types[j]=="cornerhole" and len(non_free_edges[j])==1 and isinstance(non_free_edges[j][0].ref,DArc)):
             template_map[key]=[]
         else:
             template_map[key]=non_free_edges[j]
@@ -2414,7 +2425,14 @@ def outputInfo(index,edges_info,poly_centroid,hint_info,meta_info,segmentation_c
     free_order=True
     # cons_order=True
     if output_template is not None:
-        template_map=match_template(edges,free_edges,output_template,edge_types)
+        thickness=0
+        if meta_info[1] is not None and meta_info[1]["Thickness"] is not None:
+            thickness=meta_info[1]["Thickness"]
+        if thickness>25:
+            ignore_types=["arc"]
+        else:
+            ignore_types=["line"]
+        template_map=match_template(edges,free_edges,output_template,edge_types,thickness)
         # print(output_template)
         free_edge_template_no={}
         free_idx=1
@@ -2550,8 +2568,15 @@ def outputInfo(index,edges_info,poly_centroid,hint_info,meta_info,segmentation_c
 
 
             if len(edge)==0:
+                if thickness>25:
+                    content="R20"
+                elif thickness<10:
+                    content="KS10"
+                else:
+                    content="KS15"
                 log_to_file(file_path, f"边界颜色{k}: 缺省")
-                log_to_file(file_path, f"边界轮廓{k}(line): ")
+                log_to_file(file_path, f"边界轮廓{k}({ignore_types[0]}): ")
+                log_to_file(file_path, f"边界缺省轮廓{k}({content}): ")
                 k+=1
                 log_to_file(file_path,f"    角隅孔{cornerhole_idx+1}({get_edge_des(edge)})")
                 log_to_file(file_path, f"       缺省")
