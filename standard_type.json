@@ -60,8 +60,8 @@
       "edges": ["line"]
       }],
   
-    "free_code": [["is_pa"], ["short_anno", "is_para", "D", "is_ontoe", "cons_vert", "toe_angle"], [], ["long_anno"], []],
-    "no_free_code":[[], [], ["long_anno"], [], []]
+    "free_code": [[], ["no_tangent","is_ontoe"], ["is_para","toe_angle","cons_vert","short_anno"], ["no_tangent" ,"is_ontoe"], ["D"],[]],
+    "no_free_code":[[], [], [], [], []]
   },
   "LDPK(R-R)":{
     "free_edges": ["toe", "arc", "line", "arc", "toe"],
