@@ -210,7 +210,7 @@ if __name__ == '__main__':
             continue
         # if len(nearest_gt_texts)==0:
         #     continue
-        if nearest_gt_text not in standard_bracket_type:
+        if nearest_gt_text.content not in standard_bracket_type:
             continue
         gt_total_with_labels += 1
         gt_polygon = Polygon(gt_poly)
@@ -223,7 +223,7 @@ if __name__ == '__main__':
                 #     continue
                 if nearest_test_text is None:
                     continue
-                if nearest_test_text in nearest_gt_text:
+                if nearest_gt_text.content in nearest_test_text.content:
                     flag = True
                 if flag:
                     correct_polys.append(gt_poly)
