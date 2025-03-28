@@ -739,9 +739,9 @@ def is_tangent_(line,arc):
     s1,s2=DSegment(arc.ref.center,arc.ref.start_point),DSegment(arc.ref.center,arc.ref.end_point)
     v1,v2=line.start_point,line.end_point
     if v1==arc.ref.start_point or v2==arc.ref.start_point:
-        return is_vertical_(v1,v2,s1)
+        return is_vertical_(v1,v2,s1,0.35)
     if v1==arc.ref.end_point or v2==arc.ref.end_point:
-        return is_vertical_(v1,v2,s2)
+        return is_vertical_(v1,v2,s2,0.35)
     return True
 def is_vu(edge):
     if len(edge)!=2:
@@ -880,11 +880,12 @@ def match_edge_anno(constraint_edges,free_edges,edges,all_anno,all_map):
             all_edge_map[edge]["与自由边夹角标注"]=[]
             all_edge_map[edge]["与自由边长度标注"]=[]
     
-    for edge in corner_hole_start_edge:
-        all_edge_map[edge]={}
-        all_edge_map[edge]["短边尺寸标注"]=[]
-        all_edge_map[edge]["半径尺寸标注"]=[]
-        all_edge_map[edge]["短边是否平行于相邻边"]=False
+    for corner_hole in corner_holes:
+        for edge in corner_hole:
+            all_edge_map[edge]={}
+            all_edge_map[edge]["短边尺寸标注"]=[]
+            all_edge_map[edge]["半径尺寸标注"]=[]
+            all_edge_map[edge]["短边是否平行于相邻边"]=False
     
     #自由边直线以及趾端边长标注
     for seg,ds in d_map.items():
@@ -977,7 +978,7 @@ def match_edge_anno(constraint_edges,free_edges,edges,all_anno,all_map):
                 feature_map[seg].add('is_para')
             if free_edge_no[seg]==1 or free_edge_no[seg]==len(fr_edges):
                 cons_edge=find_cons_edge(cons_edges,seg)
-                flag=is_vertical_(seg.start_point,seg.end_point,cons_edge,0.15)
+                flag=is_vertical_(seg.start_point,seg.end_point,cons_edge,0.005)
                 all_edge_map[seg]["是否与相邻约束边夹角为90度"]=flag
                 if flag:
                     features.add('is_ver')
@@ -1004,9 +1005,9 @@ def match_edge_anno(constraint_edges,free_edges,edges,all_anno,all_map):
                 if flag==False:
                     break
             all_edge_map[seg]["是否相切"]=flag
-            if flag:
-                features.add('is_tangent')
-                feature_map[seg].add('is_tangent')
+            if flag==False:
+                features.add('no_tangent')
+                feature_map[seg].add('no_tangent')
             flag=False
             for toe_line in all_toe:
                 if point_segment_position(o,toe_line,epsilon=0.2,anno=False)!="not_on_line":
@@ -2321,14 +2322,19 @@ def outputPolyInfo(poly, segments, segmentation_config, point_map, index,star_po
         cornerhole_idx=0
         for i,edge in enumerate(template_edges):
 
-            log_to_file(file_path, f"边界颜色{k}: {edge[0].ref.color}")
-            log_to_file(file_path, f"边界轮廓{k}({get_edge_des(edge)}): ")
-            k+=1
+
             if len(edge)==0:
+                log_to_file(file_path, f"边界颜色{k}: 缺省")
+                log_to_file(file_path, f"边界轮廓{k}(line): ")
+                k+=1
                 log_to_file(file_path,f"    角隅孔{cornerhole_idx+1}({get_edge_des(edge)})")
                 log_to_file(file_path, f"       缺省")
                 cornerhole_idx+=1
+
             elif edge[0].isCornerhole:
+                log_to_file(file_path, f"边界颜色{k}: {edge[0].ref.color}")
+                log_to_file(file_path, f"边界轮廓{k}({get_edge_des(edge)}): ")
+                k+=1
                 corner_hole_start_edge=edge[0]
                 log_to_file(file_path,f"    角隅孔{cornerhole_idx+1}({get_edge_des(edge)})")
                 cornerhole_idx+=1
@@ -2365,6 +2371,9 @@ def outputPolyInfo(poly, segments, segmentation_config, point_map, index,star_po
                             
                             log_to_file(file_path, f"       起点：{seg.start_point}、终点{seg.end_point}（直线）、句柄: {seg.ref.handle}")
             else:
+                log_to_file(file_path, f"边界颜色{k}: {edge[0].ref.color}")
+                log_to_file(file_path, f"边界轮廓{k}({get_edge_des(edge)}): ")
+                k+=1
                 log_to_file(file_path,f"    约束边{constarint_idx+1}({get_edge_des(edge)})")
                 constarint_idx+=1
                 for seg in edge:

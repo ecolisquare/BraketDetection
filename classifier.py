@@ -494,6 +494,7 @@ def poly_classifier(features,all_anno,poly_refs, texts,dimensions,conerhole_num,
         no_free_code = classification_table[type_name]["no_free_code"]
         # 方案1：特征类型统计，不归属到具体边
         code = []
+        strict_features=['is_para','is_ontoe','no_tangent','is_ver']
         for c in free_code:
             for f in c:
                 if f not in code:
@@ -507,10 +508,15 @@ def poly_classifier(features,all_anno,poly_refs, texts,dimensions,conerhole_num,
         flag = True
         f_num = 0
         for feature in features:
-            if feature in code:
-                f_num += 1
-            else:
-                flag = False
+            if feature not in strict_features:
+                if  feature in code:
+                    f_num += 1
+                else:
+                    flag = False
+                    break
+        for c in code:
+            if c not in features:
+                flag=False
                 break
         # 如果是子集，则比较特征数
         if flag:
