@@ -586,7 +586,6 @@ def poly_classifier(features,all_anno,poly_refs, texts,dimensions,conerhole_num,
                     f_score += 1
                 else:
                     best_match_flag = False
-                free_idx += 1
                 constarint_idx+=1
             else:
                 break
@@ -598,8 +597,6 @@ def poly_classifier(features,all_anno,poly_refs, texts,dimensions,conerhole_num,
                     f_score += 1
                 else:
                     best_match_flag = False
-                free_idx += 1
-                constarint_idx+=1  
                 cornerhole_idx+=1
         
         # 如果完全匹配成功，直接作为最终结果；否则则进行分数比较
