@@ -2,6 +2,8 @@ import json
 import random
 from element import *
 import copy
+from infoextraction import match_template
+
 def is_vertical_(point1,point2,segment,epsilon=0.05):
     v1=DPoint(point1.x-point2.x,point1.y-point2.y)
     v2=DPoint(segment.start_point.x-segment.end_point.x,segment.start_point.y-segment.end_point.y)
@@ -347,7 +349,7 @@ def find_cons_edge(poly_refs,seg):
 
 
 # 标准肘板的匹配分类函数
-def poly_classifier(features,all_anno,poly_refs, texts,dimensions,conerhole_num, poly_free_edges, edges, standard_classification_file_path, info_json_path, keyname, is_output_json = False):
+def poly_classifier(features,all_anno,poly_refs, texts,dimensions,conerhole_num, poly_free_edges, edges, thickness, feature_map, edge_types, standard_classification_file_path, info_json_path, keyname, is_output_json = False):
     classification_table = load_classification_table(standard_classification_file_path)
 
     # Step 1: 获取角隅孔数
@@ -415,6 +417,25 @@ def poly_classifier(features,all_anno,poly_refs, texts,dimensions,conerhole_num,
                     seq.append("arc")
             edges_sequence.append([type, seq])
             reversed_edges_sequence.insert(0, [type, list(reversed(seq))])
+    
+    # 根据板厚在没有角隅孔的固定边轮廓之间添加角隅孔
+    i = 0
+    while i < len(edges_sequence) - 1:
+        if edges_sequence[i][0] == "constraint" and edges_sequence[i + 1][0] == "constraint":
+            add_seq = ["line"] if thickness <= 25 else ["arc"]
+            edges_sequence.insert(i + 1, ["cornerhole", add_seq])
+            i += 1  # 跳过新插入的元素
+        i += 1
+    
+    i = 0
+    while i < len(reversed_edges_sequence) - 1:
+        if reversed_edges_sequence[i][0] == "constraint" and reversed_edges_sequence[i + 1][0] == "constraint":
+            add_seq = ["line"] if thickness <= 25 else ["arc"]
+            reversed_edges_sequence.insert(i + 1, ["cornerhole", add_seq])
+            i += 1  # 跳过新插入的元素
+        i += 1
+
+
     # 对肘板轮廓进行输出
     if is_output_json:
         geometry_info = {
@@ -485,53 +506,116 @@ def poly_classifier(features,all_anno,poly_refs, texts,dimensions,conerhole_num,
         return "Unclassified", None
 
     # 匹配最佳标准肘板分类，feature必须是该类别的子集，且特征占比最高
-    strict_feature = ["is_tangent", "is_para", "is_ver", "is_ontoe"]
+    # for type_name in matched_type.split(','):
+    #     if type_name.strip()=="":
+    #         continue
+    #     free_code = classification_table[type_name]["free_code"]
+    #     no_free_code = classification_table[type_name]["no_free_code"]
+    #     # 方案1：特征类型统计，不归属到具体边
+    #     code = []
+        
+    #     for c in free_code:
+    #         for f in c:
+    #             if f not in code:
+    #                 code.append(f)
+    #     for c in no_free_code:
+    #         for f in c:
+    #             if f not in code:
+    #                 code.append(f)
+
+    #     # 判断是否是子集且计算特征数
+    #     flag = True
+    #     f_num = 0
+
+    #     for feature in features:
+    #         if feature not in strict_feature:
+    #             if  feature in code:
+    #                 f_num += 1
+    #             else:
+    #                 flag = False
+    #                 break
+    #     for c in code:
+    #         if c not in features:
+    #             flag=False
+    #             break
+
+        
+    #     # 如果是子集，则比较特征数
+    #     if flag:
+    #         if f_num > max_feature_num:
+    #             max_feature_num = f_num
+    #             res_matched_type = [type_name]
+    #         elif f_num == max_feature_num:
+    #             res_matched_type.append(type_name)
     max_feature_num = -1
     res_matched_type = "Unclassified"
+    best_matched_type = None
     for type_name in matched_type.split(','):
+        best_match_flag = True
+        f_score = 0
         if type_name.strip()=="":
             continue
         free_code = classification_table[type_name]["free_code"]
         no_free_code = classification_table[type_name]["no_free_code"]
-        # 方案1：特征类型统计，不归属到具体边
-        code = []
-        strict_features=['is_para','is_ontoe','no_tangent','is_ver']
+        template_map=match_template(edges,poly_free_edges,classification_table[type_name],edge_types)
+
+        # 自由边特征比对
+        free_idx = 1
+        while f'free{free_idx}' in template_map:
+            if len(template_map[f'free{free_idx}'])==0:
+                free_idx += 1
+                continue
+            seg=template_map[f'free{free_idx}'][0]
+            f = feature_map[seg]
+            c = free_code[free_idx - 1]
+            if eva_c_f(c, f):
+                f_score += 1
+            else:
+                best_match_flag = False
+            free_idx += 1
         
-        for c in free_code:
-            for f in c:
-                if f not in code:
-                    code.append(f)
-        for c in no_free_code:
-            for f in c:
-                if f not in code:
-                    code.append(f)
-
-        # 判断是否是子集且计算特征数
-        flag = True
-        f_num = 0
-
-        for feature in features:
-            if feature not in strict_features:
-                if  feature in code:
-                    f_num += 1
+        # 非自由边特征对比
+        constarint_idx=1
+        cornerhole_idx=1
+        while True:
+            if f'constraint{constarint_idx}' in template_map:
+                seg = template_map[f'constraint{constarint_idx}'][0]
+                f = feature_map[seg]
+                c = free_code[free_idx - 1]
+                if eva_c_f(c, f):
+                    f_score += 1
                 else:
-                    flag = False
-                    break
-        for c in code:
-            if c not in features:
-                flag=False
+                    best_match_flag = False
+                free_idx += 1
+                constarint_idx+=1
+            else:
                 break
-
+            if f'cornerhole{cornerhole_idx}' in template_map:
+                seg = template_map[f'cornerhole{cornerhole_idx}'][0]
+                f = feature_map[seg]
+                c = free_code[free_idx - 1]
+                if eva_c_f(c, f):
+                    f_score += 1
+                else:
+                    best_match_flag = False
+                free_idx += 1
+                constarint_idx+=1  
+                cornerhole_idx+=1
         
-        # 如果是子集，则比较特征数
-        if flag:
-            if f_num > max_feature_num:
-                max_feature_num = f_num
-                res_matched_type = [type_name]
-            elif f_num == max_feature_num:
-                res_matched_type.append(type_name)
-    
+        # 如果完全匹配成功，直接作为最终结果；否则则进行分数比较
+        if best_match_flag:
+            best_matched_type = type_name if best_matched_type is None else f'{best_matched_type},{type_name}'
+        elif f_score > max_feature_num:
+            max_feature_num = f_score
+            res_matched_type = type_name
+        elif f_score == max_feature_num:
+            res_matched_type = f'{res_matched_type},{type_name}'
+
+
     # 如果成功匹配到标准肘板类别，则返回该类别；否则，则仅返回其中一类别模板
+    if best_matched_type is not None:
+        res_matched_type = best_matched_type
+
     if res_matched_type == "Unclassified":
         matched_type = res_matched_type
         output_template = None
@@ -540,6 +624,20 @@ def poly_classifier(features,all_anno,poly_refs, texts,dimensions,conerhole_num,
         output_template = classification_table[res_matched_type[0]]
 
     return matched_type,output_template
+
+def eva_c_f(codes, features, p_feature = ["is_tangent", "is_para", "is_ver", "is_ontoe"]):
+    # codes中的所有特征都要包含在features中
+    for c in codes:
+        if c not in features:
+            return False
+    # features中的所有标注特征都要包含在codes中
+    for f in features:
+        if f not in p_feature:
+            if f not in c:
+                return False
+    return True
+
+
 
 # 整体轮廓过滤    
 def refine_poly_classifier(classification_table, mixed_types, edges_sequence, reversed_edges_sequence):
