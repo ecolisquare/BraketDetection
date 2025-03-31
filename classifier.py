@@ -581,7 +581,7 @@ def poly_classifier(features,all_anno,poly_refs, texts,dimensions,conerhole_num,
             if f'constraint{constarint_idx}' in template_map:
                 seg = template_map[f'constraint{constarint_idx}'][0]
                 f = feature_map[seg]
-                c = free_code[free_idx - 1]
+                c = no_free_code[constarint_idx + cornerhole_idx - 2]
                 if eva_c_f(c, f):
                     f_score += 1
                 else:
@@ -593,7 +593,7 @@ def poly_classifier(features,all_anno,poly_refs, texts,dimensions,conerhole_num,
             if f'cornerhole{cornerhole_idx}' in template_map:
                 seg = template_map[f'cornerhole{cornerhole_idx}'][0]
                 f = feature_map[seg]
-                c = free_code[free_idx - 1]
+                c = no_free_code[constarint_idx + cornerhole_idx - 2]
                 if eva_c_f(c, f):
                     f_score += 1
                 else:
