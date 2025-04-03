@@ -2231,6 +2231,43 @@ def diffusion_step(edges_infos,poly_centroids,hint_infos,meta_infos):
             new_hint_infos.append(hint_info)
             new_meta_infos.append(meta_info)
     return new_edges_infos,new_poly_centroids,new_hint_infos,new_meta_infos
+def find_intersection(p1, p2, p3, p4):
+    """
+    计算两条线段的交点，包括延长线上的交点
+    
+    参数:
+    p1, p2: 第一条线段的两个端点 (x, y)
+    p3, p4: 第二条线段的两个端点 (x, y)
+    
+    返回:
+    (x, y): 交点坐标
+    None: 如果两条线段平行或重合
+    """
+    # 解线性方程组求参数
+    # 第一条线段参数方程: p1 + t(p2-p1)
+    # 第二条线段参数方程: p3 + u(p4-p3)
+    
+    x1, y1 = p1
+    x2, y2 = p2
+    x3, y3 = p3
+    x4, y4 = p4
+    
+    # 计算分母
+    denom = (y4 - y3) * (x2 - x1) - (x4 - x3) * (y2 - y1)
+    
+    # 如果分母为0，说明线段平行或重合
+    if denom == 0:
+        return None
+    
+    # 计算参数t和u
+    ua = ((x4 - x3) * (y1 - y3) - (y4 - y3) * (x1 - x3)) / denom
+    ub = ((x2 - x1) * (y1 - y3) - (y2 - y1) * (x1 - x3)) / denom
+    
+    # 计算交点坐标
+    x = x1 + ua * (x2 - x1)
+    y = y1 + ua * (y2 - y1)
+    
+    return DPoint(x, y)
 
 def outputInfo(index,edges_info,poly_centroid,hint_info,meta_info,segmentation_config):
     is_standard_elbow,bracket_parameter,strengthen_parameter,has_hint,is_fb=meta_info
@@ -2558,6 +2595,7 @@ def outputInfo(index,edges_info,poly_centroid,hint_info,meta_info,segmentation_c
         k=1
         constarint_idx=0
         cornerhole_idx=0
+
         for i,edge in enumerate(template_edges):
 
 
@@ -2621,20 +2659,66 @@ def outputInfo(index,edges_info,poly_centroid,hint_info,meta_info,segmentation_c
                 k+=1
                 log_to_file(file_path,f"    约束边{constarint_idx+1}({get_edge_des(edge)})")
                 constarint_idx+=1
+                next_cons_edge=[]
+                last_cons_edge=[]
+                index=i+1
+                while index<len(template_edges):
+                    next_e=template_edges[index]
+                    if not(len(next_e)==0 or next_e[0].isCornerhole):
+                        next_cons_edge=next_e
+                        break
+                    index+=1
+                index=i-1
+                while index>=0:
+                    last_e=template_edges[index]
+                    if not(len(last_e)==0 or last_e[0].isCornerhole):
+                        last_cons_edge=last_e
+                        break
+                    index-=1
+                next_seg=next_cons_edge[0] if len(next_cons_edge)>0 else None
+                last_seg=last_cons_edge[0] if len(last_cons_edge)>0 else None
+                if last_seg is not None:
+                    inter1=find_intersection(last_seg.start_point,last_seg.end_point,seg.start_point,seg.end_point)
+                else:
+                    inter1=None
+                if next_seg is not None:
+                    inter2=find_intersection(next_seg.start_point,next_seg.end_point,seg.start_point,seg.end_point)
+                else:
+                    inter2=None
+                if inter1 is not None and inter2 is not None:
+                    new_seg=DSegment(inter1,inter2)
+                elif inter1 is not None:
+                    if DSegment(inter1,seg.start_point).length()<DSegment(inter1,seg.end_point).length():
+                        new_seg=DSegment(inter1,seg.end_point)
+                    else:
+                        new_seg=DSegment(inter1,seg.start_point)
+                elif inter2 is not None:
+                    if DSegment(inter2,seg.start_point).length()<DSegment(inter2,seg.end_point).length():
+                        new_seg=DSegment(inter2,seg.end_point)
+                    else:
+                        new_seg=DSegment(inter2,seg.start_point)
+                else:
+                    new_seg=seg
+                correct_edge=[new_seg]
+                log_to_file(file_path,f"        经过延长后直线：")
+                for seg in correct_edge:
+                    log_to_file(file_path, f"           起点：{seg.start_point}、终点{seg.end_point}（直线）、长度: {seg.length()}")
+                log_to_file(file_path,f"        将约束边估计为直线：")
                 for seg in edge:
+
                     if isinstance(seg.ref, DArc):
                         # actual_radius= seg.ref.radius if seg not in r_map else r_map[seg].content.lstrip("R")
-                        log_to_file(file_path, f"       起点：{seg.ref.start_point}、终点：{seg.ref.end_point}、圆心：{seg.ref.center}、半径：{seg.ref.radius}（圆弧）、句柄: {seg.ref.handle}")
+                        log_to_file(file_path, f"           起点：{seg.ref.start_point}、终点：{seg.ref.end_point}、圆心：{seg.ref.center}、半径：{seg.ref.radius}（圆弧）、句柄: {seg.ref.handle}")
                     else:
                         
-                        log_to_file(file_path, f"       起点：{seg.start_point}、终点{seg.end_point}（直线）、句柄: {seg.ref.handle}")
+                        log_to_file(file_path, f"           起点：{seg.start_point}、终点{seg.end_point}（直线）、句柄: {seg.ref.handle}")
                         des=""
                         for ty,annos in all_edge_map[seg].items():
                             anno_des=""
                             for anno in annos:
                                 anno_des=f"{anno_des},{anno[1]}"
-                            des=f"{des}\n\t\t\t{ty}:{anno_des}"
-                        log_to_file(file_path, f"           标注:{des}")
+                            des=f"{des}\n\t\t\t\t{ty}:{anno_des}"
+                        log_to_file(file_path, f"               标注:{des}")
 
     
 
@@ -2700,6 +2784,31 @@ def outputInfo(index,edges_info,poly_centroid,hint_info,meta_info,segmentation_c
             thick=bracket_parameter["Thickness"]
             material=bracket_parameter["Material"]
             special=bracket_parameter["Special"]
+
+            cons_edges=[]
+            for i,edge in enumerate(edges):
+                if (not edge[0].isConstraint) and (not edge[0].isCornerhole):
+                    continue
+                if edge[0].isCornerhole:
+                    continue
+                cons_edges.append(edge)
+            edge1,edge2=cons_edges[0],cons_edges[-1]
+            if edge1[0].length()<edge2[0].length():
+                edge1,edge2=edge2,edge1
+            if al2 is None:
+                if (edge1[0].length()-edge2[0].length())<=25:
+                    anno1=f" 参考边：约束边{str(constranit_edge_template_no[edge1[0]])}，约束边{str(constranit_edge_template_no[edge2[0]])}"
+                else:
+                    anno1=f" 参考边：约束边{str(constranit_edge_template_no[edge1[0]])}"
+                anno2=""
+            else:
+                if al1>al2:
+                    anno1=f" 参考边：约束边{str(constranit_edge_template_no[edge1[0]])}"
+                    anno2=f" 参考边：约束边{str(constranit_edge_template_no[edge2[0]])}"
+                else:
+                    anno1=f" 参考边：约束边{str(constranit_edge_template_no[edge2[0]])}"
+                    anno2=f" 参考边：约束边{str(constranit_edge_template_no[edge1[0]])}"
+            
             if al1 is None:
                 al1="缺省"
             if al2 is None:
@@ -2710,8 +2819,11 @@ def outputInfo(index,edges_info,poly_centroid,hint_info,meta_info,segmentation_c
                 material="缺省"
             if special is None:
                 special="缺省"
-            log_to_file(file_path,f"    臂长1：{al1}")
-            log_to_file(file_path,f"    臂长2：{al2}")
+            
+            log_to_file(file_path,f"    臂长1：{al1}{anno1}")
+            str(constranit_edge_template_no[seg])
+
+            log_to_file(file_path,f"    臂长2：{al2}{anno2}")
 
             log_to_file(file_path,f"    厚度：{thick}")
             log_to_file(file_path,f"    材质：{material}")
