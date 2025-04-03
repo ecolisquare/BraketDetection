@@ -76,6 +76,8 @@ def parse_elbow_plate(label="", annotation_position="other", is_fb=False):
             if thickness is not None and thickness > 50:
                 return None
 
+            if arm_length1 is None and arm_length2 is None and thickness is None  and material =="AH" and special=="none":
+                return None
             return {
                 "Type": "B",
                 "Arm Length1": arm_length1,
@@ -224,7 +226,12 @@ def parse_elbow_plate(label="", annotation_position="other", is_fb=False):
                 "Type": "R",
                 "Radius": radius,
             }
-
+        elif match := re.fullmatch(pattern_bk, label):
+            bk_code = match.group("bk_code")
+            return {
+                "Type": "BK",
+                "Typical Section Code": bk_code,
+            }
     elif annotation_position == "other":
         # Without an annotation line, parse as R type or a simple numerical value
         if match := re.fullmatch(pattern_r, label):
@@ -239,6 +246,12 @@ def parse_elbow_plate(label="", annotation_position="other", is_fb=False):
             return {
                 "Type": "Numeric",
                 "Value": value,
+            }
+        elif match := re.fullmatch(pattern_bk, label):
+            bk_code = match.group("bk_code")
+            return {
+                "Type": "BK",
+                "Typical Section Code": bk_code,
             }
 
     # If no type matches

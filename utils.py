@@ -3026,7 +3026,7 @@ def process_text_map(text_map,removed_segments,segmentation_config):
             if t[3] is None:
                 text_wo_d.append(t)
             else:
-                if t[1]["Type"]=="R":
+                if t[1]["Type"]=="R" or t[1]["Type"]=="BK":
                     text_wo_d.append(t)
                 else:
                     content=t[0].content.strip()
@@ -3040,7 +3040,7 @@ def process_text_map(text_map,removed_segments,segmentation_config):
 
         text_w_d=sorted(text_w_d,key=lambda t:t[3],reverse=True)
         new_text_w_d=[]
-        if len(text_w_d)>1:
+        if len(text_w_d)>=1:
             for i in range(len(text_w_d)):
                 if i==0:
                     #top

@@ -362,7 +362,7 @@ def stiffenersInPoly(stiffeners,poly,segmentation_config):
         if x_min <= mid.x and mid.x <=x_max and y_min <=mid.y and y_max>=mid.y:
             sf.append(stiffener)
     return sf
-def textsInPoly(text_map,poly,segmentation_config,is_fb):
+def textsInPoly(text_map,poly,segmentation_config,is_fb,polygon):
     x_min,x_max,y_min,y_max=computeBoundingBox(poly)
     if segmentation_config.bracket_bbox_expand_is_ratio:
         xx=(x_max-x_min)*segmentation_config.bracket_bbox_expand_ratio
@@ -377,11 +377,16 @@ def textsInPoly(text_map,poly,segmentation_config,is_fb):
     ts=[]
     for pos,texts in text_map.items():
         for t in texts:
-            if x_min <= pos.x and pos.x <=x_max and y_min <=pos.y and y_max>=pos.y:
-                if t[1]["Type"]=="FB" or t[1]["Type"]=="FL":
-                    result=parse_elbow_plate(t[0].content, "bottom",is_fb)
-                else:
-                    result=t[1]
+            if t[1]["Type"]=="FB" or t[1]["Type"]=="FL" or t[1]["Type"]=="B" or t[1]["Type"]=="BK":
+
+                if point_is_inside(pos,polygon):
+                    if t[1]["Type"]=="FB" or t[1]["Type"]=="FL":
+                        result=parse_elbow_plate(t[0].content, "bottom",is_fb)
+                    else:
+                        result=t[1]
+                    ts.append([t[0],pos,result,t[2]])#element,position,result,anotation
+            elif x_min <= pos.x and pos.x <=x_max and y_min <=pos.y and y_max>=pos.y:
+                result=t[1]
                 ts.append([t[0],pos,result,t[2]])#element,position,result,anotation
     return ts
 
@@ -1618,7 +1623,7 @@ def calculate_poly_features(poly, segments, segmentation_config, point_map, inde
     # else:
     #     print(f"回路{index}没有加强边！")
     
-    tis=textsInPoly(text_map,poly,segmentation_config,is_fb)
+    tis=textsInPoly(text_map,poly,segmentation_config,is_fb,polygon)
     ds=dimensionsInPoly(dimensions,poly,segmentation_config)
     # print(free_edges)
     # print(cornor_holes[0].segments)
@@ -1872,11 +1877,11 @@ def calculate_poly_features(poly, segments, segmentation_config, point_map, inde
     thickness=0
     for t_t in tis:
         content=t_t[0].content.strip()
-        if t_t[2]["Type"]=="B" and '~' in content:
+        if t_t[2]["Type"]=="B" and '~' in content and '~'!=content[-1]:
             is_standard_elbow=False
     for t_t in tis:
         content=t_t[0].content.strip()
-        if t_t[2]["Type"]=="B" and '~' not in content:
+        if t_t[2]["Type"]=="B" and not ('~'  in content and '~'!=content[-1]):
             bracket_parameter=t_t[2]
             if bracket_parameter["Thickness"] is not None:
                 thickness=bracket_parameter["Thickness"]
@@ -2076,7 +2081,45 @@ def calculate_new_hint_info(edges_info,other_edges_info,hint_info,other_hint_inf
         new_feature_map[edge_map[seg]]=feats
     new_hint_info=(new_all_edge_map,hint_info[1],new_features,new_feature_map,hint_info[4],hint_info[5],hint_info[6],hint_info[7],hint_info[8])
 
-    new_meta_info=(meta_info[0],other_meta_info[1],other_meta_info[2],other_meta_info[3],other_hint_info[4])
+    new_meta_info=(meta_info[0],other_meta_info[1],other_meta_info[2],other_meta_info[3],other_meta_info[4])
+    return new_hint_info,new_meta_info
+def calculate_new_hint_info_bk(edges_info,other_edges_info,hint_info,other_hint_info,meta_info,other_meta_info,edge_map):
+
+    new_all_edge_map={}
+    other_all_edge_map=other_hint_info[0]
+ 
+    for seg,dic in other_all_edge_map.items():
+        s=edge_map[seg]
+        new_dic={}
+        for ty,d_s in dic.items():
+            if isinstance(d_s,list):
+                new_d_s=[]
+                for d_t in d_s:
+                    if len(d_t)==3:
+                        if isinstance(d_t[0],DDimension):
+                            content=d_t[0].text
+                        else:
+                            content=d_t[0].content
+                        sub_ty=d_t[1].split("：")[-1]
+                        new_d_s.append([d_t[0],f"值：{content}，参考边：{sub_ty}",edge_map[d_t[2]]])
+                    else:
+                        if isinstance(d_t[0],DDimension):
+                            content=d_t[0].text
+                        else:
+                            content=d_t[0].content
+                        new_d_s.append([d_t[0],f"值：{content}"])
+
+                new_dic[ty]=new_d_s
+            else:
+                new_dic[ty]=d_s
+        new_all_edge_map[s]=new_dic
+    new_features=other_hint_info[2]
+    new_feature_map={}
+    for seg,feats in other_hint_info[3].items():
+        new_feature_map[edge_map[seg]]=feats
+    new_hint_info=(new_all_edge_map,hint_info[1],new_features,new_feature_map,hint_info[4],hint_info[5],hint_info[6],hint_info[7],hint_info[8])
+
+    new_meta_info=(meta_info[0],meta_info[1],meta_info[2],other_meta_info[3],meta_info[4])
     return new_hint_info,new_meta_info
 def find_bkcode(texts):
     bk_code_pos={}
@@ -2131,7 +2174,7 @@ def hint_search_step(edges_infos,poly_centroids,hint_infos,meta_infos,code_map):
                     other_edges_info,other_poly_centroid,other_hint_info,other_meta_info=info
                     flag,edge_map=is_similar(edges_info,other_edges_info,hint_info[1],other_hint_info[1])
                     if flag:
-                        new_hint_info,new_meta_info=calculate_new_hint_info(edges_info,other_edges_info,hint_info,other_hint_info,meta_info,other_meta_info,edge_map)
+                        new_hint_info,new_meta_info=calculate_new_hint_info_bk(edges_info,other_edges_info,hint_info,other_hint_info,meta_info,other_meta_info,edge_map)
                         
                         new_edges_infos.append(edges_info)
                         new_poly_centroids.append(poly_centroid)
@@ -2621,10 +2664,60 @@ def outputInfo(index,edges_info,poly_centroid,hint_info,meta_info,segmentation_c
                         break
         
 
-        log_to_file(file_path, f"肘板加强类别为:{s_info}")
+        log_to_file(file_path, f"肘板加强类别为：{s_info}")
+        if strengthen_parameter is  None:
+            log_to_file(file_path,f"肘板加强参数为：缺省")
+        else:
+            section_height=strengthen_parameter["Section Height"]
+            ty=strengthen_parameter["Type"]
+            thick=strengthen_parameter["Thickness"]
+            material=strengthen_parameter["Material"]
+            special=strengthen_parameter["Special"]
+            if section_height is None:
+                section_height="缺省"
+            if ty is None:
+                ty="缺省"
+            if thick is None:
+                thick="缺省"
+            if material is None:
+                material="缺省"
+            if special is None:
+                special="缺省"
+            log_to_file(file_path,f"肘板加强参数为：")
+            log_to_file(file_path,f"    加强类型：{ty}")
+            log_to_file(file_path,f"    截面高度：{section_height}")
 
+            log_to_file(file_path,f"    厚度：{thick}")
+            log_to_file(file_path,f"    材质：{material}")
+            log_to_file(file_path,f"    特殊符号：{special}")
+       
+        if  bracket_parameter is None:
+            log_to_file(file_path,f"肘板参数为：缺省")
+        else:
+            log_to_file(file_path,f"肘板参数为：")
+            al1=bracket_parameter["Arm Length1"]
+            al2=bracket_parameter["Arm Length2"]
+            thick=bracket_parameter["Thickness"]
+            material=bracket_parameter["Material"]
+            special=bracket_parameter["Special"]
+            if al1 is None:
+                al1="缺省"
+            if al2 is None:
+                al2="缺省"
+            if thick is None:
+                thick="缺省"
+            if material is None:
+                material="缺省"
+            if special is None:
+                special="缺省"
+            log_to_file(file_path,f"    臂长1：{al1}")
+            log_to_file(file_path,f"    臂长2：{al2}")
+
+            log_to_file(file_path,f"    厚度：{thick}")
+            log_to_file(file_path,f"    材质：{material}")
+            log_to_file(file_path,f"    特殊符号：{special}")
         log_to_file(file_path, f"肘板类别为{classification_res}")
-        log_to_file(file_path, f"肘板混淆类分类特征为:{str(features)}")
+        log_to_file(file_path, f"肘板混淆类分类特征为：{str(features)}")
         log_to_file(file_path, f"标准肘板")
         if classification_res == "Unclassified":
             # log_to_file("./output/Unclassified.txt", f"{os.path.splitext(os.path.basename(segmentation_config.json_path))[0]}_infopoly{index}")
