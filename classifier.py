@@ -2,7 +2,7 @@ import json
 import random
 from element import *
 import copy
-from infoextraction import match_template
+
 
 def is_vertical_(point1,point2,segment,epsilon=0.05):
     v1=DPoint(point1.x-point2.x,point1.y-point2.y)
@@ -347,7 +347,138 @@ def find_cons_edge(poly_refs,seg):
         if s.start_point==seg.start_point or s.start_point == seg.end_point or s.end_point ==seg.start_point or s.end_point==seg.end_point:
             return s
 
+def get_score(free_edges_types,non_free_edges,non_free_edges_types,free_edge_seq,non_free_edges_seq,non_free_edges_types_seq,ignore_types):
+    new_free_edges_types=[]
+    for t in free_edges_types:
+        if t!="KS_corner":
+            new_free_edges_types.append(t)
+    new_free_edges_types_seq=[]
+    for t in free_edge_seq:
+        if t!="KS_corner":
+            new_free_edges_types_seq.append(t)
+    total=0
+    for i in range(len(new_free_edges_types)):
+        if new_free_edges_types[i]== new_free_edges_types_seq[i]:
+            total+=1
+    new_non_free_edges=[]
+    new_non_free_edges_types=[]
+    for i,edge in enumerate(non_free_edges):
+        if ignore_types[0]=="line"and  non_free_edges_types[i]=="cornerhole" and len(edge)==1 and isinstance(edge[0].ref,DLine) :
+            continue
+        if ignore_types[0]=="arc"and  non_free_edges_types[i]=="cornerhole" and len(edge)==1 and isinstance(edge[0].ref,DArc) :
+            continue
+        new_non_free_edges.append(edge)
+        new_non_free_edges_types.append(non_free_edges_types[i])
+    new_non_free_edges_seq=[]
+    new_non_free_edges_types_seq=[]
+    for i,edge in enumerate(non_free_edges_seq):
+        if ignore_types[0]=="line"and non_free_edges_types_seq[i]=="cornerhole" and len(edge)==1 and edge[0]=="line":
+            continue
+        if ignore_types[0]=="arc"and non_free_edges_types_seq[i]=="cornerhole" and len(edge)==1 and edge[0]=="arc":
+            continue
+        new_non_free_edges_seq.append(edge)
+        new_non_free_edges_types_seq.append(non_free_edges_types_seq[i])
+    for i in range(len(new_non_free_edges)):
+        edges1=new_non_free_edges[i]
+        edges2=new_non_free_edges_seq[i]
+        if new_non_free_edges_types[i]==new_non_free_edges_types_seq[i] and len(edges1)==len(edges2):
+            edges3=[]
+            for edge in edges1:
+                if isinstance(edge.ref,DArc):
+                    edges3.append('arc')
+                else:
+                    edges3.append('line')
+            if edges3==edges2:
+                total+=1
+    return total
+def match_template(edges,detected_free_edges,template,edge_types,thickness):
+    if thickness>25:
+        ignore_types=["arc"]
+    else:
+        ignore_types=["line"]
+    non_free_edges=[]
+    non_free_edges_types=[]
+    free_edges=[]
+    free_edges_types=[]
+    for edge in detected_free_edges[0]:
+        free_edges.append(edge)
+        free_edges_types.append(edge_types[edge])
+    for i,edge in enumerate(edges):
+        if (not edge[0].isConstraint) and (not edge[0].isCornerhole):
+            continue
+        if edge[0].isCornerhole:
+            non_free_edges_types.append('cornerhole')
+            segs=[]
+            for s in edge:
+                segs.append(s)
+            non_free_edges.append(segs)
+        else:
+            non_free_edges_types.append('constraint')
+            segs=[]
+            for s in edge:
+                segs.append(s)
+            non_free_edges.append(segs)
+    r_non_free_edges=non_free_edges[::-1]
+    r_non_free_edges_types=non_free_edges_types[::-1]
+    r_free_edges=free_edges[::-1]
+    r_free_edges_types=free_edges_types[::-1]
+    new_edges=[]
+    for edge in r_non_free_edges:
+        new_edges.append(edge[::-1])
+    r_non_free_edges=new_edges
+    free_edge_seq=template["free_edges"]
+    non_free_seq=template["non_free_edges"]
+    non_free_edges_seq=[]
+    non_free_edges_types_seq=[]
+    for edge in non_free_seq:
+        non_free_edges_types_seq.append(edge["type"])
+        non_free_edges_seq.append(edge["edges"])
 
+    total,r_total=0,0
+    
+    
+    total=get_score(free_edges_types,non_free_edges,non_free_edges_types,free_edge_seq,non_free_edges_seq,non_free_edges_types_seq,ignore_types)
+    r_total=get_score(r_free_edges_types,r_non_free_edges,r_non_free_edges_types,free_edge_seq,non_free_edges_seq,non_free_edges_types_seq,ignore_types)
+    
+
+    if total<r_total:
+        free_edges=r_free_edges
+        free_edges_types=r_free_edges_types
+        non_free_edges=r_non_free_edges
+        non_free_edges_types=r_non_free_edges_types
+    template_map={}
+    j=0
+    for i in range(len(free_edge_seq)):
+        key=f"free{i+1}"
+        if free_edge_seq[i]=='KS_corner'and j>=len(free_edges_types):
+            template_map[key]=[]
+        elif free_edge_seq[i]=='KS_corner'and free_edges_types[j]!='KS_corner':
+            template_map[key]=[]
+        else:
+            template_map[key]=[free_edges[j]]
+            j+=1
+    cornerhole_idx=0
+    constraint_idx=0
+    j=0
+    for i in range(len(non_free_edges_seq)):
+        if non_free_edges_types_seq[i]=="cornerhole":
+            cornerhole_idx+=1
+            key=f"cornerhole{cornerhole_idx}"
+        else:
+            constraint_idx+=1
+            key=f"constraint{constraint_idx}"
+        if ignore_types[0]=="line" and non_free_edges_types_seq[i]=="cornerhole" and len(non_free_edges_seq[i])==1 and non_free_edges_seq[i][0]=="line" and j>=len(non_free_edges_types):
+            template_map[key]=[]
+        elif ignore_types[0]=="line" and non_free_edges_types_seq[i]=="cornerhole" and len(non_free_edges_seq[i])==1 and non_free_edges_seq[i][0]=="line" and not(non_free_edges_types[j]=="cornerhole" and len(non_free_edges[j])==1 and isinstance(non_free_edges[j][0].ref,DLine)):
+            template_map[key]=[]
+        elif ignore_types[0]=="arc" and non_free_edges_types_seq[i]=="cornerhole" and len(non_free_edges_seq[i])==1 and non_free_edges_seq[i][0]=="arc" and j>=len(non_free_edges_types):
+            template_map[key]=[]
+        elif ignore_types[0]=="arc" and non_free_edges_types_seq[i]=="cornerhole" and len(non_free_edges_seq[i])==1 and non_free_edges_seq[i][0]=="arc" and not(non_free_edges_types[j]=="cornerhole" and len(non_free_edges[j])==1 and isinstance(non_free_edges[j][0].ref,DArc)):
+            template_map[key]=[]
+        else:
+            template_map[key]=non_free_edges[j]
+            j+=1
+    return template_map
 # 标准肘板的匹配分类函数
 def poly_classifier(features,all_anno,poly_refs, texts,dimensions,conerhole_num, poly_free_edges, edges, thickness, feature_map, edge_types, standard_classification_file_path, info_json_path, keyname, is_output_json = False):
     classification_table = load_classification_table(standard_classification_file_path)
@@ -557,7 +688,7 @@ def poly_classifier(features,all_anno,poly_refs, texts,dimensions,conerhole_num,
             continue
         free_code = classification_table[type_name]["free_code"]
         no_free_code = classification_table[type_name]["no_free_code"]
-        template_map=match_template(edges,poly_free_edges,classification_table[type_name],edge_types)
+        template_map=match_template(edges,poly_free_edges,classification_table[type_name],edge_types,thickness=thickness)
 
         # 自由边特征比对
         free_idx = 1
@@ -590,6 +721,9 @@ def poly_classifier(features,all_anno,poly_refs, texts,dimensions,conerhole_num,
             else:
                 break
             if f'cornerhole{cornerhole_idx}' in template_map:
+                if len(template_map[f'cornerhole{cornerhole_idx}'])==0:
+                    cornerhole_idx+=1
+                    break
                 seg = template_map[f'cornerhole{cornerhole_idx}'][0]
                 f = feature_map[seg]
                 c = no_free_code[constarint_idx + cornerhole_idx - 2]
@@ -617,12 +751,12 @@ def poly_classifier(features,all_anno,poly_refs, texts,dimensions,conerhole_num,
         matched_type = res_matched_type
         output_template = None
     else:
-        matched_type = ",".join(res_matched_type)
-        output_template = classification_table[res_matched_type[0]]
+        matched_type = res_matched_type
+        output_template = classification_table[res_matched_type.split(',')[0]]
 
     return matched_type,output_template
 
-def eva_c_f(codes, features, p_feature = ["is_tangent", "is_para", "is_ver", "is_ontoe"]):
+def eva_c_f(codes, features, p_feature = ["no_tangent", "is_para", "is_ver", "is_ontoe"]):
     # codes中的所有特征都要包含在features中
     for c in codes:
         if c not in features:
@@ -630,7 +764,7 @@ def eva_c_f(codes, features, p_feature = ["is_tangent", "is_para", "is_ver", "is
     # features中的所有标注特征都要包含在codes中
     for f in features:
         if f not in p_feature:
-            if f not in c:
+            if f not in codes:
                 return False
     return True
 
