@@ -102,6 +102,7 @@ def process_json_data(json_path, output_path, training_data_output_folder, train
     ori_dimensions=dimensions
     dimensions=processDimensions(dimensions)
     texts=processTexts(texts)
+    bk_code_pos=find_bkcode(texts)
     if segmentation_config.verbose:
         print("json文件读取完毕")
     
@@ -149,7 +150,8 @@ def process_json_data(json_path, output_path, training_data_output_folder, train
             indices.append(i)
     pbar.close()
     
-
+    code_map=calculate_codemap(edges_infos,poly_centroids,hint_infos,meta_infos,bk_code_pos)
+    edges_infos,poly_centroids,hint_infos,meta_infos=hint_search_step(edges_infos,poly_centroids,hint_infos,meta_infos,code_map)
     edges_infos,poly_centroids,hint_infos,meta_infos=diffusion_step(edges_infos,poly_centroids,hint_infos,meta_infos)
 
     polys_info,classi_res=classificationAndOutputStep(indices,edges_infos,poly_centroids,hint_infos,meta_infos,segmentation_config)

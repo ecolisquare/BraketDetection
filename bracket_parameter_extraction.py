@@ -15,7 +15,7 @@ def is_useful_text(content=""):
     pattern_fb_op = r"(?P<special>[~%$&]+)?\s*(?P<material>(AH)|(DH)|(F\d+))?"
     pattern_fl = r"(?:FL)?(?P<val1>\d+([.]\d+)?)((X|x)(?P<val2>\d+([.]\d+)?))?\s*(?P<special>[~%$&]+)?\s*(?P<material>(AH)|(DH)|(F\d+))?"
     pattern_fl_op=r"(?P<special>[~%$&]+)?\s*(?P<material>(AH)|(DH)|(F\d+))?"
-    pattern_bk = r"BK(?P<bk_code>\d{2})"
+    pattern_bk = r"BK(?P<bk_code>\d+)"
     pattern_r = r"R(?P<radius>\d+([.]\d+)?)"
     pattern_digit = r"(?P<value>\d+([.]\d+)?)"
     patterns=[pattern_b, pattern_b_op, pattern_fb, pattern_fb_op, pattern_fl, pattern_fl_op, pattern_bk, pattern_r, pattern_digit]
@@ -50,7 +50,7 @@ def parse_elbow_plate(label="", annotation_position="other", is_fb=False):
     pattern_fb_op = r"(?P<special>[~%$&]+)?\s*(?P<material>(AH)|(DH)|(F\d+))?"
     pattern_fl = r"(?:FL)?(?P<val1>\d+([.]\d+)?)((X|x)(?P<val2>\d+([.]\d+)?))?\s*(?P<special>[~%$&]+)?\s*(?P<material>(AH)|(DH)|(F\d+))?"
     pattern_fl_op=r"(?P<special>[~%$&]+)?\s*(?P<material>(AH)|(DH)|(F\d+))?"
-    pattern_bk = r"BK(?P<bk_code>\d{2})"
+    pattern_bk = r"BK(?P<bk_code>\d+)"
     pattern_r = r"R(?P<radius>\d+([.]\d+)?)"
     pattern_digit = r"(?P<value>\d+([.]\d+)?)"
 

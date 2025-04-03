@@ -8,6 +8,7 @@ import matplotlib.pyplot as plt
 from shapely.geometry import Point, Polygon
 from bracket_parameter_extraction import parse_elbow_plate
 import json
+import re
 def is_point_in_polygon(point, polygon_edges):
     
     polygon_points = set()  # Concave polygon example
@@ -1886,7 +1887,7 @@ def calculate_poly_features(poly, segments, segmentation_config, point_map, inde
         if has_hint:
             break
         content=t_t[0].content.strip()
-        if t_t[2]["Type"]=="R":
+        if t_t[2]["Type"]=="R" or t_t[2]["Type"]=="BK":
             has_hint=True
             break
     for seg,dic in all_edge_map.items():
@@ -2077,6 +2078,79 @@ def calculate_new_hint_info(edges_info,other_edges_info,hint_info,other_hint_inf
 
     new_meta_info=(meta_info[0],other_meta_info[1],other_meta_info[2],other_meta_info[3],other_hint_info[4])
     return new_hint_info,new_meta_info
+def find_bkcode(texts):
+    bk_code_pos={}
+    for t in texts:
+        content=t.content.strip()
+        pattern_bk = r"BK(?P<bk_code>\d+)"
+        if re.fullmatch(pattern_bk, content) and t.color==3:
+            bk_code_pos[content]=t.insert
+    return bk_code_pos
+def calculate_codemap(edges_infos,poly_centroids,hint_infos,meta_infos,bk_code_pos):
+    code_map={}
+    for bk_code,pos in bk_code_pos.items():
+        distance=float("inf")
+        idx=None
+        for i in range(len(meta_infos)):
+            edges_info,poly_centroid,hint_info,meta_info=edges_infos[i],poly_centroids[i],hint_infos[i],meta_infos[i]
+            is_standard_elbow,bracket_parameter,strengthen_parameter,has_hint,is_fb=meta_info
+        
+            if has_hint==False or is_standard_elbow==False:
+                continue
+                
+            dis=DSegment(DPoint(poly_centroid[0],poly_centroid[1]),pos).length()
+            if distance>dis:
+                distance=dis
+                idx=i
+        if idx is not None and distance<4000:
+            code_map[bk_code]=(edges_infos[idx],poly_centroids[idx],hint_infos[idx],meta_infos[idx])
+    return code_map
+def hint_search_step(edges_infos,poly_centroids,hint_infos,meta_infos,code_map):
+    new_edges_infos,new_poly_centroids,new_hint_infos,new_meta_infos=[],[],[],[]
+    for i in range(len(meta_infos)):
+        edges_info,poly_centroid,hint_info,meta_info=edges_infos[i],poly_centroids[i],hint_infos[i],meta_infos[i]
+        is_standard_elbow,bracket_parameter,strengthen_parameter,has_hint,is_fb=meta_info
+  
+
+        if  is_standard_elbow:
+            tis=hint_info[7]
+            has_code=False
+            code=None
+            for t_t in tis:
+                if has_code:
+                    break
+                content=t_t[0].content.strip()
+                if t_t[2]["Type"]=="BK":
+                    has_code=True
+                    code=t_t[2]["Typical Section Code"]
+                    break   
+            if has_code and code is not None:
+                code="BK"+code
+                if code in code_map:
+                    info=code_map[code]
+                    other_edges_info,other_poly_centroid,other_hint_info,other_meta_info=info
+                    flag,edge_map=is_similar(edges_info,other_edges_info,hint_info[1],other_hint_info[1])
+                    if flag:
+                        new_hint_info,new_meta_info=calculate_new_hint_info(edges_info,other_edges_info,hint_info,other_hint_info,meta_info,other_meta_info,edge_map)
+                        
+                        new_edges_infos.append(edges_info)
+                        new_poly_centroids.append(poly_centroid)
+                        new_hint_infos.append(new_hint_info)
+                        new_meta_infos.append(new_meta_info)
+                        continue     
+            
+
+            new_edges_infos.append(edges_info)
+            new_poly_centroids.append(poly_centroid)
+            new_hint_infos.append(hint_info)
+            new_meta_infos.append(meta_info)
+        else:
+            new_edges_infos.append(edges_info)
+            new_poly_centroids.append(poly_centroid)
+            new_hint_infos.append(hint_info)
+            new_meta_infos.append(meta_info)
+    return new_edges_infos,new_poly_centroids,new_hint_infos,new_meta_infos
+
 def diffusion_step(edges_infos,poly_centroids,hint_infos,meta_infos):
     new_edges_infos,new_poly_centroids,new_hint_infos,new_meta_infos=[],[],[],[]
     for i in range(len(meta_infos)):
