@@ -92,7 +92,6 @@ if __name__ == '__main__':
     polys_info,classi_res=classificationAndOutputStep(indices,edges_infos,poly_centroids,hint_infos,meta_infos,segmentation_config)
 
 
-
     bboxs = []
     for poly_refs in polys_info:
         max_x = float('-inf')

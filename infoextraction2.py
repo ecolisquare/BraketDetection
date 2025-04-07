@@ -9,6 +9,7 @@ from shapely.geometry import Point, Polygon
 from bracket_parameter_extraction import parse_elbow_plate
 import json
 import re
+import numpy as np
 def is_point_in_polygon(point, polygon_edges):
     
     polygon_points = set()  # Concave polygon example
@@ -2269,6 +2270,327 @@ def find_intersection(p1, p2, p3, p4):
     
     return DPoint(x, y)
 
+def calculate_dimesion_pos(d,constraint_edges):
+    if  d.dimtype==32 or d.dimtype==33 or d.dimtype==161 or d.dimtype==160:
+        l0=p_minus(d.defpoints[0],d.defpoints[2])
+        l1=p_minus(d.defpoints[1],d.defpoints[2])
+        d10=l0.x*l1.x+l0.y*l1.y
+        d00=l0.x*l0.x+l0.y*l0.y
+        if d00 <1e-4:
+            x=d.defpoints[1]
+        else:
+            x=p_minus(p_add(d.defpoints[1],l0),p_mul(l0,d10/d00))
+        d1,d2,d3,d4=d.defpoints[0], x,d.defpoints[1],d.defpoints[2]
+        d1,d2,d3,d4=compute_accurate_position(d1,d2,d3,d4,constraint_edges)
+        return [d3,d4]
+    elif d.dimtype==34 or d.dimtype==162:
+        s1=DSegment(d.defpoints[3],d.defpoints[0])
+        s2=DSegment(d.defpoints[2],d.defpoints[1])
+        
+        inter=segment_intersection_line(s1.start_point,s1.end_point,s2.start_point,s2.end_point)
+        pos=d.defpoints[4]
+        r=DSegment(pos,inter).length()
+        v1=DPoint((s1.end_point.x-s1.start_point.x)/s1.length()*(r+5),(s1.end_point.y-s1.start_point.y)/s1.length()*(r+5))
+        v2=DPoint((s2.end_point.x-s2.start_point.x)/s2.length()*(r+5),(s2.end_point.y-s2.start_point.y)/s2.length()*(r+5))
+        d1=DPoint(v1.x+inter.x,v1.y+inter.y)
+        d2=DPoint(-v1.x+inter.x,-v1.y+inter.y)
+        d3=DPoint(v2.x+inter.x,v2.y+inter.y)
+        d4=DPoint(-v2.x+inter.x,-v2.y+inter.y)
+        p1=None
+        p2=None
+        if DSegment(pos,d1).length()<DSegment(pos,d2).length():
+            p1=d1
+        else:
+            p1=d2
+        if DSegment(pos,d3).length()<DSegment(pos,d4).length():
+            p2=d3
+        else:
+            p2=d4
+        return [p1,p2,inter]
+def draw_segment(segment,ax):
+    if segment.isCornerhole:
+        color = "#FF0000"
+    elif segment.isConstraint:
+        color = "#00FF00"
+        if segment.isPart:
+            color="#00AA00"
+    else:
+        color = "#0000FF"
+        if segment.isPart:
+            color="#000000"
+    if isinstance(segment.ref, DArc):
+        # if segment.ref.end_angle < segment.ref.start_angle:
+        #     end_angle = segment.ref.end_angle + 360
+        # else:
+        #     end_angle = segment.ref.end_angle
+        # start_angle=segment.ref.start_angle
+        # if end_angle-start_angle>180.5:
+        end_angle,start_angle=segment.ref.end_angle ,segment.ref.start_angle
+        delta=end_angle-start_angle
+        while delta<0:
+            end_angle+=360
+            delta+=360
+        while delta>360:
+            end_angle-=360
+            delta-=360
+
+        if delta>180:
+            start_angle,end_angle=end_angle,start_angle
+            end_angle+=360
+
+        theta = np.linspace(np.radians(start_angle), np.radians(end_angle), 100)
+        x_arc = segment.ref.center.x + segment.ref.radius * np.cos(theta)
+        y_arc = segment.ref.center.y + segment.ref.radius * np.sin(theta)
+        # p=transform_point_(DPoint(x_arc,y_arc),segment.ref.meta)
+        ax.plot(x_arc, y_arc, color, lw=2)
+    else:
+        x_values = [segment.start_point.x, segment.end_point.x]
+        y_values = [segment.start_point.y, segment.end_point.y]
+        ax.plot(x_values, y_values, color, lw=2)
+
+def plot_info_poly_std(ori_edge_map,template_map,path):
+    fig, ax = plt.subplots()
+    free_idx=1
+   
+    while f'free{free_idx}' in template_map:
+        if len(template_map[f'free{free_idx}'])==0:
+            free_idx+=1
+            continue
+        seg=template_map[f'free{free_idx}'][0]
+        draw_segment(seg,ax)
+        free_idx+=1
+        for ty,ds in ori_edge_map[seg]:
+            if isinstance(ds,list):
+                for d_t in ds:
+                    d=d_t[0]
+
+
+
+        
+    constarint_idx=1
+    cornerhole_idx=1
+    template_edges=[]
+    # print("============")
+    while True:
+        # print(constarint_idx,cornerhole_idx)
+        if f'constraint{constarint_idx}' in template_map:
+            template_edges.append(template_map[f'constraint{constarint_idx}'])
+            constarint_idx+=1
+        else:
+            break
+        if f'cornerhole{cornerhole_idx}' in template_map:  
+            template_edges.append(template_map[f'cornerhole{cornerhole_idx}'])
+            cornerhole_idx+=1
+    k=1
+    constarint_idx=0
+    cornerhole_idx=0
+
+    for i,edge in enumerate(template_edges):
+
+
+        if len(edge)==0:
+            k+=1
+            cornerhole_idx+=1
+        elif edge[0].isCornerhole:
+            k+=1
+            corner_hole_start_edge=edge[0]
+            cornerhole_idx+=1
+            for seg in edge:
+                draw_segment(seg,ax)
+        else:
+          
+            k+=1
+            constarint_idx+=1
+            next_cons_edge=[]
+            last_cons_edge=[]
+            index=i+1
+            while index<len(template_edges):
+                next_e=template_edges[index]
+                if not(len(next_e)==0 or next_e[0].isCornerhole):
+                    next_cons_edge=next_e
+                    break
+                index+=1
+            index=i-1
+            while index>=0:
+                last_e=template_edges[index]
+                if not(len(last_e)==0 or last_e[0].isCornerhole):
+                    last_cons_edge=last_e
+                    break
+                index-=1
+            next_seg=next_cons_edge[0] if len(next_cons_edge)>0 else None
+            last_seg=last_cons_edge[0] if len(last_cons_edge)>0 else None
+            if last_seg is not None:
+                inter1=find_intersection(last_seg.start_point,last_seg.end_point,seg.start_point,seg.end_point)
+            else:
+                inter1=None
+            if next_seg is not None:
+                inter2=find_intersection(next_seg.start_point,next_seg.end_point,seg.start_point,seg.end_point)
+            else:
+                inter2=None
+            if inter1 is not None and inter2 is not None:
+                new_seg=DSegment(inter1,inter2)
+            elif inter1 is not None:
+                if DSegment(inter1,seg.start_point).length()<DSegment(inter1,seg.end_point).length():
+                    new_seg=DSegment(inter1,seg.end_point)
+                else:
+                    new_seg=DSegment(inter1,seg.start_point)
+            elif inter2 is not None:
+                if DSegment(inter2,seg.start_point).length()<DSegment(inter2,seg.end_point).length():
+                    new_seg=DSegment(inter2,seg.end_point)
+                else:
+                    new_seg=DSegment(inter2,seg.start_point)
+            else:
+                new_seg=seg
+            correct_edge=[new_seg]
+            for seg in edge:
+                draw_segment(seg,ax)
+
+
+
+   
+
+
+
+
+
+
+
+
+    # t_map={}
+    # for t_t in texts:
+    #     t=t_t[0]
+    #     pos=t_t[1]
+    #     content=t.content
+    #     if t_t[2]["Type"] in ["B","FB","BK","FL"] and not point_is_inside(pos,polygon):
+    #         continue
+    #     if t_t[2]["Type"]=="None":
+    #         continue
+    #     if pos not in t_map:
+    #         t_map[pos]=[]
+    #         t_map[pos].append(content)
+    #     else:
+    #         t_map[pos].append(content)
+    # for pos,cs in t_map.items():
+    #     ax.text(pos.x, pos.y, cs, fontsize=12, color='blue', rotation=0)
+    # for d_t in dimensions:
+    #     d=d_t[0]
+    #     pos=d_t[1]
+    #     content=d.text
+    #     # for i,p in enumerate(d.defpoints):
+    #     #     if p!=DPoint(0,0):
+    #     #         ax.text(p.x, p.y, str(i),color="#EEEE00", fontsize=15)
+    #     #         ax.plot(p.x, p.y, 'b.')
+    #     if  d.dimtype==32 or d.dimtype==33 or d.dimtype==161 or d.dimtype==160:
+    #         l0=p_minus(d.defpoints[0],d.defpoints[2])
+    #         l1=p_minus(d.defpoints[1],d.defpoints[2])
+    #         d10=l0.x*l1.x+l0.y*l1.y
+    #         d00=l0.x*l0.x+l0.y*l0.y
+    #         if d00 <1e-4:
+    #             x=d.defpoints[1]
+    #         else:
+    #             x=p_minus(p_add(d.defpoints[1],l0),p_mul(l0,d10/d00))
+    #         d1,d2,d3,d4=d.defpoints[0], x,d.defpoints[1],d.defpoints[2]
+          
+    #         ss=[DSegment(d1,d4),DSegment(d4,d3),DSegment(d3,d2)]
+    #         sss=[DSegment(d2,d1)]
+    #         ss=expandFixedLengthGeo(ss,25,True)
+    #         sss=expandFixedLengthGeo(sss,100,True)
+    #         q=sss[0].end_point
+    #         sss=expandFixedLengthGeo(sss,100,False)
+    #         for s in ss:
+    #             ax.plot([s.start_point.x,s.end_point.x], [s.start_point.y,s.end_point.y], color="#FF0000", lw=2,linestyle='--')
+    #         for s in sss:
+    #             ax.plot([s.start_point.x,s.end_point.x], [s.start_point.y,s.end_point.y], color="#FF0000", lw=2,linestyle='--')
+    #         ax.arrow(sss[0].end_point.x, sss[0].end_point.y, d1.x-sss[0].end_point.x, d1.y-sss[0].end_point.y, head_width=20, head_length=20, fc='red', ec='red')
+    #         ax.arrow(sss[0].start_point.x, sss[0].start_point.y, d2.x-sss[0].start_point.x, d2.y-sss[0].start_point.y, head_width=20, head_length=20, fc='red', ec='red')
+    #         perp_vx, perp_vy = sss[0].start_point.x - sss[0].end_point.x, sss[0].start_point.y-sss[0].end_point.y
+    #         rotation_angle = np.arctan2(-perp_vy, -perp_vx) * (180 / np.pi)
+    #         ax.text(q.x, q.y, d.text,rotation=rotation_angle,color="#EEC933", fontsize=15)
+            
+
+
+        
+    #     elif d.dimtype==37:
+    #         a,b,o=d.defpoints[1],d.defpoints[2],d.defpoints[3]
+    #         r=DSegment(d.defpoints[0],o).length()
+    #         ra=DSegment(a,o).length()
+    #         rb=DSegment(b,o).length()
+    #         oa_=p_mul(p_minus(a,o),r/ra)
+    #         ob_=p_mul(p_minus(b,o),r/rb)
+    #         ao_=p_mul(oa_,-1)
+    #         bo_=p_mul(ob_,-1)
+    #         a_= p_add(o, oa_)
+    #         b_ = p_add(o, ob_)
+    #         ia_=p_add(o,ao_)
+    #         ib_=p_add(o,bo_)
+    #         delta=p_mul(DPoint(oa_.y,-oa_.x),3)
+    #         sp=p_add(delta,a_)
+    #         ax.arrow(ia_.x, ia_.y, a_.x-ia_.x,a_.y-ia_.y, head_width=20, head_length=20, fc='red', ec='red',linestyle='--')
+    #         ax.arrow(ib_.x, ib_.y, b_.x-ib_.x,b_.y-ib_.y, head_width=20, head_length=20, fc='red', ec='red',linestyle='--')
+    #         ax.plot([sp.x,a_.x], [sp.y,a_.y], color="#FF0000", lw=2,linestyle='--')
+    #         q=p_mul(p_add(a_,sp),0.5)
+    #         rotation_angle = np.arctan2(-delta.y, delta.x) * (180 / np.pi)
+    #         ax.text(q.x, q.y, d.text,rotation=rotation_angle,color="#EEC933", fontsize=15)
+    #     elif d.dimtype==34 or d.dimtype==162:
+                
+    #             s1=DSegment(d.defpoints[3],d.defpoints[0])
+    #             s2=DSegment(d.defpoints[2],d.defpoints[1])
+                
+    #             inter=segment_intersection_line_(s1.start_point,s1.end_point,s2.start_point,s2.end_point)
+    #             pos=d.defpoints[4]
+    #             r=DSegment(pos,inter).length()
+    #             v1=DPoint((s1.end_point.x-s1.start_point.x)/s1.length()*(r+5),(s1.end_point.y-s1.start_point.y)/s1.length()*(r+5))
+    #             v2=DPoint((s2.end_point.x-s2.start_point.x)/s2.length()*(r+5),(s2.end_point.y-s2.start_point.y)/s2.length()*(r+5))
+    #             d1=DPoint(v1.x+inter.x,v1.y+inter.y)
+    #             d2=DPoint(-v1.x+inter.x,-v1.y+inter.y)
+    #             d3=DPoint(v2.x+inter.x,v2.y+inter.y)
+    #             d4=DPoint(-v2.x+inter.x,-v2.y+inter.y)
+    #             p1=None
+    #             p2=None
+    #             if DSegment(pos,d1).length()<DSegment(pos,d2).length():
+    #                 p1=d1
+    #             else:
+    #                 p1=d2
+    #             if DSegment(pos,d3).length()<DSegment(pos,d4).length():
+    #                 p2=d3
+    #             else:
+    #                 p2=d4
+
+                
+    #             # if d.dimtype==34:
+    #             #     for i,p in enumerate([d1,d2,d3,d4]):
+    #             #         if p!=DPoint(0,0):
+    #             #             plt.text(p.x, p.y, str(i+1),color="#EE0000", fontsize=15)
+    #             #             plt.plot(p.x, p.y, 'b.')
+    #             ss1=DSegment(inter,p1)
+    #             ss2=DSegment(inter,p2)
+
+    #             ax.arrow(ss1.start_point.x, ss1.start_point.y, ss1.end_point.x-ss1.start_point.x,ss1.end_point.y-ss1.start_point.y, head_width=20, head_length=20, fc='red', ec='red')
+    #             ax.arrow(ss2.start_point.x, ss2.start_point.y, ss2.end_point.x-ss2.start_point.x,ss2.end_point.y-ss2.start_point.y, head_width=20, head_length=20, fc='red', ec='red')
+    #             ax.text(pos.x, pos.y, d.text,rotation=0,color="#EEC933", fontsize=15)
+    #             ax.plot(inter.x,inter.y,'g.')
+    #             ax.plot([p1.x,p2.x], [p1.y,p2.y], color="#FF0000", lw=2,linestyle='--')
+        
+    #     elif d.dimtype==163:
+    #         a,b=d.defpoints[0],d.defpoints[3]
+    #         o=p_mul(p_add(a,b),0.5)
+    #         ss=[DSegment(a,b)]
+    #         ss=expandFixedLengthGeo(ss,100)
+    #         ss=expandFixedLengthGeo(ss,100,False)
+    #         a_,b_=ss[0].start_point,ss[0].end_point
+    #         ax.arrow(a_.x, a_.y, a.x-a_.x,a.y-a_.y, head_width=20, head_length=20, fc='red', ec='red')
+    #         ax.arrow(b_.x, b_.y, b.x-b_.x,b.y-b_.y, head_width=20, head_length=20, fc='red', ec='red')
+    #         q=p_add(p_mul(b_,0.7),p_mul(b,0.3))
+    #         ab=p_minus(b,a)
+    #         rotation_angle = np.arctan2(ab.y, -ab.x) * (180 / np.pi)
+    #         ax.text(q.x, q.y, d.text,rotation=rotation_angle,color="#EEC933", fontsize=15)
+            
+            
+
+    ax.set_aspect('equal', 'box')
+    plt.savefig(path)
+    plt.close('all')
+    plt.close()
 def outputInfo(index,edges_info,poly_centroid,hint_info,meta_info,segmentation_config):
     is_standard_elbow,bracket_parameter,strengthen_parameter,has_hint,is_fb=meta_info
     free_edges,constraint_edges,edges,poly_refs=edges_info
@@ -2510,6 +2832,7 @@ def outputInfo(index,edges_info,poly_centroid,hint_info,meta_info,segmentation_c
                 else:
                     new_dic[ty]=ds
             new_all_edge_map[s]=new_dic
+        ori_edge_map=all_edge_map
         all_edge_map=new_all_edge_map
 
 
@@ -2661,20 +2984,20 @@ def outputInfo(index,edges_info,poly_centroid,hint_info,meta_info,segmentation_c
                 constarint_idx+=1
                 next_cons_edge=[]
                 last_cons_edge=[]
-                index=i+1
-                while index<len(template_edges):
-                    next_e=template_edges[index]
+                index_=i+1
+                while index_<len(template_edges):
+                    next_e=template_edges[index_]
                     if not(len(next_e)==0 or next_e[0].isCornerhole):
                         next_cons_edge=next_e
                         break
-                    index+=1
-                index=i-1
-                while index>=0:
-                    last_e=template_edges[index]
+                    index_+=1
+                index_=i-1
+                while index_>=0:
+                    last_e=template_edges[index_]
                     if not(len(last_e)==0 or last_e[0].isCornerhole):
                         last_cons_edge=last_e
                         break
-                    index-=1
+                    index_-=1
                 next_seg=next_cons_edge[0] if len(next_cons_edge)>0 else None
                 last_seg=last_cons_edge[0] if len(last_cons_edge)>0 else None
                 if last_seg is not None:
@@ -2831,6 +3154,7 @@ def outputInfo(index,edges_info,poly_centroid,hint_info,meta_info,segmentation_c
         log_to_file(file_path, f"肘板类别为{classification_res}")
         log_to_file(file_path, f"肘板混淆类分类特征为：{str(features)}")
         log_to_file(file_path, f"标准肘板")
+        plot_info_poly_std(ori_edge_map,template_map,os.path.join(segmentation_config.poly_info_dir, f'std_infopoly{index}.png'))
         if classification_res == "Unclassified":
             # log_to_file("./output/Unclassified.txt", f"{os.path.splitext(os.path.basename(segmentation_config.json_path))[0]}_infopoly{index}")
             return poly_refs, classification_res
