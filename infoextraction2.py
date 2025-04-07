@@ -2347,8 +2347,8 @@ def draw_segment(segment,ax):
         x_values = [segment.start_point.x, segment.end_point.x]
         y_values = [segment.start_point.y, segment.end_point.y]
         ax.plot(x_values, y_values, color, lw=2)
-
-def plot_info_poly_std(ori_edge_map,template_map,path):
+    return []
+def plot_info_poly_std(constraint_edges,ori_edge_map,template_map,path):
     fig, ax = plt.subplots()
     free_idx=1
    
@@ -2359,14 +2359,61 @@ def plot_info_poly_std(ori_edge_map,template_map,path):
         seg=template_map[f'free{free_idx}'][0]
         draw_segment(seg,ax)
         free_idx+=1
-        for ty,ds in ori_edge_map[seg]:
+        for ty,ds in ori_edge_map[seg].items():
             if isinstance(ds,list):
                 for d_t in ds:
                     d=d_t[0]
+                    if isinstance(d,DDimension):
+                        if len(d_t)==2:
+                            ps=calculate_dimesion_pos(d,constraint_edges)
+                            if len(ps)==0:
+                                continue
+                            elif len(ps)==2:
+                                v1,v2=ps
+                                ax.plot(v1.x,v1.y,'g.')
+                                ax.plot(v2.x,v2.y,'g.')
+                                q=DSegment(v1,v2).mid_point()
+                                s=DSegment(v1,v2)
+                                ax.text(q.x, q.y, d.text,rotation=0,color="#EEC933", fontsize=15)
+                                ax.plot([s.start_point.x,s.end_point.x], [s.start_point.y,s.end_point.y], color="#FF0000", lw=2,linestyle='--')
+                            elif len(ps)==3:
+                                p1,p2,inter=ps
+                                ax.plot(p1.x,p1.y,'g.')
+                                ax.plot(p2.x,p2.y,'g.')
+                                ax.plot(inter.x,inter.y,'g.')
+                                ax.text(inter.x, inter.y, d.text,rotation=0,color="#EEC933", fontsize=15)
+                                s=DSegment(p1,inter)
+                                ax.plot([s.start_point.x,s.end_point.x], [s.start_point.y,s.end_point.y], color="#FF0000", lw=2,linestyle='--')
+                                s=DSegment(p2,inter)
+                                ax.plot([s.start_point.x,s.end_point.x], [s.start_point.y,s.end_point.y], color="#FF0000", lw=2,linestyle='--')
 
-
-
-        
+                        elif len(d_t)==3:
+                            seg_=d_t[-1]
+                            ax.plot([seg_.start_point.x,seg_.end_point.x], [seg_.start_point.y,seg_.end_point.y], color="#000000", lw=2,linestyle='--')
+                            ps=calculate_dimesion_pos(d,constraint_edges)
+                            if len(ps)==0:
+                                continue
+                            elif len(ps)==2:
+                                v1,v2=ps
+                                q=DSegment(v1,v2).mid_point()
+                                s=DSegment(v1,v2)
+                                ax.plot(v1.x,v1.y,'g.')
+                                ax.plot(v2.x,v2.y,'g.')
+                                ax.text(q.x, q.y, d.text,rotation=0,color="#EEC933", fontsize=15)
+                                ax.plot([s.start_point.x,s.end_point.x], [s.start_point.y,s.end_point.y], color="#FF0000", lw=2,linestyle='--')
+                            elif len(ps)==3:
+                                p1,p2,inter=ps
+                                ax.plot(p1.x,p1.y,'g.')
+                                ax.plot(p2.x,p2.y,'g.')
+                                ax.plot(inter.x,inter.y,'g.')
+                                ax.text(inter.x, inter.y, d.text,rotation=0,color="#EEC933", fontsize=15)
+                                s=DSegment(p1,inter)
+                                ax.plot([s.start_point.x,s.end_point.x], [s.start_point.y,s.end_point.y], color="#FF0000", lw=2,linestyle='--')
+                                s=DSegment(p2,inter)
+                                ax.plot([s.start_point.x,s.end_point.x], [s.start_point.y,s.end_point.y], color="#FF0000", lw=2,linestyle='--')
+                    elif isinstance(d,DText):
+                        ax.text(d.insert.x, d.insert.y, d.content,rotation=0,color="#EEC933", fontsize=15)
+    
     constarint_idx=1
     cornerhole_idx=1
     template_edges=[]
@@ -2444,6 +2491,60 @@ def plot_info_poly_std(ori_edge_map,template_map,path):
             correct_edge=[new_seg]
             for seg in edge:
                 draw_segment(seg,ax)
+                for ty,ds in ori_edge_map[seg].items():
+                    if isinstance(ds,list):
+                        for d_t in ds:
+                            d=d_t[0]
+                            if isinstance(d,DDimension):
+                                if len(d_t)==2:
+                                    ps=calculate_dimesion_pos(d,constraint_edges)
+                                    if len(ps)==0:
+                                        continue
+                                    elif len(ps)==2:
+                                        v1,v2=ps
+                                        ax.plot(v1.x,v1.y,'g.')
+                                        ax.plot(v2.x,v2.y,'g.')
+                                        q=DSegment(v1,v2).mid_point()
+                                        s=DSegment(v1,v2)
+                                        ax.text(q.x, q.y, d.text,rotation=0,color="#EEC933", fontsize=15)
+                                        ax.plot([s.start_point.x,s.end_point.x], [s.start_point.y,s.end_point.y], color="#FF0000", lw=2,linestyle='--')
+                                    elif len(ps)==3:
+                                        p1,p2,inter=ps
+                                        ax.plot(p1.x,p1.y,'g.')
+                                        ax.plot(p2.x,p2.y,'g.')
+                                        ax.plot(inter.x,inter.y,'g.')
+                                        ax.text(inter.x, inter.y, d.text,rotation=0,color="#EEC933", fontsize=15)
+                                        s=DSegment(p1,inter)
+                                        ax.plot([s.start_point.x,s.end_point.x], [s.start_point.y,s.end_point.y], color="#FF0000", lw=2,linestyle='--')
+                                        s=DSegment(p2,inter)
+                                        ax.plot([s.start_point.x,s.end_point.x], [s.start_point.y,s.end_point.y], color="#FF0000", lw=2,linestyle='--')
+
+                                elif len(d_t)==3:
+                                    seg_=d_t[-1]
+                                    ax.plot([seg_.start_point.x,seg_.end_point.x], [seg_.start_point.y,seg_.end_point.y], color="#000000", lw=2,linestyle='--')
+                                    ps=calculate_dimesion_pos(d,constraint_edges)
+                                    if len(ps)==0:
+                                        continue
+                                    elif len(ps)==2:
+                                        v1,v2=ps
+                                        q=DSegment(v1,v2).mid_point()
+                                        s=DSegment(v1,v2)
+                                        ax.plot(v1.x,v1.y,'g.')
+                                        ax.plot(v2.x,v2.y,'g.')
+                                        ax.text(q.x, q.y, d.text,rotation=0,color="#EEC933", fontsize=15)
+                                        ax.plot([s.start_point.x,s.end_point.x], [s.start_point.y,s.end_point.y], color="#FF0000", lw=2,linestyle='--')
+                                    elif len(ps)==3:
+                                        p1,p2,inter=ps
+                                        ax.plot(p1.x,p1.y,'g.')
+                                        ax.plot(p2.x,p2.y,'g.')
+                                        ax.plot(inter.x,inter.y,'g.')
+                                        ax.text(inter.x, inter.y, d.text,rotation=0,color="#EEC933", fontsize=15)
+                                        s=DSegment(p1,inter)
+                                        ax.plot([s.start_point.x,s.end_point.x], [s.start_point.y,s.end_point.y], color="#FF0000", lw=2,linestyle='--')
+                                        s=DSegment(p2,inter)
+                                        ax.plot([s.start_point.x,s.end_point.x], [s.start_point.y,s.end_point.y], color="#FF0000", lw=2,linestyle='--')
+                            elif isinstance(d,DText):
+                                ax.text(d.insert.x, d.insert.y, d.content,rotation=0,color="#EEC933", fontsize=15)
 
 
 
@@ -3154,7 +3255,7 @@ def outputInfo(index,edges_info,poly_centroid,hint_info,meta_info,segmentation_c
         log_to_file(file_path, f"肘板类别为{classification_res}")
         log_to_file(file_path, f"肘板混淆类分类特征为：{str(features)}")
         log_to_file(file_path, f"标准肘板")
-        plot_info_poly_std(ori_edge_map,template_map,os.path.join(segmentation_config.poly_info_dir, f'std_infopoly{index}.png'))
+        plot_info_poly_std(constraint_edges,ori_edge_map,template_map,os.path.join(segmentation_config.poly_info_dir, f'std_infopoly{index}.png'))
         if classification_res == "Unclassified":
             # log_to_file("./output/Unclassified.txt", f"{os.path.splitext(os.path.basename(segmentation_config.json_path))[0]}_infopoly{index}")
             return poly_refs, classification_res

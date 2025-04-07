@@ -52,7 +52,7 @@ import json
 
 
 
-def draw_rectangle_in_dxf(file_path, folder, bbox_list, classi_res,idxs):
+def draw_rectangle_in_dxf(file_path, folder, bbox_list, classi_res,idxs, free_edge_handles):
     folder = os.path.normpath(os.path.abspath(folder))
     os.makedirs(folder, exist_ok=True)
 
@@ -83,8 +83,14 @@ def draw_rectangle_in_dxf(file_path, folder, bbox_list, classi_res,idxs):
             text.dxf.insert = ((x1 + x2) / 2, y2)
         text2 = msp.add_text(f"poly_id {idxs[idx]}", dxfattribs={"layer": "Braket", "height": 50})
         text2.dxf.insert = ((x1 + x2) / 2, y1)
+        
+    free_edge_layer_name = "Free_Edge"
+    if free_edge_layer_name not in doc.layers:
+        doc.layers.add(free_edge_layer_name, color=7)
+    for e in msp:
+        if e.dxf.handle in free_edge_handles:
+            e.dxf.layer = free_edge_layer_name
 
-    # 保存修改后的 DXF 文件
     file_name = os.path.basename(file_path)[:-4]
     doc.saveas(os.path.join(folder, f"{file_name}_braket.dxf"))
 
