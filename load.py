@@ -508,8 +508,7 @@ def getColor(entity):
     try:
         directColor = entity.dxf.color
         if directColor == 0:
-            layer = entity.doc.layers.get(entity.dxf.layer)
-            return layer.color
+            return 7
         elif directColor == 256:
             fa = entity.source_block_reference
             if (fa is None):

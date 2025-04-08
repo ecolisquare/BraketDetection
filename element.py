@@ -307,7 +307,7 @@ class DText(DElement):
             self.bound=new_bound
 
 class DDimension(DElement):
-    def __init__(self,textpos: DPoint=DPoint(0,0),color=7,text="",measurement=100,defpoints=[],dimtype=32,handle="",meta=None):  
+    def __init__(self,textpos: DPoint=DPoint(0,0),color=7,text="",measurement=100,defpoints=[],dimtype=0,handle="",meta=None):  
         super().__init__()
         self.textpos=textpos
         self.text=text

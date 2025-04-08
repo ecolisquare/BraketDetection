@@ -764,6 +764,33 @@ def is_near(cons_edge,short_edge):
     if (d1<100 and d2<100) or (d3<100 and d4<100):
         return True
     return False
+
+def find_reference_edge(seg,fr_edges,cons_edges,p1,p2,inter):
+
+
+
+
+    para_edges=[]
+    l1,l2=DSegment(inter,p1),DSegment(inter,p2)
+    edge=None
+    if is_parallel_(seg,l1,0.15):
+        edge=l2
+    else:
+        edge=l1
+    for cons_edge in cons_edges:
+        if is_parallel_(edge,cons_edge,0.15):
+            para_edges.append(cons_edge)
+    distance=float("inf")
+    ref_edge=None
+    for s in para_edges:
+        dis=DSegment(s.mid_point(),inter).length()
+        if dis<distance:
+            distance=dis
+            ref_edge=s
+    if ref_edge is not None:
+        return True,ref_edge
+    return False,edge
+
 def match_edge_anno(constraint_edges,free_edges,edges,all_anno,all_map):
     features=set()
     feature_map={}
@@ -877,6 +904,8 @@ def match_edge_anno(constraint_edges,free_edges,edges,all_anno,all_map):
             all_edge_map[edge]["是否与约束边平行"]=False
             all_edge_map[edge]["是否与相邻约束边夹角为90度"]=False
             all_edge_map[edge]["平行标注"]=[]
+            all_edge_map[edge]["平行于"]=[]
+            all_edge_map[edge]["垂直于相邻边"]=[]
         elif edge_type[edge]=="arc":
             all_edge_map[edge]["是否相切"]=False
             all_edge_map[edge]["圆心是否在趾端延长线上"]=False
@@ -948,15 +977,23 @@ def match_edge_anno(constraint_edges,free_edges,edges,all_anno,all_map):
                             feature_map[s].add('toe_angle')
                             break
             elif edge_type[seg]=="line":
-                #(TODO:寻找参考边)
+
+                flag,ref_edge=find_reference_edge(seg,fr_edges,cons_edges,p1,p2,inter)
                 features.add('angl')
-                all_edge_map[seg]["与约束边及其平行线夹角标注"].append([d,f"句柄：{d.handle}，值：{d.text}，参考点1：{p1}，参考点2：{p2}，参考中心： {inter}"])
+                if flag:
+                    all_edge_map[seg]["与约束边及其平行线夹角标注"].append([d,f"句柄：{d.handle}，值：{d.text}，参考点1：{p1}，参考点2：{p2}，参考中心： {inter}，参考边：约束边",ref_edge])
+                else:
+                    all_edge_map[seg]["与约束边及其平行线夹角标注"].append([d,f"句柄：{d.handle}，值：{d.text}，参考点1：{p1}，参考点2：{p2}，参考中心： {inter}，参考边：{ref_edge}"])
                 feature_map[seg].add('angl')
             elif edge_type[seg]=="KS_corner":
                 #(TODO:寻找参考边)
+                flag,ref_edge=find_reference_edge(seg,fr_edges,cons_edges,p1,p2,inter)
                 features.add('angl')
                 feature_map[seg].add('angl')
-                all_edge_map[seg]["与自由边夹角标注"].append([d,f"句柄：{d.handle}，值：{d.text}，参考点1：{p1}，参考点2：{p2}，参考中心： {inter}"])
+                if flag:
+                    all_edge_map[seg]["与自由边夹角标注"].append([d,f"句柄：{d.handle}，值：{d.text}，参考点1：{p1}，参考点2：{p2}，参考中心： {inter}，参考边：约束边",ref_edge])
+                else:
+                    all_edge_map[seg]["与自由边夹角标注"].append([d,f"句柄：{d.handle}，值：{d.text}，参考点1：{p1}，参考点2：{p2}，参考中心： {inter}，参考边：{ref_edge}"])
     #自由边直线与约束边垂直标注/自由边倒角与约束边距离标注
     for key,ds in l_n_para_map.items():
         cons_edge,free_edge=key
@@ -974,13 +1011,18 @@ def match_edge_anno(constraint_edges,free_edges,edges,all_anno,all_map):
     for seg in fr_edges:
         if edge_type[seg]=="line":
             flag=False
+            para_edge=None
             for cons_edge in cons_edges:
                 if flag:
                     break
                 flag=is_parallel_(seg,cons_edge,0.15)
+                if flag:
+                    para_edge=cons_edge
       
             all_edge_map[seg]["是否与约束边平行"]=flag
             if flag:
+            
+                all_edge_map[seg]["平行于"].append([DDimension(),f"约束边",para_edge])
                 features.add('is_para')
                 feature_map[seg].add('is_para')
             if free_edge_no[seg]==1 or free_edge_no[seg]==len(fr_edges):
@@ -988,6 +1030,7 @@ def match_edge_anno(constraint_edges,free_edges,edges,all_anno,all_map):
                 flag=is_vertical_(seg.start_point,seg.end_point,cons_edge,0.005)
                 all_edge_map[seg]["是否与相邻约束边夹角为90度"]=flag
                 if flag:
+                    all_edge_map[seg]["垂直于相邻边"].append([DDimension(),f"约束边",cons_edge])
                     features.add('is_ver')
                     feature_map[seg].add('is_ver')
             else:
@@ -2389,9 +2432,12 @@ def plot_info_poly_std(constraint_edges,ori_edge_map,template_map,path):
 
                         elif len(d_t)==3:
                             seg_=d_t[-1]
-                            ax.plot([seg_.start_point.x,seg_.end_point.x], [seg_.start_point.y,seg_.end_point.y], color="#000000", lw=2,linestyle='--')
+                            s_p=seg_.mid_point()
+                            e_p=seg.mid_point()
+                            # ax.plot([seg_.start_point.x,seg_.end_point.x], [seg_.start_point.y,seg_.end_point.y], color="#000000", lw=2,linestyle='--')
+                            ax.plot([s_p.x,e_p.x], [s_p.y,e_p.y], color="#000000", lw=2,linestyle='--')
                             ps=calculate_dimesion_pos(d,constraint_edges)
-                            if len(ps)==0:
+                            if ps is None or  len(ps)==0:
                                 continue
                             elif len(ps)==2:
                                 v1,v2=ps
@@ -2521,7 +2567,10 @@ def plot_info_poly_std(constraint_edges,ori_edge_map,template_map,path):
 
                                 elif len(d_t)==3:
                                     seg_=d_t[-1]
-                                    ax.plot([seg_.start_point.x,seg_.end_point.x], [seg_.start_point.y,seg_.end_point.y], color="#000000", lw=2,linestyle='--')
+                                    s_p=seg_.mid_point()
+                                    e_p=seg.mid_point()
+                                    # ax.plot([seg_.start_point.x,seg_.end_point.x], [seg_.start_point.y,seg_.end_point.y], color="#000000", lw=2,linestyle='--')
+                                    ax.plot([s_p.x,e_p.x], [s_p.y,e_p.y], color="#000000", lw=2,linestyle='--')
                                     ps=calculate_dimesion_pos(d,constraint_edges)
                                     if len(ps)==0:
                                         continue
@@ -2543,6 +2592,8 @@ def plot_info_poly_std(constraint_edges,ori_edge_map,template_map,path):
                                         ax.plot([s.start_point.x,s.end_point.x], [s.start_point.y,s.end_point.y], color="#FF0000", lw=2,linestyle='--')
                                         s=DSegment(p2,inter)
                                         ax.plot([s.start_point.x,s.end_point.x], [s.start_point.y,s.end_point.y], color="#FF0000", lw=2,linestyle='--')
+
+
                             elif isinstance(d,DText):
                                 ax.text(d.insert.x, d.insert.y, d.content,rotation=0,color="#EEC933", fontsize=15)
 
