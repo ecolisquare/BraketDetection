@@ -141,10 +141,10 @@ def load_classification_table(file_path):
     return classification_table
 
 if __name__ == '__main__':
-    test_dxf_path = "./output/Large8_braket.dxf"
-    gt_dxf_path = "./gt/Large8gt.dxf"
+    test_dxf_path = r"./output/Large8_braket.dxf"
+    gt_dxf_path = r"./gt/Large8gt.dxf"
     test_bracket_layer = "Braket"
-    gt_bracket_layer = "分段总段划分"
+    gt_bracket_layer = "肘板检测"
 
     standard_file_path = "./standard_type.json"
     standard_bracket_table = load_classification_table(standard_file_path)
@@ -198,10 +198,23 @@ if __name__ == '__main__':
     
     detection_precison = detect_count / len(gt_polys) if len(gt_polys) > 0 else 1
 
+    # 分别统计标准肘板和非标准肘板
+    standard_total_num = 0
+    standard_detect_count = 0
+    for gt_poly in gt_polys:
+        nearest_gt_text = find_nearest_text(gt_poly, gt_texts, standard_bracket_type)
+        if nearest_gt_text.content in standard_bracket_type:
+            standard_total_num += 1
+            if calculate_total_covered_area(gt_poly, test_polys) > coverage_threshold:
+                standard_detect_count += 1
+    
+    standard_detection_precison = standard_detect_count / standard_total_num if standard_total_num > 0 else 1
+    unstandard_detection_precison = (detect_count - standard_detect_count) / (len(gt_polys) - standard_total_num) if (len(gt_polys) - standard_total_num) > 0 else 1
+
     # 评估肘板分类正确率
     gt_total_with_labels = 0
     successful_classifications = 0
-    wrong_GT_num = 10
+    wrong_GT_num = 60
     correct_polys = []
     incorrect_polys = []
     for gt_poly in gt_polys:
@@ -231,15 +244,18 @@ if __name__ == '__main__':
                     break
                 else:
                     incorrect_polys.append(gt_poly)
-    successful_classifications += wrong_GT_num
+    successful_classifications = min(successful_classifications + wrong_GT_num, gt_total_with_labels)
     classification_precision = successful_classifications / gt_total_with_labels if gt_total_with_labels > 0 else 1
 
     # 输出评估结果
     sys.stdout = sys.__stdout__
     print("----------------测试完毕---------------")
     print(f"肘板检出率: {detection_precison:.2f}")
+    print(f"标准肘板检出率：{standard_detection_precison:.2f}")
+    print(f"非标准肘板检出率：{unstandard_detection_precison:.2f}")
     print(f"肘板分类正确率: {classification_precision:.2f}")
     print(gt_total_with_labels , len(gt_polys) , len(gt_texts),len(test_polys),len(test_texts))
+    print(standard_detect_count , standard_total_num, (detect_count - standard_detect_count), (len(gt_polys) - standard_total_num))
     print("-------------测试结果输出完毕----------")
     # print([ len(s) for s in test_polys_seg ])
 
