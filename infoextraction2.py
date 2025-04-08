@@ -1958,7 +1958,8 @@ def calculate_poly_features(poly, segments, segmentation_config, point_map, inde
         #edges poly_refs constraint_edges
         pass
     
-    meta_info=(is_standard_elbow,bracket_parameter,strengthen_parameter,has_hint,is_fb)
+    is_diff=False
+    meta_info=(is_standard_elbow,bracket_parameter,strengthen_parameter,has_hint,is_fb,is_diff)
     edges_info=(free_edges,constraint_edges,edges,poly_refs)
     hint_info=(all_edge_map,edge_types,features,feature_map,constraint_edge_no,free_edge_no,all_anno,tis,ds)
     return edges_info,poly_centroid,hint_info,meta_info
@@ -2125,7 +2126,7 @@ def calculate_new_hint_info(edges_info,other_edges_info,hint_info,other_hint_inf
         new_feature_map[edge_map[seg]]=feats
     new_hint_info=(new_all_edge_map,hint_info[1],new_features,new_feature_map,hint_info[4],hint_info[5],hint_info[6],hint_info[7],hint_info[8])
 
-    new_meta_info=(meta_info[0],other_meta_info[1],other_meta_info[2],other_meta_info[3],other_meta_info[4])
+    new_meta_info=(meta_info[0],other_meta_info[1],other_meta_info[2],other_meta_info[3],other_meta_info[4],True)
     return new_hint_info,new_meta_info
 def calculate_new_hint_info_bk(edges_info,other_edges_info,hint_info,other_hint_info,meta_info,other_meta_info,edge_map):
 
@@ -2163,7 +2164,7 @@ def calculate_new_hint_info_bk(edges_info,other_edges_info,hint_info,other_hint_
         new_feature_map[edge_map[seg]]=feats
     new_hint_info=(new_all_edge_map,hint_info[1],new_features,new_feature_map,hint_info[4],hint_info[5],hint_info[6],hint_info[7],hint_info[8])
 
-    new_meta_info=(meta_info[0],meta_info[1],meta_info[2],other_meta_info[3],meta_info[4])
+    new_meta_info=(meta_info[0],meta_info[1],meta_info[2],other_meta_info[3],meta_info[4],True)
     return new_hint_info,new_meta_info
 def find_bkcode(texts):
     bk_code_pos={}
@@ -2180,7 +2181,7 @@ def calculate_codemap(edges_infos,poly_centroids,hint_infos,meta_infos,bk_code_p
         idx=None
         for i in range(len(meta_infos)):
             edges_info,poly_centroid,hint_info,meta_info=edges_infos[i],poly_centroids[i],hint_infos[i],meta_infos[i]
-            is_standard_elbow,bracket_parameter,strengthen_parameter,has_hint,is_fb=meta_info
+            is_standard_elbow,bracket_parameter,strengthen_parameter,has_hint,is_fb,is_diff=meta_info
         
             if has_hint==False or is_standard_elbow==False:
                 continue
@@ -2196,7 +2197,7 @@ def hint_search_step(edges_infos,poly_centroids,hint_infos,meta_infos,code_map):
     new_edges_infos,new_poly_centroids,new_hint_infos,new_meta_infos=[],[],[],[]
     for i in range(len(meta_infos)):
         edges_info,poly_centroid,hint_info,meta_info=edges_infos[i],poly_centroids[i],hint_infos[i],meta_infos[i]
-        is_standard_elbow,bracket_parameter,strengthen_parameter,has_hint,is_fb=meta_info
+        is_standard_elbow,bracket_parameter,strengthen_parameter,has_hint,is_fb,is_diff=meta_info
   
 
         if  is_standard_elbow:
@@ -2242,7 +2243,7 @@ def diffusion_step(edges_infos,poly_centroids,hint_infos,meta_infos):
     new_edges_infos,new_poly_centroids,new_hint_infos,new_meta_infos=[],[],[],[]
     for i in range(len(meta_infos)):
         edges_info,poly_centroid,hint_info,meta_info=edges_infos[i],poly_centroids[i],hint_infos[i],meta_infos[i]
-        is_standard_elbow,bracket_parameter,strengthen_parameter,has_hint,is_fb=meta_info
+        is_standard_elbow,bracket_parameter,strengthen_parameter,has_hint,is_fb,is_diff=meta_info
         
         if has_hint==False and is_standard_elbow:
             f=False
@@ -2250,7 +2251,7 @@ def diffusion_step(edges_infos,poly_centroids,hint_infos,meta_infos):
                 if j!=i:
                     other_poly_centroid=poly_centroids[j]
                     other_hint_info=hint_infos[j]
-                    other_is_standard_elbow,other_bracket_parameter,other_strengthen_parameter,other_has_hint,other_is_fb=meta_infos[j]
+                    other_is_standard_elbow,other_bracket_parameter,other_strengthen_parameter,other_has_hint,other_is_fb,other_is_diff=meta_infos[j]
                     if other_is_standard_elbow  and other_has_hint==True and DSegment(DPoint(poly_centroid[0],poly_centroid[1]),DPoint(other_poly_centroid[0],other_poly_centroid[1])).length()<5000 :
 
     
@@ -2744,7 +2745,7 @@ def plot_info_poly_std(constraint_edges,ori_edge_map,template_map,path):
     plt.close('all')
     plt.close()
 def outputInfo(index,edges_info,poly_centroid,hint_info,meta_info,segmentation_config):
-    is_standard_elbow,bracket_parameter,strengthen_parameter,has_hint,is_fb=meta_info
+    is_standard_elbow,bracket_parameter,strengthen_parameter,has_hint,is_fb,is_diff=meta_info
     free_edges,constraint_edges,edges,poly_refs=edges_info
     all_edge_map,edge_types,features,feature_map,constraint_edge_no,free_edge_no,all_anno,tis,ds=hint_info
     if is_standard_elbow==False:
@@ -3306,7 +3307,8 @@ def outputInfo(index,edges_info,poly_centroid,hint_info,meta_info,segmentation_c
         log_to_file(file_path, f"肘板类别为{classification_res}")
         log_to_file(file_path, f"肘板混淆类分类特征为：{str(features)}")
         log_to_file(file_path, f"标准肘板")
-        plot_info_poly_std(constraint_edges,ori_edge_map,template_map,os.path.join(segmentation_config.poly_info_dir, f'std_infopoly{index}.png'))
+        if is_diff==False:
+            plot_info_poly_std(constraint_edges,ori_edge_map,template_map,os.path.join(segmentation_config.poly_info_dir, f'std_infopoly{index}.png'))
         if classification_res == "Unclassified":
             # log_to_file("./output/Unclassified.txt", f"{os.path.splitext(os.path.basename(segmentation_config.json_path))[0]}_infopoly{index}")
             return poly_refs, classification_res
