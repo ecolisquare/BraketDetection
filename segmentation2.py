@@ -90,19 +90,14 @@ if __name__ == '__main__':
     edges_infos,poly_centroids,hint_infos,meta_infos=diffusion_step(edges_infos,poly_centroids,hint_infos,meta_infos)
 
     polys_info,classi_res=classificationAndOutputStep(indices,edges_infos,poly_centroids,hint_infos,meta_infos,segmentation_config)
-
-    # 记录自由边句柄
     free_edge_handles = []
-    for idx, (poly_refs, classification) in enumerate(zip(polys_info, classi_res)):
-        if classi_res == "Unclassified" or classi_res == "Unstandard":
+    for idx,(poly_refs,cls) in enumerate(zip(polys_info,classi_res)):
+        if cls=='Unclassified' or cls=='Unstandard':
             continue
         else:
             for seg in poly_refs:
-                if seg.isCornerhole == False and seg.isConstraint == False:
-                    if seg.ref.handle not in free_edge_handles:
-                        free_edge_handles.append(seg.ref.handle)
-
-
+                if seg.isConstraint == False and seg.isCornerhole == False:
+                    free_edge_handles.append(seg.ref.handle)
     bboxs = []
     for poly_refs in polys_info:
         max_x = float('-inf')
