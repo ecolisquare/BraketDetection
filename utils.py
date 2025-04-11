@@ -3585,13 +3585,17 @@ def readJson_inbbpolys(path,segmentation_config, bb_polys):
 
         # 对data_list[0]中的元素根据bb_polys进行过滤
         data_list_filtered = []
-        
         for ele in data_list[0]:
-            bound = [[ele["bound"]["x1"], ele["bound"]["y1"]], [ele["bound"]["x1"], ele["bound"]["y2"]], [ele["bound"]["x2"], ele["bound"]["y2"]], [ele["bound"]["x2"], ele["bound"]["y1"]]]
+            # 构造当前元素的bound多边形
+            bound = [
+                [ele["bound"]["x1"], ele["bound"]["y1"]],
+                [ele["bound"]["x1"], ele["bound"]["y2"]],
+                [ele["bound"]["x2"], ele["bound"]["y2"]],
+                [ele["bound"]["x2"], ele["bound"]["y1"]]
+            ]
+            # 检查与每个bb_poly是否相交
             for bb_poly in bb_polys:
-                bb_polygon = Polygon(bb_poly)
-                bound_polygon = Polygon(bound)
-                if bb_polygon.intersects(bound_polygon):
+                if intersects(bound, bb_poly):
                     data_list_filtered.append(ele)
                     break
         print("===================")
@@ -3622,3 +3626,52 @@ def readJson_inbbpolys(path,segmentation_config, bb_polys):
         print("The file does not exist.")
     except json.JSONDecodeError:  
         print("Error decoding JSON.")
+
+def intersects(poly_a, poly_b):
+    """判断两个凸多边形是否相交，基于分离轴定理（SAT）"""
+    
+    def get_axes(poly):
+        """获取多边形所有边的法线轴"""
+        axes = []
+        n = len(poly)
+        for i in range(n):
+            x1, y1 = poly[i]
+            x2, y2 = poly[(i+1) % n]
+            dx = x2 - x1
+            dy = y2 - y1
+            # 边的法线轴（垂直于边方向）
+            axis = (-dy, dx)
+            # 忽略零向量（当两点重合时）
+            if axis == (0, 0):
+                continue
+            axes.append(axis)
+        return axes
+    
+    def project(poly, axis):
+        """将多边形投影到轴上，返回投影区间的[min, max]"""
+        min_proj = max_proj = poly[0][0] * axis[0] + poly[0][1] * axis[1]
+        for x, y in poly[1:]:
+            proj = x * axis[0] + y * axis[1]
+            if proj < min_proj:
+                min_proj = proj
+            if proj > max_proj:
+                max_proj = proj
+        return (min_proj, max_proj)
+    
+    def overlaps(a, b):
+        """判断两个区间是否有重叠"""
+        return a[0] <= b[1] and b[0] <= a[1]
+    
+    # 获取所有需要检测的分离轴
+    axes = get_axes(poly_a) + get_axes(poly_b)
+    
+    for axis in axes:
+        # 投影两个多边形到当前轴
+        a_proj = project(poly_a, axis)
+        b_proj = project(poly_b, axis)
+        
+        # 如果存在不重叠的投影，则多边形不相交
+        if not overlaps(a_proj, b_proj):
+            return False
+    # 所有轴上投影均重叠，则多边形相交
+    return True
