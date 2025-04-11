@@ -37,7 +37,7 @@ def is_free_edges_equal(free_edges_sequence, temp):
     return False
 
 def find_anno_info(matched_type,all_anno,poly_free_edges):
-    radius_anno,whole_anno,half_anno,cornor_anno,parallel_anno,non_parallel_anno,vertical_anno,d_anno,angle_anno,toe_angle_anno=all_anno
+    c_anno,radius_anno,whole_anno,half_anno,cornor_anno,parallel_anno,non_parallel_anno,vertical_anno,d_anno,angle_anno,toe_angle_anno=all_anno
     anno={}
     if ",DAC(VU-R)," in matched_type:
         if len(cornor_anno)==0:

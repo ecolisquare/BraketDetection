@@ -763,10 +763,22 @@ def is_near(cons_edge,short_edge):
     d3=DSegment(cons_edge.end_point,short_edge.start_point).length()
     d2=DSegment(cons_edge.start_point,short_edge.end_point).length()
     d4=DSegment(cons_edge.end_point,short_edge.end_point).length()
+
     if (d1<100 and d2<100) or (d3<100 and d4<100):
         return True
     return False
 
+def is_near_vu(cons_edge,short_edge):
+    d1=DSegment(cons_edge.start_point,short_edge.start_point).length()
+    d3=DSegment(cons_edge.end_point,short_edge.start_point).length()
+    d2=DSegment(cons_edge.start_point,short_edge.end_point).length()
+    d4=DSegment(cons_edge.end_point,short_edge.end_point).length()
+
+    min_dis=min(d1,d2,d3,d4)
+    max_dis=max(d1,d2,d3,d4)
+    if min_dis<25 and max_dis<250:
+        return True
+    return False
 def find_reference_edge(seg,fr_edges,cons_edges,p1,p2,inter):
 
 
@@ -829,7 +841,7 @@ def match_edge_anno(constraint_edges,free_edges,edges,all_anno,all_map):
     max_free_edge_length=float("-inf")
     for seg in free_edges[0]:
         max_free_edge_length=max(max_free_edge_length,seg.length())
-    radius_anno,whole_anno,half_anno,cornor_anno,parallel_anno,non_parallel_anno,vertical_anno,d_anno,angle_anno,toe_angle_anno=all_anno
+    c_anno,radius_anno,whole_anno,half_anno,cornor_anno,parallel_anno,non_parallel_anno,vertical_anno,d_anno,angle_anno,toe_angle_anno=all_anno
     r_map,l_whole_map,l_half_map,l_cornor_map,l_para_map,l_para_single_map,l_n_para_map,l_n_para_single_map,l_ver_map,l_ver_single_map,d_map,a_map=all_map
     edge_type={}
     for i, seg in enumerate(free_edges[0]):
@@ -911,9 +923,12 @@ def match_edge_anno(constraint_edges,free_edges,edges,all_anno,all_map):
         elif edge_type[edge]=="arc":
             all_edge_map[edge]["是否相切"]=False
             all_edge_map[edge]["圆心是否在趾端延长线上"]=False
-            all_edge_map[edge]["半径标注"]=[]
+            all_edge_map[edge]["半径尺寸标注"]=[]
         elif edge_type[edge]=="toe":
             all_edge_map[edge]["边长标注"]=[]
+            all_edge_map[edge]["存在正面或背面结构约束"]=[]
+            all_edge_map[edge]["Gap"]=[]
+            all_edge_map[edge]["Gap尺寸标注"]=[]
         elif edge_type[edge]=="KS_corner":
             all_edge_map[edge]["与自由边夹角标注"]=[]
             all_edge_map[edge]["与自由边长度标注"]=[]
@@ -924,6 +939,7 @@ def match_edge_anno(constraint_edges,free_edges,edges,all_anno,all_map):
             all_edge_map[edge]["短边尺寸标注"]=[]
             all_edge_map[edge]["半径尺寸标注"]=[]
             all_edge_map[edge]["短边是否平行于相邻边"]=False
+            all_edge_map[edge]["尺寸参数"]=[]
     
     #自由边直线以及趾端边长标注
     for seg,ds in d_map.items():
@@ -1091,7 +1107,7 @@ def match_edge_anno(constraint_edges,free_edges,edges,all_anno,all_map):
                 edge=corner_holes[i]
                 if is_vu(edge):
                     short_edge=edge[0] if isinstance(edge[0].ref,DLine) else edge[1] 
-                    if is_near(DSegment(v1,v2),short_edge):
+                    if is_near_vu(DSegment(v1,v2),short_edge):
                         all_edge_map[edge[0]]["短边尺寸标注"].append([d,f"句柄：{d.handle}，值：{d.text}，箭头起点：{v1}，箭头终点：{v2}"])
                         all_edge_map[edge[1]]["短边尺寸标注"].append([d,f"句柄：{d.handle}，值：{d.text}，箭头起点：{v1}，箭头终点：{v2}"])
                         # features.add('vuf')
@@ -1106,14 +1122,30 @@ def match_edge_anno(constraint_edges,free_edges,edges,all_anno,all_map):
                 feature_map[free_edge].add('short_anno_para')
                 all_edge_map[free_edge]["平行标注"].append([d,f"句柄：{d.handle}，值：{d.text}，箭头起点：{v1}，箭头终点：{v2}，参考边：约束边",cons_edge])
     
-    #半径标注
+    #半径尺寸标注
     for seg,t in r_map.items():
 
         if seg in edge_type and edge_type[seg]=="arc":
-            all_edge_map[seg]["半径标注"].append([t,f"句柄：{t.handle}，值：{t.content}"])
+            all_edge_map[seg]["半径尺寸标注"].append([t,f"句柄：{t.handle}，值：{t.content}"])
         elif seg in corner_hole_arc:
-            all_edge_map[seg]["半径标注"].append([t,f"句柄：{t.handle}，值：{t.content}"])
+            all_edge_map[seg]["半径尺寸标注"].append([t,f"句柄：{t.handle}，值：{t.content}"])
     
+
+    #角隅孔尺寸标注
+    for c_t in c_anno:
+        p,t =c_t
+        distance=float('inf')
+        idx=None
+        for i,seg in enumerate(corner_hole_start_edge):
+            q=seg.mid_point()
+            dis=DSegment(p,q).length()
+            if dis<500 and dis<distance:
+                distance=dis
+                idx=i
+        if idx is not None:
+            corner_hole =corner_holes[idx]
+            for edge in corner_hole:
+                all_edge_map[edge]["尺寸参数"].append([t,f"句柄：{t.handle}，值：{t.content}"])
     for s,fs in feature_map.items():
         feature_map[s]=list(fs)
     return all_edge_map,edge_type,list(features),feature_map,constraint_edge_no,free_edge_no
@@ -1864,9 +1896,12 @@ def calculate_poly_features(poly, segments, segmentation_config, point_map, inde
     r_anno=[]
     l_anno=[]
     a_anno=[]
+    c_anno=[]
     for i,t_t in enumerate(tis):
         if t_t[2]["Type"]=="R":
             r_anno.append((t_t[1],t_t[0]))
+        if t_t[2]["Type"]=="CornerHole":
+            c_anno.append((t_t[1],t_t[0]))
     for i,d_t in enumerate(ds):
         d=d_t[0]
         pos=d_t[1]
@@ -1907,10 +1942,15 @@ def calculate_poly_features(poly, segments, segmentation_config, point_map, inde
                 p2=d4
             a_anno.append((p1,p2,inter,d))
 
-    r_map,radius_anno=match_r_anno(r_anno,free_edges)
+    all_the_edge=[]
+    for edge in edges:
+        for seg in edge:
+            all_the_edge.append(seg)
+    all_the_edges=[all_the_edge]
+    r_map,radius_anno=match_r_anno(r_anno,all_the_edges)
     l_whole_map,l_half_map,l_cornor_map,l_para_map,l_para_single_map,l_n_para_map,l_n_para_single_map,l_ver_map,l_ver_single_map,d_map,whole_anno,half_anno,cornor_anno,parallel_anno,non_parallel_anno,vertical_anno,d_anno=match_l_anno(l_anno,poly_refs,constraint_edges,free_edges,segmentation_config)
     a_map,angle_anno,toe_angle_anno=match_a_anno(a_anno,free_edges,constraint_edges)
-    all_anno=(radius_anno,whole_anno,half_anno,cornor_anno,parallel_anno,non_parallel_anno,vertical_anno,d_anno,angle_anno,toe_angle_anno)
+    all_anno=(c_anno,radius_anno,whole_anno,half_anno,cornor_anno,parallel_anno,non_parallel_anno,vertical_anno,d_anno,angle_anno,toe_angle_anno)
     all_map=(r_map,l_whole_map,l_half_map,l_cornor_map,l_para_map,l_para_single_map,l_n_para_map,l_n_para_single_map,l_ver_map,l_ver_single_map,d_map,a_map)
 
 
@@ -2804,9 +2844,12 @@ def outputInfo(index,edges_info,poly_centroid,hint_info,meta_info,segmentation_c
                 cornerhole_idx+=1
                 if len(edge)>1 and is_vu(edge):
                     anno_des=""
+                    anno_des2=""
                     for anno in all_edge_map[corner_hole_start_edge]["短边尺寸标注"]:
                         anno_des=f"{anno_des},{anno[1]}"
-                    des=f"短边是否平行于相邻边:{all_edge_map[corner_hole_start_edge]["短边是否平行于相邻边"]};短边尺寸标注:{anno_des}"
+                    for anno in all_edge_map[corner_hole_start_edge]["尺寸参数"]:
+                        anno_des2=f"{anno_des2},{anno[1]}"
+                    des=f"短边是否平行于相邻边:{all_edge_map[corner_hole_start_edge]["短边是否平行于相邻边"]};\n\t\t\t短边尺寸标注:{anno_des}\n\t\t\t尺寸参数:{anno_des2}"
                     log_to_file(file_path,f"        VU孔标注:\n\t\t\t{des}")
                     for seg in edge:
                         if isinstance(seg.ref, DArc):
@@ -2861,9 +2904,9 @@ def outputInfo(index,edges_info,poly_centroid,hint_info,meta_info,segmentation_c
             if edge_types[seg]=="arc":
                 log_to_file(file_path, f"       起点：{seg.ref.start_point}、终点：{seg.ref.end_point}、圆心：{seg.ref.center}、半径：{seg.ref.radius}（圆弧）、句柄: {seg.ref.handle}")
                 anno_des=""
-                for anno in all_edge_map[seg]["半径标注"]:
+                for anno in all_edge_map[seg]["半径尺寸标注"]:
                     anno_des=f"{anno_des},{anno[1]}"
-                des=f"是否相切:{all_edge_map[seg]["是否相切"]}\n\t\t\t半径标注:{anno_des}\n\t\t\t圆心是否在趾端延长线上:{all_edge_map[seg]["圆心是否在趾端延长线上"]}"
+                des=f"是否相切:{all_edge_map[seg]["是否相切"]}\n\t\t\t半径尺寸标注:{anno_des}\n\t\t\t圆心是否在趾端延长线上:{all_edge_map[seg]["圆心是否在趾端延长线上"]}"
             
                 log_to_file(file_path, f"           标注:\n\t\t\t{des}")        
             elif edge_types[seg]=="line":
@@ -3029,9 +3072,9 @@ def outputInfo(index,edges_info,poly_centroid,hint_info,meta_info,segmentation_c
             if edge_types[seg]=="arc":
                 log_to_file(file_path, f"       起点：{seg.ref.start_point}、终点：{seg.ref.end_point}、圆心：{seg.ref.center}、半径：{seg.ref.radius}（圆弧）、句柄: {seg.ref.handle}")
                 anno_des=""
-                for anno in all_edge_map[seg]["半径标注"]:
+                for anno in all_edge_map[seg]["半径尺寸标注"]:
                     anno_des=f"{anno_des},{anno[1]}"
-                des=f"是否相切:{all_edge_map[seg]["是否相切"]}\n\t\t\t半径标注:{anno_des}\n\t\t\t圆心是否在趾端延长线上:{all_edge_map[seg]["圆心是否在趾端延长线上"]}"
+                des=f"是否相切:{all_edge_map[seg]["是否相切"]}\n\t\t\t半径尺寸标注:{anno_des}\n\t\t\t圆心是否在趾端延长线上:{all_edge_map[seg]["圆心是否在趾端延长线上"]}"
             
                 log_to_file(file_path, f"           标注:\n\t\t\t{des}")        
             elif edge_types[seg]=="line":
@@ -3113,9 +3156,12 @@ def outputInfo(index,edges_info,poly_centroid,hint_info,meta_info,segmentation_c
                 cornerhole_idx+=1
                 if len(edge)>1 and is_vu(edge):
                     anno_des=""
+                    anno_des2=""
                     for anno in all_edge_map[corner_hole_start_edge]["短边尺寸标注"]:
                         anno_des=f"{anno_des},{anno[1]}"
-                    des=f"短边是否平行于相邻边:{all_edge_map[corner_hole_start_edge]["短边是否平行于相邻边"]}\n短边尺寸标注:{anno_des}"
+                    for anno in all_edge_map[corner_hole_start_edge]["尺寸参数"]:
+                        anno_des2=f"{anno_des2},{anno[1]}"
+                    des=f"短边是否平行于相邻边:{all_edge_map[corner_hole_start_edge]["短边是否平行于相邻边"]};\n\t\t\t短边尺寸标注:{anno_des}\n\t\t\t尺寸参数:{anno_des2}"
                     log_to_file(file_path,f"        VU孔标注:\n\t\t\t{des}")
                     for seg in edge:
                         if isinstance(seg.ref, DArc):
@@ -3384,9 +3430,12 @@ def outputInfo(index,edges_info,poly_centroid,hint_info,meta_info,segmentation_c
                 cornerhole_idx+=1
                 if len(edge)>1 and is_vu(edge):
                     anno_des=""
+                    anno_des2=""
                     for anno in all_edge_map[corner_hole_start_edge]["短边尺寸标注"]:
                         anno_des=f"{anno_des},{anno[1]}"
-                    des=f"短边是否平行于相邻边:{all_edge_map[corner_hole_start_edge]["短边是否平行于相邻边"]}\n短边尺寸标注:{anno_des}"
+                    for anno in all_edge_map[corner_hole_start_edge]["尺寸参数"]:
+                        anno_des2=f"{anno_des2},{anno[1]}"
+                    des=f"短边是否平行于相邻边:{all_edge_map[corner_hole_start_edge]["短边是否平行于相邻边"]};\n\t\t\t短边尺寸标注:{anno_des}\n\t\t\r尺寸参数:{anno_des2}"
                     log_to_file(file_path,f"        VU孔标注:\n\t\t\t{des}")
                     for seg in edge:
                         if isinstance(seg.ref, DArc):
@@ -3441,9 +3490,9 @@ def outputInfo(index,edges_info,poly_centroid,hint_info,meta_info,segmentation_c
             if edge_types[seg]=="arc":
                 log_to_file(file_path, f"       起点：{seg.ref.start_point}、终点：{seg.ref.end_point}、圆心：{seg.ref.center}、半径：{seg.ref.radius}（圆弧）、句柄: {seg.ref.handle}")
                 anno_des=""
-                for anno in all_edge_map[seg]["半径标注"]:
+                for anno in all_edge_map[seg]["半径尺寸标注"]:
                     anno_des=f"{anno_des},{anno[1]}"
-                des=f"是否相切:{all_edge_map[seg]["是否相切"]}\n\t\t\t半径标注:{anno_des}\n\t\t\t圆心是否在趾端延长线上:{all_edge_map[seg]["圆心是否在趾端延长线上"]}"
+                des=f"是否相切:{all_edge_map[seg]["是否相切"]}\n\t\t\t半径尺寸标注:{anno_des}\n\t\t\t圆心是否在趾端延长线上:{all_edge_map[seg]["圆心是否在趾端延长线上"]}"
             
                 log_to_file(file_path, f"           标注:\n\t\t\t{des}")        
             elif edge_types[seg]=="line":

@@ -20,7 +20,8 @@ def is_useful_text(content=""):
     pattern_bk = r"BK(?P<bk_code>\d+)"
     pattern_r = r"R(?P<radius>\d+([.]\d+)?)"
     pattern_digit = r"(?P<value>\d+([.]\d+)?)"
-    patterns=[pattern_b, pattern_b_op, pattern_fb, pattern_fb_op, pattern_fl, pattern_fl_op, pattern_bk, pattern_r, pattern_digit]
+    pattern_hole=r"(?P<content>\d+(?:\.\d+)?(?:\s*[Xx]\s*\d+(?:\.\d+)?)+)"
+    patterns=[pattern_b, pattern_b_op, pattern_fb, pattern_fb_op, pattern_fl, pattern_fl_op, pattern_bk, pattern_r, pattern_digit,pattern_hole]
     flag=False
     for pattern in patterns:
         if re.fullmatch(pattern, label):
@@ -55,6 +56,7 @@ def parse_elbow_plate(label="", annotation_position="other", is_fb=False):
     pattern_bk = r"BK(?P<bk_code>\d+)"
     pattern_r = r"R(?P<radius>\d+([.]\d+)?)"
     pattern_digit = r"(?P<value>\d+([.]\d+)?)"
+    pattern_hole=r"(?P<content>\d+(?:\.\d+)?(?:\s*[Xx]\s*\d+(?:\.\d+)?)+)"
     if label =="B":
         return {
             "Type": "B_anno"
@@ -247,7 +249,17 @@ def parse_elbow_plate(label="", annotation_position="other", is_fb=False):
             }
     elif annotation_position == "other":
         # Without an annotation line, parse as R type or a simple numerical value
-        if match := re.fullmatch(pattern_r, label):
+        if match :=re.fullmatch(pattern_hole,label):
+            content=match.group("content")
+            return {
+                "Type": "CornerHole",
+                "Content": content
+            }
+            
+            
+        
+        
+        elif match := re.fullmatch(pattern_r, label):
             radius = float(match.group("radius"))
             return {
                 "Type": "R",
