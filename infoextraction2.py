@@ -514,6 +514,8 @@ def is_parallel_(seg1, seg2, tolerance=0.05):
     return are_equal_with_tolerance_(cross_product, 0, tolerance)
 
 def is_vertical_(point1,point2,segment,epsilon=0.05):
+    if segment is None:
+        return False
     v1=DPoint(point1.x-point2.x,point1.y-point2.y)
     v2=DPoint(segment.start_point.x-segment.end_point.x,segment.start_point.y-segment.end_point.y)
     cross_product=(v1.x*v2.x+v1.y+v2.y)/(DSegment(point1,point2).length()*segment.length())
@@ -874,7 +876,7 @@ def match_edge_anno(constraint_edges,free_edges,edges,all_anno,all_map):
         start_edge,base_edge=key
         for d in ds:
             k+=1
-            p1, p2 = get_anno_position(d, constraint_edges)
+            v1,v2 = get_anno_position(d, constraint_edges)
             all_edge_map[start_edge]["垂直标注"].append([d,f"句柄：{d.handle}，值：{d.text}，箭头起点：{v1}，箭头终点：{v2}，垂边，参考边：约束边",base_edge])
             all_edge_map[base_edge]["垂直标注"].append([d,f"句柄：{d.handle}，值：{d.text}，箭头起点：{v1}，箭头终点：{v2}，底边，参考边：约束边",start_edge])
     # if k==0:
@@ -1919,18 +1921,26 @@ def calculate_poly_features(poly, segments, segmentation_config, point_map, inde
     bracket_parameter=None
     strengthen_parameter=None
     thickness=0
+    has_B_anno=False
     for t_t in tis:
         content=t_t[0].content.strip()
-        if t_t[2]["Type"]=="B" and '~' in content and '~'!=content[-1]:
-            is_standard_elbow=False
+        if t_t[2]["Type"]=="B_anno":
+            has_B_anno=True
+            break
+    has_B_hint=False
     for t_t in tis:
         content=t_t[0].content.strip()
-        if t_t[2]["Type"]=="B" and not ('~'  in content and '~'!=content[-1]):
+        if t_t[2]["Type"]=="B":
+            has_B_hint=True
+            if "B" in content and "FB" not in content:
+                has_B_anno=True
             bracket_parameter=t_t[2]
             if bracket_parameter["Thickness"] is not None:
                 thickness=bracket_parameter["Thickness"]
         if t_t[2]["Type"]=="FB" or t_t[2]["Type"]=="FL":
             strengthen_parameter=t_t[2]
+    if has_B_hint==True and has_B_anno==False:
+        is_standard_elbow=False
     has_hint= bracket_parameter is not None or strengthen_parameter is not None
     for t_t in tis:
         if has_hint:
@@ -1945,18 +1955,15 @@ def calculate_poly_features(poly, segments, segmentation_config, point_map, inde
         for ty,d_s in dic.items():
             if isinstance(d_s,list):
                 if len(d_s)>0:
+                    d_t=d_s[0]
+                    if isinstance(d_t[0],DDimension) and d_t[0].dimtype==0:
+                        continue
                     has_hint=True
                     break
         if has_hint:
             break
         
-    if is_standard_elbow:
 
-        #TODO:标准肘板缺省角隅孔的添加
-        # [-1] line 
-        # [0] line 
-        #edges poly_refs constraint_edges
-        pass
     
     is_diff=False
     meta_info=(is_standard_elbow,bracket_parameter,strengthen_parameter,has_hint,is_fb,is_diff)
@@ -2252,7 +2259,7 @@ def diffusion_step(edges_infos,poly_centroids,hint_infos,meta_infos):
                     other_poly_centroid=poly_centroids[j]
                     other_hint_info=hint_infos[j]
                     other_is_standard_elbow,other_bracket_parameter,other_strengthen_parameter,other_has_hint,other_is_fb,other_is_diff=meta_infos[j]
-                    if other_is_standard_elbow  and other_has_hint==True and DSegment(DPoint(poly_centroid[0],poly_centroid[1]),DPoint(other_poly_centroid[0],other_poly_centroid[1])).length()<5000 :
+                    if other_is_standard_elbow  and other_has_hint==True and DSegment(DPoint(poly_centroid[0],poly_centroid[1]),DPoint(other_poly_centroid[0],other_poly_centroid[1])).length()<100000 :
 
     
                         flag,edge_map=is_similar(edges_info,edges_infos[j],hint_info[1],other_hint_info[1])
