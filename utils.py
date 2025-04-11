@@ -3498,7 +3498,7 @@ def findClosedPolys_via_BFS(elements,texts,dimensions,segments,segmentation_conf
         print(f"封闭多边形个数:{len(polys)}")
     #outputPolysAndGeometry(filtered_point_map,polys,segmentation_config.poly_image_dir,segmentation_config.draw_polys,segmentation_config.draw_geometry,segmentation_config.draw_poly_nums)
     if segmentation_config.draw_line_image and segmentation_config.mode=="dev":
-        outputLines(segmentation_config,filtered_segments,filtered_point_map,closed_polys,cornor_holes,star_pos ,texts,text_map,dimensions,replines,segmentation_config.line_image_path,segmentation_config.draw_intersections,segmentation_config.draw_segments,segmentation_config.line_image_drawPolys,)
+        outputLines(segmentation_config,segments,filtered_point_map,closed_polys,cornor_holes,star_pos ,texts,text_map,dimensions,replines,segmentation_config.line_image_path,segmentation_config.draw_intersections,segmentation_config.draw_segments,segmentation_config.line_image_drawPolys,)
     
     return polys, new_segments, point_map,star_pos_map,cornor_holes,text_map
 
@@ -3594,8 +3594,11 @@ def readJson_inbbpolys(path,segmentation_config, bb_polys):
                 if bb_polygon.intersects(bound_polygon):
                     data_list_filtered.append(ele)
                     break
-
+        print("===================")
+        print(len(data_list_filtered))
         elements,segments,arc_splits,ori_segments,stiffeners=process_block(False,block_datas,"TOP",[1.0,1.0],0,[0,0],"CONTINUOUS",[],None,data_list_filtered,segmentation_config)
+        print("===============")
+        print(len(elements))
         new_segments=[]
         new_arc_splits=[]
         new_ori_segments=[]

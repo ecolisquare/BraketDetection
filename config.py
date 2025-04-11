@@ -121,7 +121,6 @@ class SegmentationConfig:
         self.stiffener_name = ["Stiffener_Invisible","Stiffener_Visible"]
         # self.remove_layername=["Stiffener_Invisible","Stiffener_Visible","Plate_Invisible","Plate_Visible"]
         self.remove_linetype=[]
-
         self.remove_layername=["分段总段划分","braket","split","holes","肘板标注"]
         self.remove_layername.extend(self.stiffener_name)
         #check is bracket

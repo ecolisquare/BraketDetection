@@ -1941,8 +1941,12 @@ def calculate_poly_features(poly, segments, segmentation_config, point_map, inde
                 thickness=bracket_parameter["Thickness"]
         if t_t[2]["Type"]=="FB" or t_t[2]["Type"]=="FL":
             strengthen_parameter=t_t[2]
+
     if has_B_hint==True and has_B_anno==False:
         is_standard_elbow=False
+    for t_t in tis:
+        content=t_t[0].content.strip()
+        print(content,t_t[2]["Type"])
     has_hint= bracket_parameter is not None or strengthen_parameter is not None
     for t_t in tis:
         if has_hint:

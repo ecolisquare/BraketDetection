@@ -68,6 +68,7 @@ if __name__ == '__main__':
     json_path = input("请输入路径: ")
     add_bracket_layer_name = input("请输入补充肘板边界图层名：")
     segmentation_config.json_path = json_path
+    segmentation_config.remove_layername.append(add_bracket_layer_name)
     if segmentation_config.verbose:
         print("读取json文件")
     # 获取补充肘板的边界
