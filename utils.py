@@ -3027,7 +3027,7 @@ def process_text_map(text_map,removed_segments,segmentation_config):
             if t[3] is None:
                 text_wo_d.append(t)
             else:
-                if t[1]["Type"]=="R" or t[1]["Type"]=="BK":
+                if t[1]["Type"]=="R" or t[1]["Type"]=="BK" or t[1]["Type"]=="B_anno":
                     text_wo_d.append(t)
                 else:
                     content=t[0].content.strip()

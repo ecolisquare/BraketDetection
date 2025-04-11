@@ -1934,7 +1934,8 @@ def calculate_poly_features(poly, segments, segmentation_config, point_map, inde
             has_B_anno=True
         if t_t[2]["Type"]=="B":
             has_B_hint=True
-            if "B" in content:
+            # print(len(content))
+            if "B" in content and "B"==content[0] and len(content)>1 and content[1] in ["0","1","2","3","4","5","6","7","8","9"]:
                 has_B_anno=True
             bracket_parameter=t_t[2]
             if bracket_parameter["Thickness"] is not None:
@@ -1946,7 +1947,7 @@ def calculate_poly_features(poly, segments, segmentation_config, point_map, inde
         is_standard_elbow=False
     for t_t in tis:
         content=t_t[0].content.strip()
-        print(content,t_t[2]["Type"])
+        # print(content,t_t[2]["Type"])
     has_hint= bracket_parameter is not None or strengthen_parameter is not None
     for t_t in tis:
         if has_hint:
@@ -3284,7 +3285,10 @@ def outputInfo(index,edges_info,poly_centroid,hint_info,meta_info,segmentation_c
             edge1,edge2=cons_edges[0],cons_edges[-1]
             if edge1[0].length()<edge2[0].length():
                 edge1,edge2=edge2,edge1
-            if al2 is None:
+            if al1 is None:
+                anno1=""
+                anno2=""
+            elif al2 is None:
                 if (edge1[0].length()-edge2[0].length())<=25:
                     anno1=f" 参考边：约束边{str(constranit_edge_template_no[edge1[0]])}，约束边{str(constranit_edge_template_no[edge2[0]])}"
                 else:

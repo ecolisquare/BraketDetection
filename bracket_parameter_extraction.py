@@ -89,6 +89,8 @@ def parse_elbow_plate(label="", annotation_position="other", is_fb=False):
 
             if arm_length1 is None and arm_length2 is None and thickness is None  and material =="AH" and special=="none":
                 return None
+
+
             return {
                 "Type": "B",
                 "Arm Length1": arm_length1,
