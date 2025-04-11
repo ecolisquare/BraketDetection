@@ -14,6 +14,7 @@ import time
 from functools import partial
 from itertools import combinations
 from bracket_parameter_extraction import *
+from shapely.geometry import Polygon
 
 def numberInString(content):
     flag=False
@@ -3567,4 +3568,54 @@ def processDimensions(dimensions):
             ds.append([d,dim_pos]) 
     return ds
 
+def readJson_inbbpolys(path,segmentation_config, bb_polys):
+    # elements=[]
+    block_sub_datas=[]
+    # arcs=[]
+    # segments=[]
+    # color = [3, 7, 8, 4,2,140]
+    # linetype = ["BYLAYER", "Continuous","Bylayer","CONTINUOUS","ByBlock","BYBLOCK"]
+    # elementtype=["line","arc","lwpolyline","polyline","spline"]
+    # layname=["Stiffener_Invisible"]
+    try:  
+        with open(path, 'r', encoding='utf-8') as file:  
+            data_list = json.load(file)
 
+        block_datas=data_list[1]
+
+        # 对data_list[0]中的元素根据bb_polys进行过滤
+        data_list_filtered = []
+        
+        for ele in data_list[0]:
+            bound = [[ele["bound"]["x1"], ele["bound"]["y1"]], [ele["bound"]["x1"], ele["bound"]["y2"]], [ele["bound"]["x2"], ele["bound"]["y2"]], [ele["bound"]["x2"], ele["bound"]["y1"]]]
+            for bb_poly in bb_polys:
+                bb_polygon = Polygon(bb_poly)
+                bound_polygon = Polygon(bound)
+                if bb_polygon.intersects(bound_polygon):
+                    data_list_filtered.append(ele)
+                    break
+
+        elements,segments,arc_splits,ori_segments,stiffeners=process_block(False,block_datas,"TOP",[1.0,1.0],0,[0,0],"CONTINUOUS",[],None,data_list_filtered,segmentation_config)
+        new_segments=[]
+        new_arc_splits=[]
+        new_ori_segments=[]
+        for s in segments:
+            if s.ref.linetype in segmentation_config.line_type:
+                new_segments.append(s)
+        for s in arc_splits:
+            if s.ref.linetype in segmentation_config.line_type:
+                new_arc_splits.append(s)
+        for s in ori_segments:
+            if s.ref.linetype in segmentation_config.line_type:
+                new_ori_segments.append(s)
+        segments=new_segments
+        arc_splits=new_arc_splits
+        ori_segments=new_ori_segments
+        segments=expandFixedLength(segments,segmentation_config.line_expand_length)
+        arc_splits=expandFixedLength(arc_splits,segmentation_config.arc_expand_length)
+        
+        return elements,segments+arc_splits,ori_segments,stiffeners
+    except FileNotFoundError:  
+        print("The file does not exist.")
+    except json.JSONDecodeError:  
+        print("Error decoding JSON.")
