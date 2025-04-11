@@ -280,7 +280,7 @@ def conerhole_free_classifier(classification_table, conerhole_num, free_edges_se
     conerhole_count = {}
     unrestricted_cornerhole_count = {}
     # unrestricted_cornerhole_type = [["line"], ["arc"]]
-    unrestricted_cornerhole_type = [["line"]]
+    unrestricted_cornerhole_type = []
     unrestricted_cornerhole_num = 0
     # 去掉非自由边轮廓中的角隅孔，只保留固定边，对角隅孔进行统计
     for i in range(len(edges_sequence)):
@@ -622,8 +622,8 @@ def poly_classifier(features,all_anno,poly_refs, texts,dimensions,conerhole_num,
     # 去除自由边所有"KS_corner"以及轮廓中所有"["cornerhole", ["line"]]"
     free_edges_sequence = [item for item in free_edges_sequence if item != "KS_corner"]
     reversed_free_edges_sequence = [item for item in reversed_free_edges_sequence if item != "KS_corner"]
-    edges_sequence = [item for item in edges_sequence if item != ["cornerhole", ["line"]]]
-    reversed_edges_sequence = [item for item in reversed_edges_sequence if item != ["cornerhole", ["line"]]]
+    # edges_sequence = [item for item in edges_sequence if item != ["cornerhole", ["line"]]]
+    # reversed_edges_sequence = [item for item in reversed_edges_sequence if item != ["cornerhole", ["line"]]]
 
     edges_sequence.insert(0,["free", free_edges_sequence])
     reversed_edges_sequence.insert(0, ["free", reversed_free_edges_sequence])
@@ -783,10 +783,14 @@ def refine_poly_classifier(classification_table, mixed_types, edges_sequence, re
         temp_edge_seq = classification_table[type]["non_free_edges"]
         tmp_edge_seq = []
         for edge in temp_edge_seq:
-            if edge["type"] == "cornerhole" and edge["edges"] == ["line"]:
+            if edge["type"] == "cornerhole":
                 continue
             else:
-                tmp_edge_seq.append([edge["type"], edge["edges"]])
+                if isinstance(edge["edges"][0], list):
+                    e = edge["edges"][0]
+                else:
+                    e = edge["edges"]
+                tmp_edge_seq.append([edge["type"], e])
         temp_free_edge_seq = [item for item in temp_free_edge_seq if item != "KS_corner"]
 
         tmp_edge_seq.insert(0, ["free", temp_free_edge_seq])
