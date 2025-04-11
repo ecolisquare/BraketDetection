@@ -1,5 +1,6 @@
 class SegmentationConfig:
     def __init__(self):
+        self.check=False
         self.verbose=True
         # self.mode="dev"
         self.mode="pro"
@@ -18,7 +19,7 @@ class SegmentationConfig:
         self.draw_segments=True
         self.line_image_drawPolys=True
         self.draw_line_image = True
-        self.draw_texts=True
+        self.draw_texts=False
 
         self.draw_poly_nums=1000
         self.poly_image_dir="./output"
@@ -52,6 +53,7 @@ class SegmentationConfig:
         self.timeout=2
 
         self.type_path = "./type.json"
+        self.standard_type_path = "./standard_type.json"
 
         self.dxf_output_folder = "./output/"
 
@@ -72,7 +74,7 @@ class SegmentationConfig:
         self.arc_repline_min_length=20
         self.arc_repline_max_length=200
         self.line_repline_min_length=12
-        self.line_repline_max_length=70
+        self.line_repline_max_length=80
 
         #filter cornor_hole
         self.cornor_hole_total_length=10
@@ -82,7 +84,7 @@ class SegmentationConfig:
         self.reference_line_min_length=30
         self.reference_min_angle=90
         self.reference_max_angle=170
-        self.reference_text_max_distance=400
+        self.reference_text_max_distance=500
 
         #dfs
         self.dfs_optional=False
@@ -125,7 +127,7 @@ class SegmentationConfig:
         #check is bracket
         #偏离凸多边形的程度
         self.near_convex_tolerance=0.05
-        self.near_rectangle_tolerance = 0.01
+        self.near_rectangle_tolerance = 0.0002
         #自由边角度下限
         self.min_angle_in_free_edge=45
         #自由边占比

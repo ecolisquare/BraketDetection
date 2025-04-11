@@ -2,6 +2,8 @@ import json
 import random
 from element import *
 import copy
+
+
 def is_vertical_(point1,point2,segment,epsilon=0.05):
     v1=DPoint(point1.x-point2.x,point1.y-point2.y)
     v2=DPoint(segment.start_point.x-segment.end_point.x,segment.start_point.y-segment.end_point.y)
@@ -234,11 +236,11 @@ def generate_key(edge):
         new_edge = edge
     return min(tuple(new_edge), tuple(reversed(new_edge)))
 def is_toe(free_edge,cons_edge,max_free_edge_length):
-    if (free_edge.length()<32.2 or free_edge.length()<=0.105*max_free_edge_length) and is_vertical_(free_edge.start_point,free_edge.end_point,cons_edge,epsilon=0.15):
+    if (free_edge.length()<56 or free_edge.length()<=0.105*max_free_edge_length) and is_vertical_(free_edge.start_point,free_edge.end_point,cons_edge,epsilon=0.35):
         return True
     return False
 def is_ks_corner(free_edge,last_free_edge,cons_edge,max_free_edge_length):
-    if (not is_toe(free_edge,cons_edge,max_free_edge_length)) and (not is_vertical_(free_edge.start_point,free_edge.end_point,cons_edge)) and isinstance(last_free_edge.ref,DLine) and free_edge.length() <= 100:
+    if (not is_toe(free_edge,cons_edge,max_free_edge_length)) and (not is_vertical_(free_edge.start_point,free_edge.end_point,cons_edge,epsilon=0.35)) and isinstance(last_free_edge.ref,DLine) and free_edge.length() <= 100:
         return True
     return False
 
@@ -344,8 +346,483 @@ def find_cons_edge(poly_refs,seg):
             continue
         if s.start_point==seg.start_point or s.start_point == seg.end_point or s.end_point ==seg.start_point or s.end_point==seg.end_point:
             return s
+
+def get_score(free_edges_types,non_free_edges,non_free_edges_types,free_edge_seq,non_free_edges_seq,non_free_edges_types_seq,ignore_types):
+    new_free_edges_types=[]
+    for t in free_edges_types:
+        if t!="KS_corner":
+            new_free_edges_types.append(t)
+    new_free_edges_types_seq=[]
+    for t in free_edge_seq:
+        if t!="KS_corner":
+            new_free_edges_types_seq.append(t)
+    total=0
+    for i in range(len(new_free_edges_types)):
+        if new_free_edges_types[i]== new_free_edges_types_seq[i]:
+            total+=1
+    new_non_free_edges=[]
+    new_non_free_edges_types=[]
+    for i,edge in enumerate(non_free_edges):
+        if ignore_types[0]=="line"and  non_free_edges_types[i]=="cornerhole" and len(edge)==1 and isinstance(edge[0].ref,DLine) :
+            continue
+        if ignore_types[0]=="arc"and  non_free_edges_types[i]=="cornerhole" and len(edge)==1 and isinstance(edge[0].ref,DArc) :
+            continue
+        new_non_free_edges.append(edge)
+        new_non_free_edges_types.append(non_free_edges_types[i])
+    new_non_free_edges_seq=[]
+    new_non_free_edges_types_seq=[]
+    for i,edge in enumerate(non_free_edges_seq):
+        if ignore_types[0]=="line"and non_free_edges_types_seq[i]=="cornerhole" and len(edge)==1 and edge[0]=="line":
+            continue
+        if ignore_types[0]=="arc"and non_free_edges_types_seq[i]=="cornerhole" and len(edge)==1 and edge[0]=="arc":
+            continue
+        new_non_free_edges_seq.append(edge)
+        new_non_free_edges_types_seq.append(non_free_edges_types_seq[i])
+    for i in range(len(new_non_free_edges)):
+        edges1=new_non_free_edges[i]
+        edges2=new_non_free_edges_seq[i]
+        if new_non_free_edges_types[i]==new_non_free_edges_types_seq[i] and len(edges1)==len(edges2):
+            edges3=[]
+            for edge in edges1:
+                if isinstance(edge.ref,DArc):
+                    edges3.append('arc')
+                else:
+                    edges3.append('line')
+            if edges3==edges2:
+                total+=1
+    return total
+def match_template(edges,detected_free_edges,template,edge_types,thickness):
+    if thickness>25:
+        ignore_types=["arc"]
+    else:
+        ignore_types=["line"]
+    non_free_edges=[]
+    non_free_edges_types=[]
+    free_edges=[]
+    free_edges_types=[]
+    for edge in detected_free_edges[0]:
+        free_edges.append(edge)
+        free_edges_types.append(edge_types[edge])
+    for i,edge in enumerate(edges):
+        if (not edge[0].isConstraint) and (not edge[0].isCornerhole):
+            continue
+        if edge[0].isCornerhole:
+            non_free_edges_types.append('cornerhole')
+            segs=[]
+            for s in edge:
+                segs.append(s)
+            non_free_edges.append(segs)
+        else:
+            non_free_edges_types.append('constraint')
+            segs=[]
+            for s in edge:
+                segs.append(s)
+            non_free_edges.append(segs)
+    r_non_free_edges=non_free_edges[::-1]
+    r_non_free_edges_types=non_free_edges_types[::-1]
+    r_free_edges=free_edges[::-1]
+    r_free_edges_types=free_edges_types[::-1]
+    new_edges=[]
+    for edge in r_non_free_edges:
+        new_edges.append(edge[::-1])
+    r_non_free_edges=new_edges
+    free_edge_seq=template["free_edges"]
+    non_free_seq=template["non_free_edges"]
+    non_free_edges_seq=[]
+    non_free_edges_types_seq=[]
+    for edge in non_free_seq:
+        non_free_edges_types_seq.append(edge["type"])
+        non_free_edges_seq.append(edge["edges"])
+
+    total,r_total=0,0
+    
+    
+    total=get_score(free_edges_types,non_free_edges,non_free_edges_types,free_edge_seq,non_free_edges_seq,non_free_edges_types_seq,ignore_types)
+    r_total=get_score(r_free_edges_types,r_non_free_edges,r_non_free_edges_types,free_edge_seq,non_free_edges_seq,non_free_edges_types_seq,ignore_types)
+    
+
+    if total<r_total:
+        free_edges=r_free_edges
+        free_edges_types=r_free_edges_types
+        non_free_edges=r_non_free_edges
+        non_free_edges_types=r_non_free_edges_types
+    template_map={}
+    j=0
+    for i in range(len(free_edge_seq)):
+        key=f"free{i+1}"
+        if free_edge_seq[i]=='KS_corner'and j>=len(free_edges_types):
+            template_map[key]=[]
+        elif free_edge_seq[i]=='KS_corner'and free_edges_types[j]!='KS_corner':
+            template_map[key]=[]
+        else:
+            template_map[key]=[free_edges[j]]
+            j+=1
+    cornerhole_idx=0
+    constraint_idx=0
+    j=0
+    for i in range(len(non_free_edges_seq)):
+        if non_free_edges_types_seq[i]=="cornerhole":
+            cornerhole_idx+=1
+            key=f"cornerhole{cornerhole_idx}"
+        else:
+            constraint_idx+=1
+            key=f"constraint{constraint_idx}"
+        if ignore_types[0]=="line" and non_free_edges_types_seq[i]=="cornerhole" and len(non_free_edges_seq[i])==1 and non_free_edges_seq[i][0]=="line" and j>=len(non_free_edges_types):
+            template_map[key]=[]
+        elif ignore_types[0]=="line" and non_free_edges_types_seq[i]=="cornerhole" and len(non_free_edges_seq[i])==1 and non_free_edges_seq[i][0]=="line" and not(non_free_edges_types[j]=="cornerhole" and len(non_free_edges[j])==1 and isinstance(non_free_edges[j][0].ref,DLine)):
+            template_map[key]=[]
+        elif ignore_types[0]=="arc" and non_free_edges_types_seq[i]=="cornerhole" and len(non_free_edges_seq[i])==1 and non_free_edges_seq[i][0]=="arc" and j>=len(non_free_edges_types):
+            template_map[key]=[]
+        elif ignore_types[0]=="arc" and non_free_edges_types_seq[i]=="cornerhole" and len(non_free_edges_seq[i])==1 and non_free_edges_seq[i][0]=="arc" and not(non_free_edges_types[j]=="cornerhole" and len(non_free_edges[j])==1 and isinstance(non_free_edges[j][0].ref,DArc)):
+            template_map[key]=[]
+        else:
+            template_map[key]=non_free_edges[j]
+            j+=1
+    return template_map
+# 标准肘板的匹配分类函数
+def poly_classifier(features,all_anno,poly_refs, texts,dimensions,conerhole_num, poly_free_edges, edges, thickness, feature_map, edge_types, standard_classification_file_path, info_json_path, keyname, is_output_json = False):
+    classification_table = load_classification_table(standard_classification_file_path)
+
+    # Step 1: 获取角隅孔数
+
+    # Step 2: 获取自由边的轮廓
+    free_edges_sequence = []
+    max_free_edge_length=float("-inf")
+    for seg in poly_free_edges[0]:
+        max_free_edge_length=max(max_free_edge_length,seg.length())
+    for i, seg in enumerate(poly_free_edges[0]):
+        if isinstance(seg.ref, DLine) or isinstance(seg.ref, DLwpolyline):
+            if (i == 0 or i == len(poly_free_edges[0]) - 1):
+                if i==0:
+                    last_free_edge=poly_free_edges[0][1]
+                else:
+                    last_free_edge=poly_free_edges[0][-2]
+                cons_edge=find_cons_edge(poly_refs,seg)
+                # print(cons_edge)
+                if is_toe(seg,cons_edge,max_free_edge_length):
+                    free_edges_sequence.append("toe")
+                elif is_ks_corner(seg,last_free_edge,cons_edge,max_free_edge_length):
+                    free_edges_sequence.append("KS_corner")
+                else:
+                    free_edges_sequence.append("line")
+            else:
+                free_edges_sequence.append("line")
+        elif isinstance(seg.ref, DArc):
+            free_edges_sequence.append("arc")
+    reversed_free_edges_sequence = free_edges_sequence[::-1]  # Reverse free edges
+
+    # Step 3: 以自由边为分界，获取固定边和角隅孔组成的顺序轮廓
+    cycle_edges = edges + edges
+    al_edges = []
+    start = False
+    for edge in cycle_edges:
+        # 如果遇到第一个非 Cornerhole 和非 Constraint 边，开始收集
+        if not start and edge[0].isCornerhole == False and edge[0].isConstraint == False:
+            start = True
         
-def poly_classifier(all_anno,poly_refs, texts,dimensions,conerhole_num, poly_free_edges, edges, classification_file_path, info_json_path, keyname, is_output_json = False):
+        # 如果已经开始收集，且当前边是 Cornerhole 或 Constraint，加入 al_edges
+        elif start and (edge[0].isCornerhole or edge[0].isConstraint):
+            al_edges.append(edge)
+        
+        # 如果已经开始收集，且当前边不再是 Cornerhole 或 Constraint，停止收集
+        elif start and edge[0].isCornerhole == False and edge[0].isConstraint == False:
+            start = False
+
+    # Step 4: 构建 edges_sequence 和 reversed_edges_sequence
+    edges_sequence = []
+    reversed_edges_sequence = []
+    for edge in al_edges:
+        if edge[0].isCornerhole:
+            type = "cornerhole"
+        elif edge[0].isConstraint:
+            type = "constraint"
+        else:
+            type = None
+        
+        if type is not None:
+            seq = []
+            for seg in edge:
+                if isinstance(seg.ref, DLine) or isinstance(seg.ref, DLwpolyline):
+                    seq.append("line")
+                elif isinstance(seg.ref, DArc):
+                    seq.append("arc")
+            edges_sequence.append([type, seq])
+            reversed_edges_sequence.insert(0, [type, list(reversed(seq))])
+    
+    # 根据板厚在没有角隅孔的固定边轮廓之间添加角隅孔
+    i = 0
+    while i < len(edges_sequence) - 1:
+        if edges_sequence[i][0] == "constraint" and edges_sequence[i + 1][0] == "constraint":
+            add_seq = ["line"] if thickness <= 25 else ["arc"]
+            edges_sequence.insert(i + 1, ["cornerhole", add_seq])
+            i += 1  # 跳过新插入的元素
+        i += 1
+    
+    i = 0
+    while i < len(reversed_edges_sequence) - 1:
+        if reversed_edges_sequence[i][0] == "constraint" and reversed_edges_sequence[i + 1][0] == "constraint":
+            add_seq = ["line"] if thickness <= 25 else ["arc"]
+            reversed_edges_sequence.insert(i + 1, ["cornerhole", add_seq])
+            i += 1  # 跳过新插入的元素
+        i += 1
+
+
+    # 对肘板轮廓进行输出
+    if is_output_json:
+        geometry_info = {
+            keyname: {
+                "free_edges_sequence": free_edges_sequence,
+                "non_free_edges_sequence": edges_sequence
+            }
+        }
+        try:
+            # 检查目标文件是否存在，如果存在则读取并更新
+            try:
+                with open(info_json_path, "r") as file:
+                    existing_data = json.load(file)
+            except FileNotFoundError:
+                existing_data = {}
+
+            # 更新数据
+            existing_data.update(geometry_info)
+
+            # 写入文件
+            with open(info_json_path, "w") as file:
+                json.dump(existing_data, file, indent=4)
+
+        except Exception as e:
+            print(f"Error writing to JSON file: {e}")
+
+
+    # step5: 固定边轮廓严格匹配+角隅孔非严格匹配（直线角隅孔可能不画）
+    matched_type_list = conerhole_free_classifier(classification_table, conerhole_num, free_edges_sequence, reversed_free_edges_sequence, edges_sequence, reversed_edges_sequence)
+    
+    # step6: 自由边的筛选
+    matched_type = free_edges_sequence_classifier(classification_table, free_edges_sequence,reversed_free_edges_sequence, matched_type_list)
+
+    # print(matched_type)
+    if len(matched_type.split(","))<=1 and matched_type!="Unclassified":
+        return matched_type,classification_table[matched_type]
+    elif matched_type=="Unclassified":
+        return matched_type,None
+    
+    
+    matched_type=","+matched_type+','
+
+    matched_type=tidy_matched_type(matched_type)
+
+    # step8: 考虑整体轮廓筛选
+    if len(matched_type.split(","))<=1 and matched_type!="Unclassified":
+        return matched_type,classification_table[matched_type]
+    elif matched_type=="Unclassified":
+        return matched_type,None
+    # 去除自由边所有"KS_corner"以及轮廓中所有"["cornerhole", ["line"]]"
+    free_edges_sequence = [item for item in free_edges_sequence if item != "KS_corner"]
+    reversed_free_edges_sequence = [item for item in reversed_free_edges_sequence if item != "KS_corner"]
+    edges_sequence = [item for item in edges_sequence if item != ["cornerhole", ["line"]]]
+    reversed_edges_sequence = [item for item in reversed_edges_sequence if item != ["cornerhole", ["line"]]]
+
+    edges_sequence.insert(0,["free", free_edges_sequence])
+    reversed_edges_sequence.insert(0, ["free", reversed_free_edges_sequence])
+    mixed_types = matched_type.split(',')
+    matched_type = refine_poly_classifier(classification_table, mixed_types, edges_sequence, reversed_edges_sequence)
+
+
+    output_template=None
+
+    # 混淆类分类
+    matched_type = tidy_matched_type(matched_type)
+    
+    if len(matched_type) == 0:
+        return "Unclassified", None
+
+    # 匹配最佳标准肘板分类，feature必须是该类别的子集，且特征占比最高
+    # for type_name in matched_type.split(','):
+    #     if type_name.strip()=="":
+    #         continue
+    #     free_code = classification_table[type_name]["free_code"]
+    #     no_free_code = classification_table[type_name]["no_free_code"]
+    #     # 方案1：特征类型统计，不归属到具体边
+    #     code = []
+        
+    #     for c in free_code:
+    #         for f in c:
+    #             if f not in code:
+    #                 code.append(f)
+    #     for c in no_free_code:
+    #         for f in c:
+    #             if f not in code:
+    #                 code.append(f)
+
+    #     # 判断是否是子集且计算特征数
+    #     flag = True
+    #     f_num = 0
+
+    #     for feature in features:
+    #         if feature not in strict_feature:
+    #             if  feature in code:
+    #                 f_num += 1
+    #             else:
+    #                 flag = False
+    #                 break
+    #     for c in code:
+    #         if c not in features:
+    #             flag=False
+    #             break
+
+        
+    #     # 如果是子集，则比较特征数
+    #     if flag:
+    #         if f_num > max_feature_num:
+    #             max_feature_num = f_num
+    #             res_matched_type = [type_name]
+    #         elif f_num == max_feature_num:
+    #             res_matched_type.append(type_name)
+    max_feature_num = -1
+    res_matched_type = "Unclassified"
+    best_matched_type = None
+    for type_name in matched_type.split(','):
+        best_match_flag = True
+        f_score = 0
+        if type_name.strip()=="":
+            continue
+        free_code = classification_table[type_name]["free_code"]
+        no_free_code = classification_table[type_name]["no_free_code"]
+        template_map=match_template(edges,poly_free_edges,classification_table[type_name],edge_types,thickness=thickness)
+
+        # 自由边特征比对
+        free_idx = 1
+        while f'free{free_idx}' in template_map:
+            if len(template_map[f'free{free_idx}'])==0:
+                free_idx += 1
+                continue
+            seg=template_map[f'free{free_idx}'][0]
+            f = feature_map[seg]
+            c = free_code[free_idx - 1]
+            if eva_c_f(c, f):
+                f_score += 1
+            else:
+                best_match_flag = False
+            free_idx += 1
+        
+        # 非自由边特征对比
+        constarint_idx=1
+        cornerhole_idx=1
+        while True:
+            if f'constraint{constarint_idx}' in template_map:
+                seg = template_map[f'constraint{constarint_idx}'][0]
+                f = feature_map[seg]
+                c = no_free_code[constarint_idx + cornerhole_idx - 2]
+                if eva_c_f(c, f):
+                    f_score += 1
+                else:
+                    best_match_flag = False
+                constarint_idx+=1
+            else:
+                break
+            if f'cornerhole{cornerhole_idx}' in template_map:
+                if len(template_map[f'cornerhole{cornerhole_idx}'])==0:
+                    cornerhole_idx+=1
+                    break
+                seg = template_map[f'cornerhole{cornerhole_idx}'][0]
+                f = feature_map[seg]
+                c = no_free_code[constarint_idx + cornerhole_idx - 2]
+                if eva_c_f(c, f):
+                    f_score += 1
+                else:
+                    best_match_flag = False
+                cornerhole_idx+=1
+        
+        # 如果完全匹配成功，直接作为最终结果；否则则进行分数比较
+        if best_match_flag:
+            best_matched_type = type_name if best_matched_type is None else f'{best_matched_type},{type_name}'
+        elif f_score > max_feature_num:
+            max_feature_num = f_score
+            res_matched_type = type_name
+        elif f_score == max_feature_num:
+            res_matched_type = f'{res_matched_type},{type_name}'
+
+
+    # 如果成功匹配到标准肘板类别，则返回该类别；否则，则仅返回其中一类别模板
+    if best_matched_type is not None:
+        res_matched_type = best_matched_type
+
+    if res_matched_type == "Unclassified":
+        matched_type = res_matched_type
+        output_template = None
+    else:
+        matched_type = res_matched_type
+        output_template = classification_table[res_matched_type.split(',')[0]]
+
+    return matched_type,output_template
+
+def eva_c_f(codes, features, p_feature = ["no_tangent", "is_para", "is_ver", "is_ontoe"]):
+    # codes中的所有特征都要包含在features中
+    for c in codes:
+        if c not in features:
+            return False
+    # features中的所有标注特征都要包含在codes中
+    for f in features:
+        if f not in p_feature:
+            if f not in codes:
+                return False
+    return True
+
+
+
+# 整体轮廓过滤    
+def refine_poly_classifier(classification_table, mixed_types, edges_sequence, reversed_edges_sequence):
+    matched_type = None
+    max_similarity = -1  # 初始化最大相似度为 -1
+
+    for type in mixed_types:
+        temp_free_edge_seq = classification_table[type]["free_edges"]
+        temp_edge_seq = classification_table[type]["non_free_edges"]
+        tmp_edge_seq = []
+        for edge in temp_edge_seq:
+            if edge["type"] == "cornerhole" and edge["edges"] == ["line"]:
+                continue
+            else:
+                tmp_edge_seq.append([edge["type"], edge["edges"]])
+        temp_free_edge_seq = [item for item in temp_free_edge_seq if item != "KS_corner"]
+
+        tmp_edge_seq.insert(0, ["free", temp_free_edge_seq])
+        # 计算与 edges_sequence 的相似度
+        similarity = calculate_similarity(tmp_edge_seq, edges_sequence)
+        # 计算与 reversed_edges_sequence 的相似度
+        reversed_similarity = calculate_similarity(tmp_edge_seq, reversed_edges_sequence)
+
+        # 取两者中的最大值
+        current_max_similarity = max(similarity, reversed_similarity)
+
+        # 如果当前相似度大于最大相似度，则更新 matched_type
+        if current_max_similarity > max_similarity:
+            max_similarity = current_max_similarity
+            matched_type = type
+        elif current_max_similarity == max_similarity:
+            matched_type = type if matched_type is None else f"{matched_type},{type}"
+
+    return matched_type
+
+def calculate_similarity(seq1, seq2):
+    """
+    计算两个序列的相似度。
+    这里使用简单的匹配比例作为相似度度量。
+    """
+    if not seq1 or not seq2:
+        return 0
+
+    match_count = 0
+    min_length = min(len(seq1), len(seq2))
+
+    for i in range(min_length):
+        if seq1[i] == seq2[i]:
+            match_count += 1
+
+    return match_count / min_length
+
+# 大类分类函数
+def poly_classifier_v2(features,all_anno,poly_refs, texts,dimensions,conerhole_num, poly_free_edges, edges, classification_file_path):
     classification_table = load_classification_table(classification_file_path)
 
     # Step 1: 获取角隅孔数
@@ -413,452 +890,37 @@ def poly_classifier(all_anno,poly_refs, texts,dimensions,conerhole_num, poly_fre
                     seq.append("arc")
             edges_sequence.append([type, seq])
             reversed_edges_sequence.insert(0, [type, list(reversed(seq))])
-    # 对肘板轮廓进行输出
-    if is_output_json:
-        geometry_info = {
-            keyname: {
-                "free_edges_sequence": free_edges_sequence,
-                "non_free_edges_sequence": edges_sequence
-            }
-        }
-        try:
-            # 检查目标文件是否存在，如果存在则读取并更新
-            try:
-                with open(info_json_path, "r") as file:
-                    existing_data = json.load(file)
-            except FileNotFoundError:
-                existing_data = {}
 
-            # 更新数据
-            existing_data.update(geometry_info)
-
-            # 写入文件
-            with open(info_json_path, "w") as file:
-                json.dump(existing_data, file, indent=4)
-
-        except Exception as e:
-            print(f"Error writing to JSON file: {e}")
-
-
-    # step5: 固定边轮廓严格匹配+角隅孔非严格匹配（直线角隅孔可能不画）
-    matched_type_list = conerhole_free_classifier(classification_table, conerhole_num, free_edges_sequence, reversed_free_edges_sequence, edges_sequence, reversed_edges_sequence)
+    non_conerhole_edges = []
+    reversed_non_conerhole_edges = []
+    # 去掉非自由边轮廓中的角隅孔，只保留固定边，对角隅孔进行统计
+    for i in range(len(edges_sequence)):
+        if(edges_sequence[i][0] != "cornerhole"):
+            non_conerhole_edges.append(edges_sequence[i][1])
+        if(reversed_edges_sequence[i][0] != "conerhole"):
+            reversed_non_conerhole_edges.append(reversed_edges_sequence[i][1])
     
-    # step6: 自由边的筛选
-    matched_type = free_edges_sequence_classifier(classification_table, free_edges_sequence,reversed_free_edges_sequence, matched_type_list)
+    matched_type = []
+    for key_name, row in classification_table.items():
+        #非自由边轮廓去除角隅孔后严格匹配
+        temp_sequence = []
+        for i, non_free in enumerate(row["non_free_edges"]):
+            # Check if the type and edges of the current non-free match in sequence
+            if non_free["type"] == "constraint":
+                temp_sequence.append(non_free["edges"])
 
-    # print(matched_type)
+        if temp_sequence != non_conerhole_edges and temp_sequence != reversed_non_conerhole_edges:
+            continue
+        matched_type.append(key_name)
+    
+    matched_type = free_edges_sequence_classifier(classification_table, free_edges_sequence,reversed_free_edges_sequence, matched_type)
+    
+    # 后续增加整体以及混淆匹配
     if len(matched_type.split(","))<=1 and matched_type!="Unclassified":
         return matched_type,classification_table[matched_type]
     elif matched_type=="Unclassified":
         return matched_type,None
-    
-    # step7: 易混淆筛选
-    #for each mixed type, use the first type name as key(cluster_name),find the annoation
-
-    # # 边界区分易混淆类细化
-    # # DPK(VU-R1), DPK(VU-R)
-    # cluster_name = "DPK(VU-R1)"
-    # if cluster_name in matched_type:
-    #     mixed_types = ["DPK(VU-R1)", "DPK(VU-R)"]
-    #     matched_type = refine_poly_classifier(classification_table, mixed_types, edges_sequence, reversed_edges_sequence)
-    
-    # # BMA(VU), LBMA(R), LBMA(KS)
-    # cluster_name = "BMA(VU)"
-    # if cluster_name in matched_type:
-    #     mixed_types = ["BMA(VU)", "LBMA(R)", "LBMA(KS)"]
-    #     matched_type = refine_poly_classifier(classification_table, mixed_types, edges_sequence, reversed_edges_sequence)
-    
-    # # DMC-1(R-KS), DMC-1(KS-R)
-    # cluster_name = "DMC-1(R-KS)"
-    # if cluster_name in matched_type:
-    #     mixed_types = ["DMC-1(R-KS)", "DMC-1(KS-R)"]
-    #     matched_type = refine_poly_classifier(classification_table, mixed_types, edges_sequence, reversed_edges_sequence)
-
-    # # DPKN(R-KS), DPKN(KS-R)
-    # cluster_name = "DPKN(R-KS)"
-    # if cluster_name in matched_type:
-    #     mixed_types = ["DPKN(R-KS)", "DPKN(KS-R)"]
-    #     matched_type = refine_poly_classifier(classification_table, mixed_types, edges_sequence, reversed_edges_sequence)
-
-    # # BMB(R-KS), BMB(KS-R)
-    # cluster_name = "BMB(R-KS)"
-    # if cluster_name in matched_type:
-    #     mixed_types = ["BMB(R-KS)", "BMB(KS-R)"]
-    #     matched_type = refine_poly_classifier(classification_table, mixed_types, edges_sequence, reversed_edges_sequence)
-    
-    # # DPV(VU-KS), DPV-H(VU-KS)
-    # cluster_name = "DPV(VU-KS)"
-    # if cluster_name in matched_type:
-    #     mixed_types = ["DPV(VU-KS)", "DPV-H(VU-KS)"]
-    #     matched_type = refine_poly_classifier(classification_table, mixed_types, edges_sequence, reversed_edges_sequence)
-
-    # # DPV-4(VU-VU), DPV-4(VVU-VVU)
-    # cluster_name = "DPV-4(VU-VU)"
-    # if cluster_name in matched_type:
-    #     mixed_types = ["DPV-4(VU-VU)", "DPV-4(VVU-VVU)"]
-    #     matched_type = refine_poly_classifier(classification_table, mixed_types, edges_sequence, reversed_edges_sequence)
-
-    # # BR-2(KS-KS), BR-2(R-KS)
-    # cluster_name = "BR-2(KS-KS)"
-    # if cluster_name in matched_type:
-    #     mixed_types = ["BR-2(KS-KS)", "BR-2(R-KS)"]
-    #     matched_type = refine_poly_classifier(classification_table, mixed_types, edges_sequence, reversed_edges_sequence)
-    
-    # # DBA(R-KS), LDPKN-3(KS-R)
-    # # cluster_name = "DBA(R-KS)"
-    # # if cluster_name in matched_type:
-    # #    mixed_types = ["DBA(R-KS)", "LDPKN-3(KS-R)"]
-    # #    matched_type = refine_poly_classifier(classification_table, mixed_types, edges_sequence, reversed_edges_sequence)
-    
-    # # DPKN-2(R-R) , DPKN-2(2R-KS)
-    # cluster_name = "DPKN-2(R-R)"
-    # if cluster_name in matched_type:
-    #     mixed_types = ["DPKN-2(R-R) ", "DPKN-2(2R-KS)"]
-    #     matched_type = refine_poly_classifier(classification_table, mixed_types, edges_sequence, reversed_edges_sequence)
-    matched_type=","+matched_type+','
-
-    anno=find_anno_info(matched_type,all_anno,poly_free_edges)
-    
-    #classify inner mixed type by annotation
-
-    # DAB(VU-KS), DAB-1(VU-KS)
-    # cluster_name="DAB(VU-KS)"
-    # if cluster_name in matched_type:
-    #     if anno == "no_angle":
-    #         matched_type = "DAB(VU-KS)"
-    #     elif anno == "angl":
-    #         matched_type = "DAB-1(VU-KS)"
-    #     else:
-    #         matched_type = "DAB(VU-KS)"
-    
-    # DAC(VU-R), DAC(VUF-R)
-    # print(anno)
-    cluster_name=",DAC(VU-R),"
-    if cluster_name in matched_type:
-        if anno[cluster_name] == "no_anno":
-            matched_type = matched_type.replace(',DAC(VUF-R),',',,')
-        elif anno[cluster_name] == "short_anno":
-            matched_type = matched_type.replace(',DAC(VU-R),',',,')
-        else:
-            matched_type = matched_type.replace(',DAC(VUF-R),',',,')
-    
-    # DPK(R), LDPK(R-R), LDPK-1(R-R)
-    cluster_name=",DPK(R),"
-    if cluster_name in matched_type:
-        if anno[cluster_name] == "long_anno":
-            matched_type = matched_type.replace(',LDPK(R-R),',',,')
-            matched_type = matched_type.replace(',LDPK-1(R-R),',',,')
-        elif anno[cluster_name] == "short_anno":
-            matched_type = matched_type.replace(',DPK(R),',',,')
-            matched_type = matched_type.replace(',LDPK-1(R-R),',',,')
-        elif anno[cluster_name] == "short_anno_para":
-            matched_type = matched_type.replace(',LDPK(R-R),',',,')
-            matched_type = matched_type.replace(',DPK(R),',',,')
-        else:
-            matched_type = matched_type.replace(',LDPK(R-R),',',,')
-            matched_type = matched_type.replace(',LDPK-1(R-R),',',,')
-    
-    # DAB(R-KS), DAB-1(R-KS)
-    # cluster_name="DAB(R-KS)"
-    # if cluster_name in matched_type:
-    #     if anno == "no_angle":
-    #         matched_type = "DAB(R-KS)"
-    #     elif anno == "angl":
-    #         matched_type = "DAB-1(R-KS)"
-    #     else:
-    #         matched_type = "DAB(R-KS)"
-
-    # DPKN(KS-KS), LDPKN(KS-KS)
-    cluster_name=",DPKN(KS-KS),"
-    if cluster_name in matched_type:
-        if anno[cluster_name] == "long_anno":
-            matched_type = matched_type.replace(',LDPKN(KS-KS),',',,')
-        elif anno[cluster_name] == "short_anno":
-            matched_type = matched_type.replace(',DPKN(KS-KS),',',,')
-        else:
-            matched_type = matched_type.replace(',LDPKN(KS-KS),',',,')
-
-    # DAD(R), DCD(R) 
-    cluster_name=",DAD(R),"
-    if cluster_name in matched_type:
-        if anno[cluster_name] == "dist_intersec":
-            matched_type = matched_type.replace(',DCD(R),',',,')
-        elif anno[cluster_name] == "no_dist":
-            matched_type = matched_type.replace(',DAD(R),',',,')
-        else:
-            matched_type = matched_type.replace(',DAD(R),',',,')
-
-
-    # DPKN(KS-R), LDPKN(KS-R)
-    cluster_name=",DPKN(KS-R),"
-    if cluster_name in matched_type:
-        if anno[cluster_name] == "long_anno":
-            matched_type = matched_type.replace(',LDPKN(KS-R),',',,')
-        elif anno[cluster_name] == "short_anno":
-            matched_type = matched_type.replace(',DPKN(KS-R),',',,')
-        else:
-            matched_type = matched_type.replace(',LDPKN(KS-R),',',,')
-
-    # DPKN(VU-R), LDPKN(VU-R)
-    cluster_name=",DPKN(VU-R),"
-    if cluster_name in matched_type:
-        if anno[cluster_name] == "long_anno":
-            matched_type = matched_type.replace(',LDPKN(VU-R),',',,')
-        elif anno[cluster_name] == "short_anno":
-            matched_type = matched_type.replace(',DPKN(VU-R),',',,')
-        else:
-            matched_type = matched_type.replace(',LDPKN(VU-R),',',,')
-    
-    # # DPKN(KS-KS), LDPKN(KS-KS)
-    # cluster_name="DPKN(KS-KS)"
-    # if cluster_name in matched_type:
-    #     if anno[cluster_name] == "long_anno":
-    #         matched_type = "DPKN(KS-KS)"
-    #     elif anno[cluster_name] == "short_anno":
-    #         matched_type = "LDPKN(KS-KS)"
-    #     else:
-    #         matched_type = "DPKN(KS-KS)"
-    # DAB-3(R-KS), LDBA(R-KS), BCB-1(R-KS)
-    cluster_name=",DAB-3(R-KS),"
-    if cluster_name in matched_type:
-        if anno[cluster_name] == "angl_non_free":
-            matched_type = matched_type.replace(',LDBA(R-KS),',',,')
-            matched_type = matched_type.replace(',BCB-1(R-KS),',',,')
-        elif anno[cluster_name] == "dist_intersec":
-            matched_type = matched_type.replace(',DAB-3(R-KS),',',,')
-            matched_type = matched_type.replace(',BCB-1(R-KS),',',,')
-        elif anno[cluster_name] == "no_tangent":
-            matched_type = matched_type.replace(',DAB-3(R-KS),',',,')
-            matched_type = matched_type.replace(',LDBA(R-KS),',',,')
-        else:
-            matched_type = matched_type.replace(',DAB-3(R-KS),',',,')
-            matched_type = matched_type.replace(',BCB-1(R-KS),',',,')
-
-    # KL(R), KL-1(R), KL-2(R)
-    cluster_name=",KL(R),"
-    if cluster_name in matched_type:
-        if anno[cluster_name] == "ff":
-            matched_type = matched_type.replace(',KL-0(R),',',,')
-            matched_type = matched_type.replace(',KL-1(R),',',,')
-            matched_type = matched_type.replace(',KL-2(R),',',,')
-        elif anno[cluster_name] == "tt":
-            matched_type = matched_type.replace(',KL(R),',',,')
-            matched_type = matched_type.replace(',KL-0(R),',',,')
-            matched_type = matched_type.replace(',KL-2(R),',',,')
-        elif anno[cluster_name] == "tf":
-            matched_type = matched_type.replace(',KL-0(R),',',,')
-            matched_type = matched_type.replace(',KL(R),',',,')
-            matched_type = matched_type.replace(',KL-1(R),',',,')
-        else:
-            matched_type = matched_type.replace(',KL-0(R),',',,')
-            matched_type = matched_type.replace(',KL-2(R),',',,')
-            matched_type = matched_type.replace(',KL-1(R),',',,')
-    
-    # KL(KS), KL-1(KS), KL-2(KS)
-    cluster_name=",KL(KS),"
-    if cluster_name in matched_type:
-        if anno[cluster_name] == "ff":
-            matched_type = matched_type.replace(',KL-0(KS),',',,')
-            matched_type = matched_type.replace(',KL-2(KS),',',,')
-            matched_type = matched_type.replace(',KL-1(KS),',',,')
-        elif anno[cluster_name] == "tt":
-            matched_type = matched_type.replace(',KL-0(KS),',',,')
-            matched_type = matched_type.replace(',KL-2(KS),',',,')
-            matched_type = matched_type.replace(',KL(KS),',',,')
-        elif anno[cluster_name] == "tf":
-            matched_type = matched_type.replace(',KL-0(KS),',',,')
-            matched_type = matched_type.replace(',KL(KS),',',,')
-            matched_type = matched_type.replace(',KL-1(KS),',',,')
-        else:
-            matched_type = matched_type.replace(',KL-0(KS),',',,')
-            matched_type = matched_type.replace(',KL-2(KS),',',,')
-            matched_type = matched_type.replace(',KL-1(KS),',',,')
-    
-    # DPK-1(R), DPK-2(R-R), DPK-5(R-R), LDPK-3(R-R)
-    cluster_name=",DPK-1(R),"
-    if cluster_name in matched_type:
-        if anno[cluster_name] == "angl_non_free":
-            matched_type = matched_type.replace(',DPK-2(R-R),',',,')
-            matched_type = matched_type.replace(',DPK-5(R-R),',',,')
-            matched_type = matched_type.replace(',LDPK-3(R-R),',',,')
-        elif anno[cluster_name] == "dist_adja":
-            matched_type = matched_type.replace(',DPK-5(R-R),',',,')
-            matched_type = matched_type.replace(',LDPK-3(R-R),',',,')
-            matched_type = matched_type.replace(',DPK-1(R),',',,')
-        elif anno[cluster_name] == "angl_toe":
-            matched_type = matched_type.replace(',DPK-2(R-R),',',,')
-            matched_type = matched_type.replace(',LDPK-3(R-R),',',,')
-            matched_type = matched_type.replace(',DPK-1(R),',',,')
-        elif anno[cluster_name] == "dist_intersec":
-            matched_type = matched_type.replace(',DPK-2(R-R),',',,')
-            matched_type = matched_type.replace(',DPK-5(R-R),',',,')
-            matched_type = matched_type.replace(',DPK-1(R),',',,')
-        else:
-            matched_type = matched_type.replace(',DPK-2(R-R),',',,')
-            matched_type = matched_type.replace(',DPK-5(R-R),',',,')
-            matched_type = matched_type.replace(',LDPK-3(R-R),',',,')
-    
-    # BR(R), BR-1(R), DAA(R)
-    cluster_name=",BR(R),"
-    if cluster_name in matched_type:
-        if anno[cluster_name] == "no_anno":
-            matched_type = matched_type.replace(',BR-1(R),',',,')
-            matched_type = matched_type.replace(',DAA(R),',',,')
-        elif anno[cluster_name] == "angl_non_free":
-            matched_type = matched_type.replace(',DAA(R),',',,')
-            matched_type = matched_type.replace(',BR(R),',',,')
-        elif anno[cluster_name] == "dist_intersec":
-            matched_type = matched_type.replace(',BR-1(R),',',,')
-            matched_type = matched_type.replace(',BR(R),',',,')
-        else:
-            matched_type = matched_type.replace(',BR-1(R),',',,')
-            matched_type = matched_type.replace(',DAA(R)),',',,')
-    
-    # DPK(R-KS), LDPK-1(KS-R)
-    cluster_name=",DPK(R-KS),"
-    if cluster_name in matched_type:
-        if anno[cluster_name] == "long_anno":
-            matched_type = matched_type.replace(',LDPK-1(KS-R),',',,')
-        elif anno[cluster_name] == "short_anno":
-            matched_type = matched_type.replace(',DPK(R-KS),',',,')
-        else:
-            matched_type = matched_type.replace(',LDPK-1(KS-R),',',,')
-    
-    # BR-1(KS), DAA(KS)
-    cluster_name=",BR-1(KS),"
-    if cluster_name in matched_type:
-        if anno[cluster_name] == "angl_non_free":
-            matched_type = matched_type.replace(',DAA(KS),',',,')
-        elif anno[cluster_name] == "dist_intersec":
-            matched_type = matched_type.replace(',BR-1(KS),',',,')
-        else:
-            matched_type = matched_type.replace(',BR-1(KS),',',,')
-    
-    # DPV-4(R-KS), DPV-6(R-KS)
-    cluster_name=",DPV-4(R-KS),"
-    if cluster_name in matched_type:
-        if anno[cluster_name] == "D_anno":
-            matched_type = matched_type.replace(',DPV-6(R-KS),',',,')
-        elif anno[cluster_name] == "no_anno":
-            matched_type = matched_type.replace(',DPV-4(R-KS),',',,')
-        else:
-            matched_type = matched_type.replace(',DPV-4(R-KS),',',,')
-    
-    # LBMA-1(KS), BMA-1(KS)
-    cluster_name=",LBMA-1(KS),"
-    if cluster_name in matched_type:
-        if anno[cluster_name] == "dist":
-            matched_type = matched_type.replace(',LBMA-1(KS),',',,')
-        elif anno[cluster_name] == "angl":
-            matched_type = matched_type.replace(',BMA-1(KS),',',,')
-        else:
-            matched_type = matched_type.replace(',LBMA-1(KS),',',,')
-    
-    # DAC(KS-KS),DAE(KS-KS)
-    cluster_name=",DAC(KS-KS),"
-    if cluster_name in matched_type:
-        if anno[cluster_name] == "D":
-            matched_type = matched_type.replace(',DAE(KS-KS),',',,')
-        elif anno[cluster_name] == "notD":
-            matched_type = matched_type.replace(',DAC(KS-KS),',',,')
-        else:
-            matched_type = matched_type.replace(',DAC(KS-KS),',',,')
-
-    # DAC(R-R),DAE(R-R)
-    cluster_name=",DAC(R-R),"
-    if cluster_name in matched_type:
-        if anno[cluster_name] == "D_anno":
-            matched_type = matched_type.replace(',DAC(R-R),',',,')
-        elif anno[cluster_name] == "no_anno":
-            matched_type = matched_type.replace(',DAE(R-R),',',,')
-        else:
-            matched_type = matched_type.replace(',DAE(R-R)),',',,')
-
-    #DPK(VU),DPKN-3(VU-VU),LDPK(VU-VU)
-    cluster_name=",DPK(VU),"
-    if cluster_name in matched_type:
-        if anno[cluster_name] == "short_anno":
-            matched_type = matched_type.replace(',DPK(VU),',',,')
-            matched_type = matched_type.replace(',DPKN-3(VU-VU),',',,')
-        elif anno[cluster_name] == "short_anno_para":
-            matched_type = matched_type.replace(',DPK(VU),',',,')
-            matched_type = matched_type.replace(',LDPK(VU-VU),',',,')
-        else:
-            matched_type = matched_type.replace(',DPKN-3(VU-VU),',',,')
-            matched_type = matched_type.replace(',LDPK(VU-VU),',',,')
-
-    #DME-1(R-KS),DME-2(R-KS)
-    cluster_name =",DME-1(R-KS),"
-    if cluster_name in matched_type:
-        if anno[cluster_name] == "angl":
-            matched_type = matched_type.replace(',DME-1(R-KS),',',,')
-        elif anno[cluster_name] == "dist":
-            matched_type = matched_type.replace(',DME-2(R-KS),',',,')
-        else:
-            matched_type = matched_type.replace(',DME-2(R-KS),',',,')
-
-    matched_type=tidy_matched_type(matched_type)
-
-    # step8: 考虑整体轮廓筛选
-    if len(matched_type.split(","))<=1 and matched_type!="Unclassified":
-        return matched_type,classification_table[matched_type]
-    elif matched_type=="Unclassified":
-        return matched_type,None
-    edges_sequence.insert(0,["free", free_edges_sequence])
-    reversed_edges_sequence.insert(0, ["free", reversed_free_edges_sequence])
-    mixed_types = matched_type.split(',')
-    matched_type = refine_poly_classifier(classification_table, mixed_types, edges_sequence, reversed_edges_sequence)
-
-    output_template=None
-    if matched_type == "Unclassified":
-        pass
     else:
-        if len(matched_type.split(","))>1:
-            first_type=matched_type.split(",")[0]
-        else:
-            first_type=matched_type
+        matched_type = tidy_matched_type(matched_type)
+        return matched_type[0], classification_table[matched_type[0]]
 
-        #根据fisrt_type 进行输出的格式化
-        output_template=classification_table[first_type]
-    return matched_type,output_template
-
-# 整体轮廓过滤    
-def refine_poly_classifier(classification_table, mixed_types, edges_sequence, reversed_edges_sequence):
-    matched_type = None
-    max_similarity = -1  # 初始化最大相似度为 -1
-
-    for type in mixed_types:
-        temp_free_edge_seq = classification_table[type]["free_edges"]
-        tmp_edge_seq = classification_table[type]["non_free_edges"]
-        tmp_edge_seq.insert(0, ["free", temp_free_edge_seq])
-        # 计算与 edges_sequence 的相似度
-        similarity = calculate_similarity(tmp_edge_seq, edges_sequence)
-        # 计算与 reversed_edges_sequence 的相似度
-        reversed_similarity = calculate_similarity(tmp_edge_seq, reversed_edges_sequence)
-
-        # 取两者中的最大值
-        current_max_similarity = max(similarity, reversed_similarity)
-
-        # 如果当前相似度大于最大相似度，则更新 matched_type
-        if current_max_similarity > max_similarity:
-            max_similarity = current_max_similarity
-            matched_type = type
-
-    return matched_type
-
-def calculate_similarity(seq1, seq2):
-    """
-    计算两个序列的相似度。
-    这里使用简单的匹配比例作为相似度度量。
-    """
-    if not seq1 or not seq2:
-        return 0
-
-    match_count = 0
-    min_length = min(len(seq1), len(seq2))
-
-    for i in range(min_length):
-        if seq1[i] == seq2[i]:
-            match_count += 1
-
-    return match_count / min_length

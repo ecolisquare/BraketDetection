@@ -2,12 +2,14 @@ from  element import *
 from plot_geo import plot_geometry,plot_polys, plot_info_poly,p_minus,p_add,p_mul
 import os
 from utils import segment_intersection_line,segment_intersection,computeBoundingBox,is_parallel,conpute_angle_of_two_segments,point_segment_position,shrinkFixedLength,check_points_against_segments,check_points_against_free_segments,check_parallel_anno,check_vertical_anno,check_non_parallel_anno
-from classifier import poly_classifier
+from classifier import poly_classifier,match_template
 from scipy.spatial import ConvexHull
 import matplotlib.pyplot as plt
 from shapely.geometry import Point, Polygon
 from bracket_parameter_extraction import parse_elbow_plate
 import json
+import re
+import numpy as np
 def is_point_in_polygon(point, polygon_edges):
     
     polygon_points = set()  # Concave polygon example
@@ -361,7 +363,7 @@ def stiffenersInPoly(stiffeners,poly,segmentation_config):
         if x_min <= mid.x and mid.x <=x_max and y_min <=mid.y and y_max>=mid.y:
             sf.append(stiffener)
     return sf
-def textsInPoly(text_map,poly,segmentation_config,is_fb):
+def textsInPoly(text_map,poly,segmentation_config,is_fb,polygon):
     x_min,x_max,y_min,y_max=computeBoundingBox(poly)
     if segmentation_config.bracket_bbox_expand_is_ratio:
         xx=(x_max-x_min)*segmentation_config.bracket_bbox_expand_ratio
@@ -376,11 +378,16 @@ def textsInPoly(text_map,poly,segmentation_config,is_fb):
     ts=[]
     for pos,texts in text_map.items():
         for t in texts:
-            if x_min <= pos.x and pos.x <=x_max and y_min <=pos.y and y_max>=pos.y:
-                if t[1]["Type"]=="FB" or t[1]["Type"]=="FL":
-                    result=parse_elbow_plate(t[0].content, "bottom",is_fb)
-                else:
-                    result=t[1]
+            if t[1]["Type"]=="FB" or t[1]["Type"]=="FL" or t[1]["Type"]=="B" or t[1]["Type"]=="BK":
+
+                if point_is_inside(pos,polygon):
+                    if t[1]["Type"]=="FB" or t[1]["Type"]=="FL":
+                        result=parse_elbow_plate(t[0].content, "bottom",is_fb)
+                    else:
+                        result=t[1]
+                    ts.append([t[0],pos,result,t[2]])#element,position,result,anotation
+            elif x_min <= pos.x and pos.x <=x_max and y_min <=pos.y and y_max>=pos.y:
+                result=t[1]
                 ts.append([t[0],pos,result,t[2]])#element,position,result,anotation
     return ts
 
@@ -757,6 +764,33 @@ def is_near(cons_edge,short_edge):
     if (d1<100 and d2<100) or (d3<100 and d4<100):
         return True
     return False
+
+def find_reference_edge(seg,fr_edges,cons_edges,p1,p2,inter):
+
+
+
+
+    para_edges=[]
+    l1,l2=DSegment(inter,p1),DSegment(inter,p2)
+    edge=None
+    if is_parallel_(seg,l1,0.15):
+        edge=l2
+    else:
+        edge=l1
+    for cons_edge in cons_edges:
+        if is_parallel_(edge,cons_edge,0.15):
+            para_edges.append(cons_edge)
+    distance=float("inf")
+    ref_edge=None
+    for s in para_edges:
+        dis=DSegment(s.mid_point(),inter).length()
+        if dis<distance:
+            distance=dis
+            ref_edge=s
+    if ref_edge is not None:
+        return True,ref_edge
+    return False,edge
+
 def match_edge_anno(constraint_edges,free_edges,edges,all_anno,all_map):
     features=set()
     feature_map={}
@@ -870,6 +904,8 @@ def match_edge_anno(constraint_edges,free_edges,edges,all_anno,all_map):
             all_edge_map[edge]["是否与约束边平行"]=False
             all_edge_map[edge]["是否与相邻约束边夹角为90度"]=False
             all_edge_map[edge]["平行标注"]=[]
+            all_edge_map[edge]["平行于"]=[]
+            all_edge_map[edge]["垂直于相邻边"]=[]
         elif edge_type[edge]=="arc":
             all_edge_map[edge]["是否相切"]=False
             all_edge_map[edge]["圆心是否在趾端延长线上"]=False
@@ -941,15 +977,23 @@ def match_edge_anno(constraint_edges,free_edges,edges,all_anno,all_map):
                             feature_map[s].add('toe_angle')
                             break
             elif edge_type[seg]=="line":
-                #(TODO:寻找参考边)
+
+                flag,ref_edge=find_reference_edge(seg,fr_edges,cons_edges,p1,p2,inter)
                 features.add('angl')
-                all_edge_map[seg]["与约束边及其平行线夹角标注"].append([d,f"句柄：{d.handle}，值：{d.text}，参考点1：{p1}，参考点2：{p2}，参考中心： {inter}"])
+                if flag:
+                    all_edge_map[seg]["与约束边及其平行线夹角标注"].append([d,f"句柄：{d.handle}，值：{d.text}，参考点1：{p1}，参考点2：{p2}，参考中心： {inter}，参考边：约束边",ref_edge])
+                else:
+                    all_edge_map[seg]["与约束边及其平行线夹角标注"].append([d,f"句柄：{d.handle}，值：{d.text}，参考点1：{p1}，参考点2：{p2}，参考中心： {inter}，参考边：{ref_edge}"])
                 feature_map[seg].add('angl')
             elif edge_type[seg]=="KS_corner":
                 #(TODO:寻找参考边)
+                flag,ref_edge=find_reference_edge(seg,fr_edges,cons_edges,p1,p2,inter)
                 features.add('angl')
                 feature_map[seg].add('angl')
-                all_edge_map[seg]["与自由边夹角标注"].append([d,f"句柄：{d.handle}，值：{d.text}，参考点1：{p1}，参考点2：{p2}，参考中心： {inter}"])
+                if flag:
+                    all_edge_map[seg]["与自由边夹角标注"].append([d,f"句柄：{d.handle}，值：{d.text}，参考点1：{p1}，参考点2：{p2}，参考中心： {inter}，参考边：约束边",ref_edge])
+                else:
+                    all_edge_map[seg]["与自由边夹角标注"].append([d,f"句柄：{d.handle}，值：{d.text}，参考点1：{p1}，参考点2：{p2}，参考中心： {inter}，参考边：{ref_edge}"])
     #自由边直线与约束边垂直标注/自由边倒角与约束边距离标注
     for key,ds in l_n_para_map.items():
         cons_edge,free_edge=key
@@ -967,13 +1011,18 @@ def match_edge_anno(constraint_edges,free_edges,edges,all_anno,all_map):
     for seg in fr_edges:
         if edge_type[seg]=="line":
             flag=False
+            para_edge=None
             for cons_edge in cons_edges:
                 if flag:
                     break
                 flag=is_parallel_(seg,cons_edge,0.15)
+                if flag:
+                    para_edge=cons_edge
       
             all_edge_map[seg]["是否与约束边平行"]=flag
             if flag:
+            
+                all_edge_map[seg]["平行于"].append([DDimension(),f"约束边",para_edge])
                 features.add('is_para')
                 feature_map[seg].add('is_para')
             if free_edge_no[seg]==1 or free_edge_no[seg]==len(fr_edges):
@@ -981,6 +1030,7 @@ def match_edge_anno(constraint_edges,free_edges,edges,all_anno,all_map):
                 flag=is_vertical_(seg.start_point,seg.end_point,cons_edge,0.005)
                 all_edge_map[seg]["是否与相邻约束边夹角为90度"]=flag
                 if flag:
+                    all_edge_map[seg]["垂直于相邻边"].append([DDimension(),f"约束边",cons_edge])
                     features.add('is_ver')
                     feature_map[seg].add('is_ver')
             else:
@@ -1080,128 +1130,8 @@ def get_free_edge_des(edge,edge_types):
        
         des+=edge_types[s]+","
     return des[:-1]
-def get_score(free_edges_types,non_free_edges,non_free_edges_types,free_edge_seq,non_free_edges_seq,non_free_edges_types_seq):
-    new_free_edges_types=[]
-    for t in free_edges_types:
-        if t!="KS_corner":
-            new_free_edges_types.append(t)
-    new_free_edges_types_seq=[]
-    for t in free_edge_seq:
-        if t!="KS_corner":
-            new_free_edges_types_seq.append(t)
-    total=0
-    for i in range(len(new_free_edges_types)):
-        if new_free_edges_types[i]== new_free_edges_types_seq[i]:
-            total+=1
-    new_non_free_edges=[]
-    new_non_free_edges_types=[]
-    for i,edge in enumerate(non_free_edges):
-        if non_free_edges_types[i]=="cornerhole" and len(edge)==1 and isinstance(edge[0].ref,DLine):
-            continue
-        new_non_free_edges.append(edge)
-        new_non_free_edges_types.append(non_free_edges_types[i])
-    new_non_free_edges_seq=[]
-    new_non_free_edges_types_seq=[]
-    for i,edge in enumerate(non_free_edges_seq):
-        if non_free_edges_types_seq[i]=="cornerhole" and len(edge)==1 and edge[0]=="line":
-            continue
-        new_non_free_edges_seq.append(edge)
-        new_non_free_edges_types_seq.append(non_free_edges_types_seq[i])
-    for i in range(len(new_non_free_edges)):
-        edges1=new_non_free_edges[i]
-        edges2=new_non_free_edges_seq[i]
-        if new_non_free_edges_types[i]==new_non_free_edges_types_seq[i] and len(edges1)==len(edges2):
-            edges3=[]
-            for edge in edges1:
-                if isinstance(edge.ref,DArc):
-                    edges3.append('arc')
-                else:
-                    edges3.append('line')
-            if edges3==edges2:
-                total+=1
-    return total
-def match_template(edges,detected_free_edges,template,edge_types):
 
-    non_free_edges=[]
-    non_free_edges_types=[]
-    free_edges=[]
-    free_edges_types=[]
-    for edge in detected_free_edges[0]:
-        free_edges.append(edge)
-        free_edges_types.append(edge_types[edge])
-    for i,edge in enumerate(edges):
-        if (not edge[0].isConstraint) and (not edge[0].isCornerhole):
-            continue
-        if edge[0].isCornerhole:
-            non_free_edges_types.append('cornerhole')
-            segs=[]
-            for s in edge:
-                segs.append(s)
-            non_free_edges.append(segs)
-        else:
-            non_free_edges_types.append('constraint')
-            segs=[]
-            for s in edge:
-                segs.append(s)
-            non_free_edges.append(segs)
-    r_non_free_edges=non_free_edges[::-1]
-    r_non_free_edges_types=non_free_edges_types[::-1]
-    r_free_edges=free_edges[::-1]
-    r_free_edges_types=free_edges_types[::-1]
-    new_edges=[]
-    for edge in r_non_free_edges:
-        new_edges.append(edge[::-1])
-    r_non_free_edges=new_edges
-    free_edge_seq=template["free_edges"]
-    non_free_seq=template["non_free_edges"]
-    non_free_edges_seq=[]
-    non_free_edges_types_seq=[]
-    for edge in non_free_seq:
-        non_free_edges_types_seq.append(edge["type"])
-        non_free_edges_seq.append(edge["edges"])
-
-    total,r_total=0,0
-    
-    
-    total=get_score(free_edges_types,non_free_edges,non_free_edges_types,free_edge_seq,non_free_edges_seq,non_free_edges_types_seq)
-    r_total=get_score(r_free_edges_types,r_non_free_edges,r_non_free_edges_types,free_edge_seq,non_free_edges_seq,non_free_edges_types_seq)
-    
-
-    if total<r_total:
-        free_edges=r_free_edges
-        free_edges_types=r_free_edges_types
-        non_free_edges=r_non_free_edges
-        non_free_edges_types=r_non_free_edges_types
-    template_map={}
-    j=0
-    for i in range(len(free_edge_seq)):
-        key=f"free{i+1}"
-        if free_edge_seq[i]=='KS_corner'and j>=len(free_edges_types):
-            template_map[key]=[]
-        elif free_edge_seq[i]=='KS_corner'and free_edges_types[j]!='KS_corner':
-            template_map[key]=[]
-        else:
-            template_map[key]=[free_edges[j]]
-            j+=1
-    cornerhole_idx=0
-    constraint_idx=0
-    j=0
-    for i in range(len(non_free_edges_seq)):
-        if non_free_edges_types_seq[i]=="cornerhole":
-            cornerhole_idx+=1
-            key=f"cornerhole{cornerhole_idx}"
-        else:
-            constraint_idx+=1
-            key=f"constraint{constraint_idx}"
-        if non_free_edges_types_seq[i]=="cornerhole" and len(non_free_edges_seq[i])==1 and non_free_edges_seq[i][0]=="line" and j>=len(non_free_edges_types):
-            template_map[key]=[]
-        elif non_free_edges_types_seq[i]=="cornerhole" and len(non_free_edges_seq[i])==1 and non_free_edges_seq[i][0]=="line" and not(non_free_edges_types[j]=="cornerhole" and len(non_free_edges[j])==1 and isinstance(non_free_edges[j][0].ref,DLine)):
-            template_map[key]=[]
-        else:
-            template_map[key]=non_free_edges[j]
-            j+=1
-    return template_map
-def outputPolyInfo(poly, segments, segmentation_config, point_map, index,star_pos_map,cornor_holes,texts,dimensions,text_map,stiffeners):
+def calculate_poly_features(poly, segments, segmentation_config, point_map, index,star_pos_map,cornor_holes,texts,dimensions,text_map,stiffeners):
     # step1: 计算几何中心坐标
     poly_centroid = calculate_poly_centroid(poly)
 
@@ -1737,7 +1667,7 @@ def outputPolyInfo(poly, segments, segmentation_config, point_map, index,star_po
     # else:
     #     print(f"回路{index}没有加强边！")
     
-    tis=textsInPoly(text_map,poly,segmentation_config,is_fb)
+    tis=textsInPoly(text_map,poly,segmentation_config,is_fb,polygon)
     ds=dimensionsInPoly(dimensions,poly,segmentation_config)
     # print(free_edges)
     # print(cornor_holes[0].segments)
@@ -1922,26 +1852,7 @@ def outputPolyInfo(poly, segments, segmentation_config, point_map, index,star_po
     
 
 
-    is_standard_elbow=True
-    bracket_parameter={}
-    thickness=0
-    for t_t in tis:
-        content=t_t[0].content.strip()
-        if t_t[2]["Type"]=="B" and '~' in content:
-            is_standard_elbow=False
-    for t_t in tis:
-        content=t_t[0].content.strip()
-        if t_t[2]["Type"]=="B" and '~' not in content:
-            bracket_parameter=t_t[2]
-            if bracket_parameter["Thickness"] is not None:
-                thickness=bracket_parameter["Thickness"]
-    if is_standard_elbow:
 
-        #TODO:标准肘板缺省角隅孔的添加
-        # [-1] line 
-        # [0] line 
-        #edges poly_refs constraint_edges
-        pass
     # step6: 绘制对边分类后的几何图像
     plot_info_poly(polygon,poly_refs, os.path.join(segmentation_config.poly_info_dir, f'infopoly{index}.png'),tis,ds,sfs,others)
 
@@ -2002,10 +1913,841 @@ def outputPolyInfo(poly, segments, segmentation_config, point_map, index,star_po
 
 
     all_edge_map,edge_types,features,feature_map,constraint_edge_no,free_edge_no=match_edge_anno(constraint_edges,free_edges,edges,all_anno,all_map)
+    
+    #TODO:是否是标准肘板的判断
+    is_standard_elbow=True
+    bracket_parameter=None
+    strengthen_parameter=None
+    thickness=0
+    for t_t in tis:
+        content=t_t[0].content.strip()
+        if t_t[2]["Type"]=="B" and '~' in content and '~'!=content[-1]:
+            is_standard_elbow=False
+    for t_t in tis:
+        content=t_t[0].content.strip()
+        if t_t[2]["Type"]=="B" and not ('~'  in content and '~'!=content[-1]):
+            bracket_parameter=t_t[2]
+            if bracket_parameter["Thickness"] is not None:
+                thickness=bracket_parameter["Thickness"]
+        if t_t[2]["Type"]=="FB" or t_t[2]["Type"]=="FL":
+            strengthen_parameter=t_t[2]
+    has_hint= bracket_parameter is not None or strengthen_parameter is not None
+    for t_t in tis:
+        if has_hint:
+            break
+        content=t_t[0].content.strip()
+        if t_t[2]["Type"]=="R" or t_t[2]["Type"]=="BK":
+            has_hint=True
+            break
+    for seg,dic in all_edge_map.items():
+        if has_hint:
+            break
+        for ty,d_s in dic.items():
+            if isinstance(d_s,list):
+                if len(d_s)>0:
+                    has_hint=True
+                    break
+        if has_hint:
+            break
+        
+    if is_standard_elbow:
 
-    # for s,fs in feature_map.items():
-    #     print(s,fs)
+        #TODO:标准肘板缺省角隅孔的添加
+        # [-1] line 
+        # [0] line 
+        #edges poly_refs constraint_edges
+        pass
+    
+    is_diff=False
+    meta_info=(is_standard_elbow,bracket_parameter,strengthen_parameter,has_hint,is_fb,is_diff)
+    edges_info=(free_edges,constraint_edges,edges,poly_refs)
+    hint_info=(all_edge_map,edge_types,features,feature_map,constraint_edge_no,free_edge_no,all_anno,tis,ds)
+    return edges_info,poly_centroid,hint_info,meta_info
+def is_similar(edges_info,other_edges_info,edge_types,other_edge_types):
 
+
+    edges1=edges_info[2]
+    non_free_edges1=[]
+    non_free_edges_types1=[]
+    free_edges1=[]
+    free_edges_types1=[]
+    for edge in edges_info[0][0]:
+        free_edges1.append(edge)
+        free_edges_types1.append(edge_types[edge])
+    for i,edge in enumerate(edges1):
+        if (not edge[0].isConstraint) and (not edge[0].isCornerhole):
+            continue
+        if edge[0].isCornerhole:
+            non_free_edges_types1.append('cornerhole')
+            segs=[]
+            for s in edge:
+                segs.append(s)
+            non_free_edges1.append(segs)
+        else:
+            non_free_edges_types1.append('constraint')
+            segs=[]
+            for s in edge:
+                segs.append(s)
+            non_free_edges1.append(segs)
+    r_non_free_edges1=non_free_edges1[::-1]
+    r_non_free_edges_types1=non_free_edges_types1[::-1]
+    r_free_edges1=free_edges1[::-1]
+    r_free_edges_types1=free_edges_types1[::-1]
+    new_edges=[]
+    for edge in r_non_free_edges1:
+        new_edges.append(edge[::-1])
+    r_non_free_edges1=new_edges
+    
+
+
+
+    edges2=other_edges_info[2]
+    non_free_edges2=[]
+    non_free_edges_types2=[]
+    free_edges2=[]
+    free_edges_types2=[]
+    for edge in other_edges_info[0][0]:
+        free_edges2.append(edge)
+        free_edges_types2.append(other_edge_types[edge])
+    for i,edge in enumerate(edges2):
+        if (not edge[0].isConstraint) and (not edge[0].isCornerhole):
+            continue
+        if edge[0].isCornerhole:
+            non_free_edges_types2.append('cornerhole')
+            segs=[]
+            for s in edge:
+                segs.append(s)
+            non_free_edges2.append(segs)
+        else:
+            non_free_edges_types2.append('constraint')
+            segs=[]
+            for s in edge:
+                segs.append(s)
+            non_free_edges2.append(segs)
+    r_non_free_edges2=non_free_edges2[::-1]
+    r_non_free_edges_types2=non_free_edges_types2[::-1]
+    r_free_edges2=free_edges2[::-1]
+    r_free_edges_types2=free_edges_types2[::-1]
+    new_edges=[]
+    for edge in r_non_free_edges2:
+        new_edges.append(edge[::-1])
+    r_non_free_edges2=new_edges
+
+
+
+    des1=""
+    for edge in free_edges_types1:
+        des1+=edge
+    for i in range(len(non_free_edges_types1)):
+        des1+=non_free_edges_types1[i]
+        for edge in non_free_edges1[i]:
+            if isinstance(edge.ref,DLine):
+                des1+="line"
+            else:
+                des1+="arc"
+    
+    des2=""
+    for edge in free_edges_types2:
+        des2+=edge
+    for i in range(len(non_free_edges_types2)):
+        des2+=non_free_edges_types2[i]
+        for edge in non_free_edges2[i]:
+            if isinstance(edge.ref,DLine):
+                des2+="line"
+            else:
+                des2+="arc"
+    # print("111111111111111111")
+    # print(des1,des2)
+    if des1==des2:
+        edge_map={}
+        for i,edge in enumerate(free_edges1):
+            edge_map[free_edges2[i]]=edge
+        for i in range(len(non_free_edges1)):
+            for j in range(len(non_free_edges1[i])):
+                edge_map[non_free_edges2[i][j]]=non_free_edges1[i][j]
+        return True,edge_map
+    
+
+    des2=""
+    for edge in r_free_edges_types2:
+        des2+=edge
+    for i in range(len(r_non_free_edges_types2)):
+        des2+=r_non_free_edges_types2[i]
+        for edge in r_non_free_edges2[i]:
+            if isinstance(edge.ref,DLine):
+                des2+="line"
+            else:
+                des2+="arc"
+    # print("222222222222222222222222")
+    # print(des1,des2)
+    if des1==des2:
+        edge_map={}
+        for i,edge in enumerate(free_edges1):
+            edge_map[r_free_edges2[i]]=edge
+        for i in range(len(non_free_edges1)):
+            for j in range(len(non_free_edges1[i])):
+                edge_map[r_non_free_edges2[i][j]]=non_free_edges1[i][j]
+        return True,edge_map 
+
+    return False,None
+def calculate_new_hint_info(edges_info,other_edges_info,hint_info,other_hint_info,meta_info,other_meta_info,edge_map):
+
+    new_all_edge_map={}
+    other_all_edge_map=other_hint_info[0]
+ 
+    for seg,dic in other_all_edge_map.items():
+        s=edge_map[seg]
+        new_dic={}
+        for ty,d_s in dic.items():
+            if isinstance(d_s,list):
+                new_d_s=[]
+                for d_t in d_s:
+                    if len(d_t)==3:
+                        if isinstance(d_t[0],DDimension):
+                            content=d_t[0].text
+                        else:
+                            content=d_t[0].content
+                        sub_ty=d_t[1].split("：")[-1]
+                        new_d_s.append([d_t[0],f"值：{content}，参考边：{sub_ty}",edge_map[d_t[2]]])
+                    else:
+                        if isinstance(d_t[0],DDimension):
+                            content=d_t[0].text
+                        else:
+                            content=d_t[0].content
+                        new_d_s.append([d_t[0],f"值：{content}"])
+
+                new_dic[ty]=new_d_s
+            else:
+                new_dic[ty]=d_s
+        new_all_edge_map[s]=new_dic
+    new_features=other_hint_info[2]
+    new_feature_map={}
+    for seg,feats in other_hint_info[3].items():
+        new_feature_map[edge_map[seg]]=feats
+    new_hint_info=(new_all_edge_map,hint_info[1],new_features,new_feature_map,hint_info[4],hint_info[5],hint_info[6],hint_info[7],hint_info[8])
+
+    new_meta_info=(meta_info[0],other_meta_info[1],other_meta_info[2],other_meta_info[3],other_meta_info[4],True)
+    return new_hint_info,new_meta_info
+def calculate_new_hint_info_bk(edges_info,other_edges_info,hint_info,other_hint_info,meta_info,other_meta_info,edge_map):
+
+    new_all_edge_map={}
+    other_all_edge_map=other_hint_info[0]
+ 
+    for seg,dic in other_all_edge_map.items():
+        s=edge_map[seg]
+        new_dic={}
+        for ty,d_s in dic.items():
+            if isinstance(d_s,list):
+                new_d_s=[]
+                for d_t in d_s:
+                    if len(d_t)==3:
+                        if isinstance(d_t[0],DDimension):
+                            content=d_t[0].text
+                        else:
+                            content=d_t[0].content
+                        sub_ty=d_t[1].split("：")[-1]
+                        new_d_s.append([d_t[0],f"值：{content}，参考边：{sub_ty}",edge_map[d_t[2]]])
+                    else:
+                        if isinstance(d_t[0],DDimension):
+                            content=d_t[0].text
+                        else:
+                            content=d_t[0].content
+                        new_d_s.append([d_t[0],f"值：{content}"])
+
+                new_dic[ty]=new_d_s
+            else:
+                new_dic[ty]=d_s
+        new_all_edge_map[s]=new_dic
+    new_features=other_hint_info[2]
+    new_feature_map={}
+    for seg,feats in other_hint_info[3].items():
+        new_feature_map[edge_map[seg]]=feats
+    new_hint_info=(new_all_edge_map,hint_info[1],new_features,new_feature_map,hint_info[4],hint_info[5],hint_info[6],hint_info[7],hint_info[8])
+
+    new_meta_info=(meta_info[0],meta_info[1],meta_info[2],other_meta_info[3],meta_info[4],True)
+    return new_hint_info,new_meta_info
+def find_bkcode(texts):
+    bk_code_pos={}
+    for t in texts:
+        content=t.content.strip()
+        pattern_bk = r"BK(?P<bk_code>\d+)"
+        if re.fullmatch(pattern_bk, content) and t.color==3:
+            bk_code_pos[content]=t.insert
+    return bk_code_pos
+def calculate_codemap(edges_infos,poly_centroids,hint_infos,meta_infos,bk_code_pos):
+    code_map={}
+    for bk_code,pos in bk_code_pos.items():
+        distance=float("inf")
+        idx=None
+        for i in range(len(meta_infos)):
+            edges_info,poly_centroid,hint_info,meta_info=edges_infos[i],poly_centroids[i],hint_infos[i],meta_infos[i]
+            is_standard_elbow,bracket_parameter,strengthen_parameter,has_hint,is_fb,is_diff=meta_info
+        
+            if has_hint==False or is_standard_elbow==False:
+                continue
+                
+            dis=DSegment(DPoint(poly_centroid[0],poly_centroid[1]),pos).length()
+            if distance>dis:
+                distance=dis
+                idx=i
+        if idx is not None and distance<4000:
+            code_map[bk_code]=(edges_infos[idx],poly_centroids[idx],hint_infos[idx],meta_infos[idx])
+    return code_map
+def hint_search_step(edges_infos,poly_centroids,hint_infos,meta_infos,code_map):
+    new_edges_infos,new_poly_centroids,new_hint_infos,new_meta_infos=[],[],[],[]
+    for i in range(len(meta_infos)):
+        edges_info,poly_centroid,hint_info,meta_info=edges_infos[i],poly_centroids[i],hint_infos[i],meta_infos[i]
+        is_standard_elbow,bracket_parameter,strengthen_parameter,has_hint,is_fb,is_diff=meta_info
+  
+
+        if  is_standard_elbow:
+            tis=hint_info[7]
+            has_code=False
+            code=None
+            for t_t in tis:
+                if has_code:
+                    break
+                content=t_t[0].content.strip()
+                if t_t[2]["Type"]=="BK":
+                    has_code=True
+                    code=t_t[2]["Typical Section Code"]
+                    break   
+            if has_code and code is not None:
+                code="BK"+code
+                if code in code_map:
+                    info=code_map[code]
+                    other_edges_info,other_poly_centroid,other_hint_info,other_meta_info=info
+                    flag,edge_map=is_similar(edges_info,other_edges_info,hint_info[1],other_hint_info[1])
+                    if flag:
+                        new_hint_info,new_meta_info=calculate_new_hint_info_bk(edges_info,other_edges_info,hint_info,other_hint_info,meta_info,other_meta_info,edge_map)
+                        
+                        new_edges_infos.append(edges_info)
+                        new_poly_centroids.append(poly_centroid)
+                        new_hint_infos.append(new_hint_info)
+                        new_meta_infos.append(new_meta_info)
+                        continue     
+            
+
+            new_edges_infos.append(edges_info)
+            new_poly_centroids.append(poly_centroid)
+            new_hint_infos.append(hint_info)
+            new_meta_infos.append(meta_info)
+        else:
+            new_edges_infos.append(edges_info)
+            new_poly_centroids.append(poly_centroid)
+            new_hint_infos.append(hint_info)
+            new_meta_infos.append(meta_info)
+    return new_edges_infos,new_poly_centroids,new_hint_infos,new_meta_infos
+
+def diffusion_step(edges_infos,poly_centroids,hint_infos,meta_infos):
+    new_edges_infos,new_poly_centroids,new_hint_infos,new_meta_infos=[],[],[],[]
+    for i in range(len(meta_infos)):
+        edges_info,poly_centroid,hint_info,meta_info=edges_infos[i],poly_centroids[i],hint_infos[i],meta_infos[i]
+        is_standard_elbow,bracket_parameter,strengthen_parameter,has_hint,is_fb,is_diff=meta_info
+        
+        if has_hint==False and is_standard_elbow:
+            f=False
+            for j in range(len(meta_infos)):
+                if j!=i:
+                    other_poly_centroid=poly_centroids[j]
+                    other_hint_info=hint_infos[j]
+                    other_is_standard_elbow,other_bracket_parameter,other_strengthen_parameter,other_has_hint,other_is_fb,other_is_diff=meta_infos[j]
+                    if other_is_standard_elbow  and other_has_hint==True and DSegment(DPoint(poly_centroid[0],poly_centroid[1]),DPoint(other_poly_centroid[0],other_poly_centroid[1])).length()<5000 :
+
+    
+                        flag,edge_map=is_similar(edges_info,edges_infos[j],hint_info[1],other_hint_info[1])
+                        if flag:
+                            new_hint_info,new_meta_info=calculate_new_hint_info(edges_info,edges_infos[j],hint_info,hint_infos[j],meta_info,meta_infos[j],edge_map)
+                            
+                            new_edges_infos.append(edges_info)
+                            new_poly_centroids.append(poly_centroid)
+                            new_hint_infos.append(new_hint_info)
+                            new_meta_infos.append(new_meta_info)
+                            f=True
+                            break
+            if f==False:
+                new_edges_infos.append(edges_info)
+                new_poly_centroids.append(poly_centroid)
+                new_hint_infos.append(hint_info)
+                new_meta_infos.append(meta_info)
+        else:
+            new_edges_infos.append(edges_info)
+            new_poly_centroids.append(poly_centroid)
+            new_hint_infos.append(hint_info)
+            new_meta_infos.append(meta_info)
+    return new_edges_infos,new_poly_centroids,new_hint_infos,new_meta_infos
+def find_intersection(p1, p2, p3, p4):
+    """
+    计算两条线段的交点，包括延长线上的交点
+    
+    参数:
+    p1, p2: 第一条线段的两个端点 (x, y)
+    p3, p4: 第二条线段的两个端点 (x, y)
+    
+    返回:
+    (x, y): 交点坐标
+    None: 如果两条线段平行或重合
+    """
+    # 解线性方程组求参数
+    # 第一条线段参数方程: p1 + t(p2-p1)
+    # 第二条线段参数方程: p3 + u(p4-p3)
+    
+    x1, y1 = p1
+    x2, y2 = p2
+    x3, y3 = p3
+    x4, y4 = p4
+    
+    # 计算分母
+    denom = (y4 - y3) * (x2 - x1) - (x4 - x3) * (y2 - y1)
+    
+    # 如果分母为0，说明线段平行或重合
+    if denom == 0:
+        return None
+    
+    # 计算参数t和u
+    ua = ((x4 - x3) * (y1 - y3) - (y4 - y3) * (x1 - x3)) / denom
+    ub = ((x2 - x1) * (y1 - y3) - (y2 - y1) * (x1 - x3)) / denom
+    
+    # 计算交点坐标
+    x = x1 + ua * (x2 - x1)
+    y = y1 + ua * (y2 - y1)
+    
+    return DPoint(x, y)
+
+def calculate_dimesion_pos(d,constraint_edges):
+    if  d.dimtype==32 or d.dimtype==33 or d.dimtype==161 or d.dimtype==160:
+        l0=p_minus(d.defpoints[0],d.defpoints[2])
+        l1=p_minus(d.defpoints[1],d.defpoints[2])
+        d10=l0.x*l1.x+l0.y*l1.y
+        d00=l0.x*l0.x+l0.y*l0.y
+        if d00 <1e-4:
+            x=d.defpoints[1]
+        else:
+            x=p_minus(p_add(d.defpoints[1],l0),p_mul(l0,d10/d00))
+        d1,d2,d3,d4=d.defpoints[0], x,d.defpoints[1],d.defpoints[2]
+        d1,d2,d3,d4=compute_accurate_position(d1,d2,d3,d4,constraint_edges)
+        return [d3,d4]
+    elif d.dimtype==34 or d.dimtype==162:
+        s1=DSegment(d.defpoints[3],d.defpoints[0])
+        s2=DSegment(d.defpoints[2],d.defpoints[1])
+        
+        inter=segment_intersection_line(s1.start_point,s1.end_point,s2.start_point,s2.end_point)
+        pos=d.defpoints[4]
+        r=DSegment(pos,inter).length()
+        v1=DPoint((s1.end_point.x-s1.start_point.x)/s1.length()*(r+5),(s1.end_point.y-s1.start_point.y)/s1.length()*(r+5))
+        v2=DPoint((s2.end_point.x-s2.start_point.x)/s2.length()*(r+5),(s2.end_point.y-s2.start_point.y)/s2.length()*(r+5))
+        d1=DPoint(v1.x+inter.x,v1.y+inter.y)
+        d2=DPoint(-v1.x+inter.x,-v1.y+inter.y)
+        d3=DPoint(v2.x+inter.x,v2.y+inter.y)
+        d4=DPoint(-v2.x+inter.x,-v2.y+inter.y)
+        p1=None
+        p2=None
+        if DSegment(pos,d1).length()<DSegment(pos,d2).length():
+            p1=d1
+        else:
+            p1=d2
+        if DSegment(pos,d3).length()<DSegment(pos,d4).length():
+            p2=d3
+        else:
+            p2=d4
+        return [p1,p2,inter]
+def draw_segment(segment,ax):
+    if segment.isCornerhole:
+        color = "#FF0000"
+    elif segment.isConstraint:
+        color = "#00FF00"
+        if segment.isPart:
+            color="#00AA00"
+    else:
+        color = "#0000FF"
+        if segment.isPart:
+            color="#000000"
+    if isinstance(segment.ref, DArc):
+        # if segment.ref.end_angle < segment.ref.start_angle:
+        #     end_angle = segment.ref.end_angle + 360
+        # else:
+        #     end_angle = segment.ref.end_angle
+        # start_angle=segment.ref.start_angle
+        # if end_angle-start_angle>180.5:
+        end_angle,start_angle=segment.ref.end_angle ,segment.ref.start_angle
+        delta=end_angle-start_angle
+        while delta<0:
+            end_angle+=360
+            delta+=360
+        while delta>360:
+            end_angle-=360
+            delta-=360
+
+        if delta>180:
+            start_angle,end_angle=end_angle,start_angle
+            end_angle+=360
+
+        theta = np.linspace(np.radians(start_angle), np.radians(end_angle), 100)
+        x_arc = segment.ref.center.x + segment.ref.radius * np.cos(theta)
+        y_arc = segment.ref.center.y + segment.ref.radius * np.sin(theta)
+        # p=transform_point_(DPoint(x_arc,y_arc),segment.ref.meta)
+        ax.plot(x_arc, y_arc, color, lw=2)
+    else:
+        x_values = [segment.start_point.x, segment.end_point.x]
+        y_values = [segment.start_point.y, segment.end_point.y]
+        ax.plot(x_values, y_values, color, lw=2)
+    return []
+def plot_info_poly_std(constraint_edges,ori_edge_map,template_map,path):
+    fig, ax = plt.subplots()
+    free_idx=1
+   
+    while f'free{free_idx}' in template_map:
+        if len(template_map[f'free{free_idx}'])==0:
+            free_idx+=1
+            continue
+        seg=template_map[f'free{free_idx}'][0]
+        draw_segment(seg,ax)
+        free_idx+=1
+        for ty,ds in ori_edge_map[seg].items():
+            if isinstance(ds,list):
+                for d_t in ds:
+                    d=d_t[0]
+                    if isinstance(d,DDimension):
+                        if len(d_t)==2:
+                            ps=calculate_dimesion_pos(d,constraint_edges)
+                            if len(ps)==0:
+                                continue
+                            elif len(ps)==2:
+                                v1,v2=ps
+                                ax.plot(v1.x,v1.y,'g.')
+                                ax.plot(v2.x,v2.y,'g.')
+                                q=DSegment(v1,v2).mid_point()
+                                s=DSegment(v1,v2)
+                                ax.text(q.x, q.y, d.text,rotation=0,color="#EEC933", fontsize=15)
+                                ax.plot([s.start_point.x,s.end_point.x], [s.start_point.y,s.end_point.y], color="#FF0000", lw=2,linestyle='--')
+                            elif len(ps)==3:
+                                p1,p2,inter=ps
+                                ax.plot(p1.x,p1.y,'g.')
+                                ax.plot(p2.x,p2.y,'g.')
+                                ax.plot(inter.x,inter.y,'g.')
+                                ax.text(inter.x, inter.y, d.text,rotation=0,color="#EEC933", fontsize=15)
+                                s=DSegment(p1,inter)
+                                ax.plot([s.start_point.x,s.end_point.x], [s.start_point.y,s.end_point.y], color="#FF0000", lw=2,linestyle='--')
+                                s=DSegment(p2,inter)
+                                ax.plot([s.start_point.x,s.end_point.x], [s.start_point.y,s.end_point.y], color="#FF0000", lw=2,linestyle='--')
+
+                        elif len(d_t)==3:
+                            seg_=d_t[-1]
+                            s_p=seg_.mid_point()
+                            e_p=seg.mid_point()
+                            # ax.plot([seg_.start_point.x,seg_.end_point.x], [seg_.start_point.y,seg_.end_point.y], color="#000000", lw=2,linestyle='--')
+                            ax.plot([s_p.x,e_p.x], [s_p.y,e_p.y], color="#000000", lw=2,linestyle='--')
+                            ps=calculate_dimesion_pos(d,constraint_edges)
+                            if ps is None or  len(ps)==0:
+                                continue
+                            elif len(ps)==2:
+                                v1,v2=ps
+                                q=DSegment(v1,v2).mid_point()
+                                s=DSegment(v1,v2)
+                                ax.plot(v1.x,v1.y,'g.')
+                                ax.plot(v2.x,v2.y,'g.')
+                                ax.text(q.x, q.y, d.text,rotation=0,color="#EEC933", fontsize=15)
+                                ax.plot([s.start_point.x,s.end_point.x], [s.start_point.y,s.end_point.y], color="#FF0000", lw=2,linestyle='--')
+                            elif len(ps)==3:
+                                p1,p2,inter=ps
+                                ax.plot(p1.x,p1.y,'g.')
+                                ax.plot(p2.x,p2.y,'g.')
+                                ax.plot(inter.x,inter.y,'g.')
+                                ax.text(inter.x, inter.y, d.text,rotation=0,color="#EEC933", fontsize=15)
+                                s=DSegment(p1,inter)
+                                ax.plot([s.start_point.x,s.end_point.x], [s.start_point.y,s.end_point.y], color="#FF0000", lw=2,linestyle='--')
+                                s=DSegment(p2,inter)
+                                ax.plot([s.start_point.x,s.end_point.x], [s.start_point.y,s.end_point.y], color="#FF0000", lw=2,linestyle='--')
+                    elif isinstance(d,DText):
+                        ax.text(d.insert.x, d.insert.y, d.content,rotation=0,color="#EEC933", fontsize=15)
+    
+    constarint_idx=1
+    cornerhole_idx=1
+    template_edges=[]
+    # print("============")
+    while True:
+        # print(constarint_idx,cornerhole_idx)
+        if f'constraint{constarint_idx}' in template_map:
+            template_edges.append(template_map[f'constraint{constarint_idx}'])
+            constarint_idx+=1
+        else:
+            break
+        if f'cornerhole{cornerhole_idx}' in template_map:  
+            template_edges.append(template_map[f'cornerhole{cornerhole_idx}'])
+            cornerhole_idx+=1
+    k=1
+    constarint_idx=0
+    cornerhole_idx=0
+
+    for i,edge in enumerate(template_edges):
+
+
+        if len(edge)==0:
+            k+=1
+            cornerhole_idx+=1
+        elif edge[0].isCornerhole:
+            k+=1
+            corner_hole_start_edge=edge[0]
+            cornerhole_idx+=1
+            for seg in edge:
+                draw_segment(seg,ax)
+        else:
+          
+            k+=1
+            constarint_idx+=1
+            next_cons_edge=[]
+            last_cons_edge=[]
+            index=i+1
+            while index<len(template_edges):
+                next_e=template_edges[index]
+                if not(len(next_e)==0 or next_e[0].isCornerhole):
+                    next_cons_edge=next_e
+                    break
+                index+=1
+            index=i-1
+            while index>=0:
+                last_e=template_edges[index]
+                if not(len(last_e)==0 or last_e[0].isCornerhole):
+                    last_cons_edge=last_e
+                    break
+                index-=1
+            next_seg=next_cons_edge[0] if len(next_cons_edge)>0 else None
+            last_seg=last_cons_edge[0] if len(last_cons_edge)>0 else None
+            if last_seg is not None:
+                inter1=find_intersection(last_seg.start_point,last_seg.end_point,seg.start_point,seg.end_point)
+            else:
+                inter1=None
+            if next_seg is not None:
+                inter2=find_intersection(next_seg.start_point,next_seg.end_point,seg.start_point,seg.end_point)
+            else:
+                inter2=None
+            if inter1 is not None and inter2 is not None:
+                new_seg=DSegment(inter1,inter2)
+            elif inter1 is not None:
+                if DSegment(inter1,seg.start_point).length()<DSegment(inter1,seg.end_point).length():
+                    new_seg=DSegment(inter1,seg.end_point)
+                else:
+                    new_seg=DSegment(inter1,seg.start_point)
+            elif inter2 is not None:
+                if DSegment(inter2,seg.start_point).length()<DSegment(inter2,seg.end_point).length():
+                    new_seg=DSegment(inter2,seg.end_point)
+                else:
+                    new_seg=DSegment(inter2,seg.start_point)
+            else:
+                new_seg=seg
+            correct_edge=[new_seg]
+            for seg in edge:
+                draw_segment(seg,ax)
+                for ty,ds in ori_edge_map[seg].items():
+                    if isinstance(ds,list):
+                        for d_t in ds:
+                            d=d_t[0]
+                            if isinstance(d,DDimension):
+                                if len(d_t)==2:
+                                    ps=calculate_dimesion_pos(d,constraint_edges)
+                                    if len(ps)==0:
+                                        continue
+                                    elif len(ps)==2:
+                                        v1,v2=ps
+                                        ax.plot(v1.x,v1.y,'g.')
+                                        ax.plot(v2.x,v2.y,'g.')
+                                        q=DSegment(v1,v2).mid_point()
+                                        s=DSegment(v1,v2)
+                                        ax.text(q.x, q.y, d.text,rotation=0,color="#EEC933", fontsize=15)
+                                        ax.plot([s.start_point.x,s.end_point.x], [s.start_point.y,s.end_point.y], color="#FF0000", lw=2,linestyle='--')
+                                    elif len(ps)==3:
+                                        p1,p2,inter=ps
+                                        ax.plot(p1.x,p1.y,'g.')
+                                        ax.plot(p2.x,p2.y,'g.')
+                                        ax.plot(inter.x,inter.y,'g.')
+                                        ax.text(inter.x, inter.y, d.text,rotation=0,color="#EEC933", fontsize=15)
+                                        s=DSegment(p1,inter)
+                                        ax.plot([s.start_point.x,s.end_point.x], [s.start_point.y,s.end_point.y], color="#FF0000", lw=2,linestyle='--')
+                                        s=DSegment(p2,inter)
+                                        ax.plot([s.start_point.x,s.end_point.x], [s.start_point.y,s.end_point.y], color="#FF0000", lw=2,linestyle='--')
+
+                                elif len(d_t)==3:
+                                    seg_=d_t[-1]
+                                    s_p=seg_.mid_point()
+                                    e_p=seg.mid_point()
+                                    # ax.plot([seg_.start_point.x,seg_.end_point.x], [seg_.start_point.y,seg_.end_point.y], color="#000000", lw=2,linestyle='--')
+                                    ax.plot([s_p.x,e_p.x], [s_p.y,e_p.y], color="#000000", lw=2,linestyle='--')
+                                    ps=calculate_dimesion_pos(d,constraint_edges)
+                                    if len(ps)==0:
+                                        continue
+                                    elif len(ps)==2:
+                                        v1,v2=ps
+                                        q=DSegment(v1,v2).mid_point()
+                                        s=DSegment(v1,v2)
+                                        ax.plot(v1.x,v1.y,'g.')
+                                        ax.plot(v2.x,v2.y,'g.')
+                                        ax.text(q.x, q.y, d.text,rotation=0,color="#EEC933", fontsize=15)
+                                        ax.plot([s.start_point.x,s.end_point.x], [s.start_point.y,s.end_point.y], color="#FF0000", lw=2,linestyle='--')
+                                    elif len(ps)==3:
+                                        p1,p2,inter=ps
+                                        ax.plot(p1.x,p1.y,'g.')
+                                        ax.plot(p2.x,p2.y,'g.')
+                                        ax.plot(inter.x,inter.y,'g.')
+                                        ax.text(inter.x, inter.y, d.text,rotation=0,color="#EEC933", fontsize=15)
+                                        s=DSegment(p1,inter)
+                                        ax.plot([s.start_point.x,s.end_point.x], [s.start_point.y,s.end_point.y], color="#FF0000", lw=2,linestyle='--')
+                                        s=DSegment(p2,inter)
+                                        ax.plot([s.start_point.x,s.end_point.x], [s.start_point.y,s.end_point.y], color="#FF0000", lw=2,linestyle='--')
+
+
+                            elif isinstance(d,DText):
+                                ax.text(d.insert.x, d.insert.y, d.content,rotation=0,color="#EEC933", fontsize=15)
+
+
+
+   
+
+
+
+
+
+
+
+
+    # t_map={}
+    # for t_t in texts:
+    #     t=t_t[0]
+    #     pos=t_t[1]
+    #     content=t.content
+    #     if t_t[2]["Type"] in ["B","FB","BK","FL"] and not point_is_inside(pos,polygon):
+    #         continue
+    #     if t_t[2]["Type"]=="None":
+    #         continue
+    #     if pos not in t_map:
+    #         t_map[pos]=[]
+    #         t_map[pos].append(content)
+    #     else:
+    #         t_map[pos].append(content)
+    # for pos,cs in t_map.items():
+    #     ax.text(pos.x, pos.y, cs, fontsize=12, color='blue', rotation=0)
+    # for d_t in dimensions:
+    #     d=d_t[0]
+    #     pos=d_t[1]
+    #     content=d.text
+    #     # for i,p in enumerate(d.defpoints):
+    #     #     if p!=DPoint(0,0):
+    #     #         ax.text(p.x, p.y, str(i),color="#EEEE00", fontsize=15)
+    #     #         ax.plot(p.x, p.y, 'b.')
+    #     if  d.dimtype==32 or d.dimtype==33 or d.dimtype==161 or d.dimtype==160:
+    #         l0=p_minus(d.defpoints[0],d.defpoints[2])
+    #         l1=p_minus(d.defpoints[1],d.defpoints[2])
+    #         d10=l0.x*l1.x+l0.y*l1.y
+    #         d00=l0.x*l0.x+l0.y*l0.y
+    #         if d00 <1e-4:
+    #             x=d.defpoints[1]
+    #         else:
+    #             x=p_minus(p_add(d.defpoints[1],l0),p_mul(l0,d10/d00))
+    #         d1,d2,d3,d4=d.defpoints[0], x,d.defpoints[1],d.defpoints[2]
+          
+    #         ss=[DSegment(d1,d4),DSegment(d4,d3),DSegment(d3,d2)]
+    #         sss=[DSegment(d2,d1)]
+    #         ss=expandFixedLengthGeo(ss,25,True)
+    #         sss=expandFixedLengthGeo(sss,100,True)
+    #         q=sss[0].end_point
+    #         sss=expandFixedLengthGeo(sss,100,False)
+    #         for s in ss:
+    #             ax.plot([s.start_point.x,s.end_point.x], [s.start_point.y,s.end_point.y], color="#FF0000", lw=2,linestyle='--')
+    #         for s in sss:
+    #             ax.plot([s.start_point.x,s.end_point.x], [s.start_point.y,s.end_point.y], color="#FF0000", lw=2,linestyle='--')
+    #         ax.arrow(sss[0].end_point.x, sss[0].end_point.y, d1.x-sss[0].end_point.x, d1.y-sss[0].end_point.y, head_width=20, head_length=20, fc='red', ec='red')
+    #         ax.arrow(sss[0].start_point.x, sss[0].start_point.y, d2.x-sss[0].start_point.x, d2.y-sss[0].start_point.y, head_width=20, head_length=20, fc='red', ec='red')
+    #         perp_vx, perp_vy = sss[0].start_point.x - sss[0].end_point.x, sss[0].start_point.y-sss[0].end_point.y
+    #         rotation_angle = np.arctan2(-perp_vy, -perp_vx) * (180 / np.pi)
+    #         ax.text(q.x, q.y, d.text,rotation=rotation_angle,color="#EEC933", fontsize=15)
+            
+
+
+        
+    #     elif d.dimtype==37:
+    #         a,b,o=d.defpoints[1],d.defpoints[2],d.defpoints[3]
+    #         r=DSegment(d.defpoints[0],o).length()
+    #         ra=DSegment(a,o).length()
+    #         rb=DSegment(b,o).length()
+    #         oa_=p_mul(p_minus(a,o),r/ra)
+    #         ob_=p_mul(p_minus(b,o),r/rb)
+    #         ao_=p_mul(oa_,-1)
+    #         bo_=p_mul(ob_,-1)
+    #         a_= p_add(o, oa_)
+    #         b_ = p_add(o, ob_)
+    #         ia_=p_add(o,ao_)
+    #         ib_=p_add(o,bo_)
+    #         delta=p_mul(DPoint(oa_.y,-oa_.x),3)
+    #         sp=p_add(delta,a_)
+    #         ax.arrow(ia_.x, ia_.y, a_.x-ia_.x,a_.y-ia_.y, head_width=20, head_length=20, fc='red', ec='red',linestyle='--')
+    #         ax.arrow(ib_.x, ib_.y, b_.x-ib_.x,b_.y-ib_.y, head_width=20, head_length=20, fc='red', ec='red',linestyle='--')
+    #         ax.plot([sp.x,a_.x], [sp.y,a_.y], color="#FF0000", lw=2,linestyle='--')
+    #         q=p_mul(p_add(a_,sp),0.5)
+    #         rotation_angle = np.arctan2(-delta.y, delta.x) * (180 / np.pi)
+    #         ax.text(q.x, q.y, d.text,rotation=rotation_angle,color="#EEC933", fontsize=15)
+    #     elif d.dimtype==34 or d.dimtype==162:
+                
+    #             s1=DSegment(d.defpoints[3],d.defpoints[0])
+    #             s2=DSegment(d.defpoints[2],d.defpoints[1])
+                
+    #             inter=segment_intersection_line_(s1.start_point,s1.end_point,s2.start_point,s2.end_point)
+    #             pos=d.defpoints[4]
+    #             r=DSegment(pos,inter).length()
+    #             v1=DPoint((s1.end_point.x-s1.start_point.x)/s1.length()*(r+5),(s1.end_point.y-s1.start_point.y)/s1.length()*(r+5))
+    #             v2=DPoint((s2.end_point.x-s2.start_point.x)/s2.length()*(r+5),(s2.end_point.y-s2.start_point.y)/s2.length()*(r+5))
+    #             d1=DPoint(v1.x+inter.x,v1.y+inter.y)
+    #             d2=DPoint(-v1.x+inter.x,-v1.y+inter.y)
+    #             d3=DPoint(v2.x+inter.x,v2.y+inter.y)
+    #             d4=DPoint(-v2.x+inter.x,-v2.y+inter.y)
+    #             p1=None
+    #             p2=None
+    #             if DSegment(pos,d1).length()<DSegment(pos,d2).length():
+    #                 p1=d1
+    #             else:
+    #                 p1=d2
+    #             if DSegment(pos,d3).length()<DSegment(pos,d4).length():
+    #                 p2=d3
+    #             else:
+    #                 p2=d4
+
+                
+    #             # if d.dimtype==34:
+    #             #     for i,p in enumerate([d1,d2,d3,d4]):
+    #             #         if p!=DPoint(0,0):
+    #             #             plt.text(p.x, p.y, str(i+1),color="#EE0000", fontsize=15)
+    #             #             plt.plot(p.x, p.y, 'b.')
+    #             ss1=DSegment(inter,p1)
+    #             ss2=DSegment(inter,p2)
+
+    #             ax.arrow(ss1.start_point.x, ss1.start_point.y, ss1.end_point.x-ss1.start_point.x,ss1.end_point.y-ss1.start_point.y, head_width=20, head_length=20, fc='red', ec='red')
+    #             ax.arrow(ss2.start_point.x, ss2.start_point.y, ss2.end_point.x-ss2.start_point.x,ss2.end_point.y-ss2.start_point.y, head_width=20, head_length=20, fc='red', ec='red')
+    #             ax.text(pos.x, pos.y, d.text,rotation=0,color="#EEC933", fontsize=15)
+    #             ax.plot(inter.x,inter.y,'g.')
+    #             ax.plot([p1.x,p2.x], [p1.y,p2.y], color="#FF0000", lw=2,linestyle='--')
+        
+    #     elif d.dimtype==163:
+    #         a,b=d.defpoints[0],d.defpoints[3]
+    #         o=p_mul(p_add(a,b),0.5)
+    #         ss=[DSegment(a,b)]
+    #         ss=expandFixedLengthGeo(ss,100)
+    #         ss=expandFixedLengthGeo(ss,100,False)
+    #         a_,b_=ss[0].start_point,ss[0].end_point
+    #         ax.arrow(a_.x, a_.y, a.x-a_.x,a.y-a_.y, head_width=20, head_length=20, fc='red', ec='red')
+    #         ax.arrow(b_.x, b_.y, b.x-b_.x,b.y-b_.y, head_width=20, head_length=20, fc='red', ec='red')
+    #         q=p_add(p_mul(b_,0.7),p_mul(b,0.3))
+    #         ab=p_minus(b,a)
+    #         rotation_angle = np.arctan2(ab.y, -ab.x) * (180 / np.pi)
+    #         ax.text(q.x, q.y, d.text,rotation=rotation_angle,color="#EEC933", fontsize=15)
+            
+            
+
+    ax.set_aspect('equal', 'box')
+    plt.savefig(path)
+    plt.close('all')
+    plt.close()
+def outputInfo(index,edges_info,poly_centroid,hint_info,meta_info,segmentation_config):
+    is_standard_elbow,bracket_parameter,strengthen_parameter,has_hint,is_fb,is_diff=meta_info
+    free_edges,constraint_edges,edges,poly_refs=edges_info
+    all_edge_map,edge_types,features,feature_map,constraint_edge_no,free_edge_no,all_anno,tis,ds=hint_info
     if is_standard_elbow==False:
         new_all_edge_map={}
         for s,dic in all_edge_map.items():
@@ -2181,6 +2923,9 @@ def outputPolyInfo(poly, segments, segmentation_config, point_map, index,star_po
         if edge[0].isCornerhole:
             cornerhole_num+=1
 
+    thickness=0
+    if meta_info[1] is not None and meta_info[1]["Thickness"] is not None:
+        thickness=meta_info[1]["Thickness"]
     classification_res,output_template = poly_classifier(features,all_anno,poly_refs, tis,ds,cornerhole_num, free_edges, edges, thickness,feature_map,edge_types,
                                          segmentation_config.standard_type_path, segmentation_config.json_output_path, 
                                          f"{os.path.splitext(os.path.basename(segmentation_config.json_path))[0]}_infopoly{index}",
@@ -2188,7 +2933,12 @@ def outputPolyInfo(poly, segments, segmentation_config, point_map, index,star_po
     free_order=True
     # cons_order=True
     if output_template is not None:
-        template_map=match_template(edges,free_edges,output_template,edge_types)
+
+        if thickness>25:
+            ignore_types=["arc"]
+        else:
+            ignore_types=["line"]
+        template_map=match_template(edges,free_edges,output_template,edge_types,thickness)
         # print(output_template)
         free_edge_template_no={}
         free_idx=1
@@ -2235,6 +2985,7 @@ def outputPolyInfo(poly, segments, segmentation_config, point_map, index,star_po
                 else:
                     new_dic[ty]=ds
             new_all_edge_map[s]=new_dic
+        ori_edge_map=all_edge_map
         all_edge_map=new_all_edge_map
 
 
@@ -2320,12 +3071,20 @@ def outputPolyInfo(poly, segments, segmentation_config, point_map, index,star_po
         k=1
         constarint_idx=0
         cornerhole_idx=0
+
         for i,edge in enumerate(template_edges):
 
 
             if len(edge)==0:
+                if thickness>25:
+                    content="R20"
+                elif thickness<10:
+                    content="KS10"
+                else:
+                    content="KS15"
                 log_to_file(file_path, f"边界颜色{k}: 缺省")
-                log_to_file(file_path, f"边界轮廓{k}(line): ")
+                log_to_file(file_path, f"边界轮廓{k}({ignore_types[0]}): ")
+                log_to_file(file_path, f"边界缺省轮廓{k}({content}): ")
                 k+=1
                 log_to_file(file_path,f"    角隅孔{cornerhole_idx+1}({get_edge_des(edge)})")
                 log_to_file(file_path, f"       缺省")
@@ -2376,20 +3135,66 @@ def outputPolyInfo(poly, segments, segmentation_config, point_map, index,star_po
                 k+=1
                 log_to_file(file_path,f"    约束边{constarint_idx+1}({get_edge_des(edge)})")
                 constarint_idx+=1
+                next_cons_edge=[]
+                last_cons_edge=[]
+                index_=i+1
+                while index_<len(template_edges):
+                    next_e=template_edges[index_]
+                    if not(len(next_e)==0 or next_e[0].isCornerhole):
+                        next_cons_edge=next_e
+                        break
+                    index_+=1
+                index_=i-1
+                while index_>=0:
+                    last_e=template_edges[index_]
+                    if not(len(last_e)==0 or last_e[0].isCornerhole):
+                        last_cons_edge=last_e
+                        break
+                    index_-=1
+                next_seg=next_cons_edge[0] if len(next_cons_edge)>0 else None
+                last_seg=last_cons_edge[0] if len(last_cons_edge)>0 else None
+                if last_seg is not None:
+                    inter1=find_intersection(last_seg.start_point,last_seg.end_point,seg.start_point,seg.end_point)
+                else:
+                    inter1=None
+                if next_seg is not None:
+                    inter2=find_intersection(next_seg.start_point,next_seg.end_point,seg.start_point,seg.end_point)
+                else:
+                    inter2=None
+                if inter1 is not None and inter2 is not None:
+                    new_seg=DSegment(inter1,inter2)
+                elif inter1 is not None:
+                    if DSegment(inter1,seg.start_point).length()<DSegment(inter1,seg.end_point).length():
+                        new_seg=DSegment(inter1,seg.end_point)
+                    else:
+                        new_seg=DSegment(inter1,seg.start_point)
+                elif inter2 is not None:
+                    if DSegment(inter2,seg.start_point).length()<DSegment(inter2,seg.end_point).length():
+                        new_seg=DSegment(inter2,seg.end_point)
+                    else:
+                        new_seg=DSegment(inter2,seg.start_point)
+                else:
+                    new_seg=seg
+                correct_edge=[new_seg]
+                log_to_file(file_path,f"        经过延长后直线：")
+                for seg in correct_edge:
+                    log_to_file(file_path, f"           起点：{seg.start_point}、终点{seg.end_point}（直线）、长度: {seg.length()}")
+                log_to_file(file_path,f"        将约束边估计为直线：")
                 for seg in edge:
+
                     if isinstance(seg.ref, DArc):
                         # actual_radius= seg.ref.radius if seg not in r_map else r_map[seg].content.lstrip("R")
-                        log_to_file(file_path, f"       起点：{seg.ref.start_point}、终点：{seg.ref.end_point}、圆心：{seg.ref.center}、半径：{seg.ref.radius}（圆弧）、句柄: {seg.ref.handle}")
+                        log_to_file(file_path, f"           起点：{seg.ref.start_point}、终点：{seg.ref.end_point}、圆心：{seg.ref.center}、半径：{seg.ref.radius}（圆弧）、句柄: {seg.ref.handle}")
                     else:
                         
-                        log_to_file(file_path, f"       起点：{seg.start_point}、终点{seg.end_point}（直线）、句柄: {seg.ref.handle}")
+                        log_to_file(file_path, f"           起点：{seg.start_point}、终点{seg.end_point}（直线）、句柄: {seg.ref.handle}")
                         des=""
                         for ty,annos in all_edge_map[seg].items():
                             anno_des=""
                             for anno in annos:
                                 anno_des=f"{anno_des},{anno[1]}"
-                            des=f"{des}\n\t\t\t{ty}:{anno_des}"
-                        log_to_file(file_path, f"           标注:{des}")
+                            des=f"{des}\n\t\t\t\t{ty}:{anno_des}"
+                        log_to_file(file_path, f"               标注:{des}")
 
     
 
@@ -2419,11 +3224,91 @@ def outputPolyInfo(poly, segments, segmentation_config, point_map, index,star_po
                         break
         
 
-        log_to_file(file_path, f"肘板加强类别为:{s_info}")
+        log_to_file(file_path, f"肘板加强类别为：{s_info}")
+        if strengthen_parameter is  None:
+            log_to_file(file_path,f"肘板加强参数为：缺省")
+        else:
+            section_height=strengthen_parameter["Section Height"]
+            ty=strengthen_parameter["Type"]
+            thick=strengthen_parameter["Thickness"]
+            material=strengthen_parameter["Material"]
+            special=strengthen_parameter["Special"]
+            if section_height is None:
+                section_height="缺省"
+            if ty is None:
+                ty="缺省"
+            if thick is None:
+                thick="缺省"
+            if material is None:
+                material="缺省"
+            if special is None:
+                special="缺省"
+            log_to_file(file_path,f"肘板加强参数为：")
+            log_to_file(file_path,f"    加强类型：{ty}")
+            log_to_file(file_path,f"    截面高度：{section_height}")
 
+            log_to_file(file_path,f"    厚度：{thick}")
+            log_to_file(file_path,f"    材质：{material}")
+            log_to_file(file_path,f"    特殊符号：{special}")
+       
+        if  bracket_parameter is None:
+            log_to_file(file_path,f"肘板参数为：缺省")
+        else:
+            log_to_file(file_path,f"肘板参数为：")
+            al1=bracket_parameter["Arm Length1"]
+            al2=bracket_parameter["Arm Length2"]
+            thick=bracket_parameter["Thickness"]
+            material=bracket_parameter["Material"]
+            special=bracket_parameter["Special"]
+
+            cons_edges=[]
+            for i,edge in enumerate(edges):
+                if (not edge[0].isConstraint) and (not edge[0].isCornerhole):
+                    continue
+                if edge[0].isCornerhole:
+                    continue
+                cons_edges.append(edge)
+            edge1,edge2=cons_edges[0],cons_edges[-1]
+            if edge1[0].length()<edge2[0].length():
+                edge1,edge2=edge2,edge1
+            if al2 is None:
+                if (edge1[0].length()-edge2[0].length())<=25:
+                    anno1=f" 参考边：约束边{str(constranit_edge_template_no[edge1[0]])}，约束边{str(constranit_edge_template_no[edge2[0]])}"
+                else:
+                    anno1=f" 参考边：约束边{str(constranit_edge_template_no[edge1[0]])}"
+                anno2=""
+            else:
+                if al1>al2:
+                    anno1=f" 参考边：约束边{str(constranit_edge_template_no[edge1[0]])}"
+                    anno2=f" 参考边：约束边{str(constranit_edge_template_no[edge2[0]])}"
+                else:
+                    anno1=f" 参考边：约束边{str(constranit_edge_template_no[edge2[0]])}"
+                    anno2=f" 参考边：约束边{str(constranit_edge_template_no[edge1[0]])}"
+            
+            if al1 is None:
+                al1="缺省"
+            if al2 is None:
+                al2="缺省"
+            if thick is None:
+                thick="缺省"
+            if material is None:
+                material="缺省"
+            if special is None:
+                special="缺省"
+            
+            log_to_file(file_path,f"    臂长1：{al1}{anno1}")
+            str(constranit_edge_template_no[seg])
+
+            log_to_file(file_path,f"    臂长2：{al2}{anno2}")
+
+            log_to_file(file_path,f"    厚度：{thick}")
+            log_to_file(file_path,f"    材质：{material}")
+            log_to_file(file_path,f"    特殊符号：{special}")
         log_to_file(file_path, f"肘板类别为{classification_res}")
-        log_to_file(file_path, f"肘板混淆类分类特征为:{str(features)}")
+        log_to_file(file_path, f"肘板混淆类分类特征为：{str(features)}")
         log_to_file(file_path, f"标准肘板")
+        if is_diff==False:
+            plot_info_poly_std(constraint_edges,ori_edge_map,template_map,os.path.join(segmentation_config.poly_info_dir, f'std_infopoly{index}.png'))
         if classification_res == "Unclassified":
             # log_to_file("./output/Unclassified.txt", f"{os.path.splitext(os.path.basename(segmentation_config.json_path))[0]}_infopoly{index}")
             return poly_refs, classification_res
@@ -2610,3 +3495,14 @@ def outputPolyInfo(poly, segments, segmentation_config, point_map, index,star_po
         return poly_refs, classification_res
 
     return poly_refs, classification_res
+
+
+def classificationAndOutputStep(indices,edges_infos,poly_centroids,hint_infos,meta_infos,segmentation_config):
+    poly_infos=[]
+    types=[]
+    for i in range(len(indices)):
+        index,edges_info,poly_centroid,hint_info,meta_info=indices[i],edges_infos[i],poly_centroids[i],hint_infos[i],meta_infos[i]
+        poly_refs, classification_res=outputInfo(index,edges_info,poly_centroid,hint_info,meta_info,segmentation_config)
+        poly_infos.append(poly_refs)
+        types.append(classification_res)
+    return poly_infos,types

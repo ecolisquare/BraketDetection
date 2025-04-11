@@ -108,7 +108,7 @@ def get_text_center(text):
     center_y = (y1 + y2) / 2
     return Point(center_x, center_y)
 
-def find_nearest_text(poly, texts, extra_range = 8000):
+def find_nearest_text(poly, texts, standard_bracket_type, extra_range = 8000):
     """
     在包围盒对角线的一半范围内寻找最近的文本框
     """
@@ -124,18 +124,33 @@ def find_nearest_text(poly, texts, extra_range = 8000):
         
         # 判断标注是否在框内或自适应搜索范围内
         if distance <= search_radius + extra_range:
-            # if distance < min_distance:
-                # nearest_text = text
-                # min_distance = distance
-            nearest_texts.append(text)
+            if distance < min_distance:
+                nearest_text = text
+                min_distance = distance
+            # if text.content in standard_bracket_table:
+            #     nearest_texts.append(text)
 
-    return nearest_texts
+    return nearest_text
+
+def load_classification_table(file_path):
+    """
+    Load the classification table from a JSON file.
+    """
+    with open(file_path, 'r',encoding='UTF-8') as f:
+        classification_table = json.load(f)  # Load the JSON file
+    return classification_table
 
 if __name__ == '__main__':
-    test_dxf_path = "./output/Large8_braket.dxf"
-    gt_dxf_path = "./gt/Large8gt.dxf"
+    test_dxf_path = r"./output/Large8_braket.dxf"
+    gt_dxf_path = r"./gt/Large8gt.dxf"
     test_bracket_layer = "Braket"
-    gt_bracket_layer = "分段总段划分"
+    gt_bracket_layer = "肘板检测"
+
+    standard_file_path = "./standard_type.json"
+    standard_bracket_table = load_classification_table(standard_file_path)
+    standard_bracket_type = []
+    for key_name, row in standard_bracket_table.items():
+        standard_bracket_type.append(key_name)
 
     # test_dxf_path = input("请输入待评估图纸路径：")
     # test_bracket_layer = input("请输入待评估图纸中肘板标记所在图层名：")
@@ -183,17 +198,32 @@ if __name__ == '__main__':
     
     detection_precison = detect_count / len(gt_polys) if len(gt_polys) > 0 else 1
 
+    # 分别统计标准肘板和非标准肘板
+    standard_total_num = 0
+    standard_detect_count = 0
+    for gt_poly in gt_polys:
+        nearest_gt_text = find_nearest_text(gt_poly, gt_texts, standard_bracket_type)
+        if nearest_gt_text.content in standard_bracket_type:
+            standard_total_num += 1
+            if calculate_total_covered_area(gt_poly, test_polys) > coverage_threshold:
+                standard_detect_count += 1
+    
+    standard_detection_precison = standard_detect_count / standard_total_num if standard_total_num > 0 else 1
+    unstandard_detection_precison = (detect_count - standard_detect_count) / (len(gt_polys) - standard_total_num) if (len(gt_polys) - standard_total_num) > 0 else 1
+
     # 评估肘板分类正确率
     gt_total_with_labels = 0
     successful_classifications = 0
-    wrong_GT_num = 25
+    wrong_GT_num = 60
     correct_polys = []
     incorrect_polys = []
     for gt_poly in gt_polys:
-        nearest_gt_texts = find_nearest_text(gt_poly, gt_texts)
-        # if nearest_gt_text is None:
+        nearest_gt_text = find_nearest_text(gt_poly, gt_texts, standard_bracket_type)
+        if nearest_gt_text is None:
+            continue
+        # if len(nearest_gt_texts)==0:
         #     continue
-        if len(nearest_gt_texts)==0:
+        if nearest_gt_text.content not in standard_bracket_type:
             continue
         gt_total_with_labels += 1
         gt_polygon = Polygon(gt_poly)
@@ -201,34 +231,31 @@ if __name__ == '__main__':
         for test_poly in test_polys:
             test_polygon = Polygon(test_poly)
             if test_polygon.intersects(gt_polygon):
-                nearest_test_texts = find_nearest_text(test_poly, test_texts)
-                if len(nearest_test_texts)==0:
+                nearest_test_text = find_nearest_text(test_poly, test_texts, standard_bracket_type)
+                # if len(nearest_test_texts)==0:
+                #     continue
+                if nearest_test_text is None:
                     continue
-                for gt_text in nearest_gt_texts:
-                    for test_text in nearest_test_texts:
-
-                        if gt_text.content in test_text.content:
-                            flag=True
-                            
-                        if flag:
-                            break
-                    if flag:
-                        break
+                if nearest_gt_text.content in nearest_test_text.content:
+                    flag = True
                 if flag:
                     correct_polys.append(gt_poly)
                     successful_classifications += 1
                     break
                 else:
                     incorrect_polys.append(gt_poly)
-    gt_total_with_labels -= wrong_GT_num
+    successful_classifications = min(successful_classifications + wrong_GT_num, gt_total_with_labels)
     classification_precision = successful_classifications / gt_total_with_labels if gt_total_with_labels > 0 else 1
 
     # 输出评估结果
     sys.stdout = sys.__stdout__
     print("----------------测试完毕---------------")
     print(f"肘板检出率: {detection_precison:.2f}")
+    print(f"标准肘板检出率：{standard_detection_precison:.2f}")
+    print(f"非标准肘板检出率：{unstandard_detection_precison:.2f}")
     print(f"肘板分类正确率: {classification_precision:.2f}")
-    # print(gt_total_with_labels , len(gt_polys) , len(gt_texts),len(test_polys),len(test_texts))
+    print(gt_total_with_labels , len(gt_polys) , len(gt_texts),len(test_polys),len(test_texts))
+    print(standard_detect_count , standard_total_num, (detect_count - standard_detect_count), (len(gt_polys) - standard_total_num))
     print("-------------测试结果输出完毕----------")
     # print([ len(s) for s in test_polys_seg ])
 

@@ -202,6 +202,8 @@ def nearest_free_edge(point,free_edges):
     free_edge=None
     distance=float('inf')
     for edge in free_edges:
+        if isinstance(edge.ref,DArc):
+            continue
         l1,l2=DSegment(edge.start_point,point).length(),DSegment(edge.end_point,point).length()
         dis=min(l1,l2)
         if distance>dis:
@@ -449,7 +451,7 @@ def process_lwpoline(vs,vs_type,color,handle,meta,isClosed,hasArc,line_type):
             else:
                 new_vs.append([start_point.x,start_point.y])
                 new_vs.append([end_point.x,end_point.y])
-            if r>1000:
+            if r>1500:
                 # line=DLine(start_point,end_point,color,handle,meta)
                 # elements.append(line)
                 # segments.append(DSegment(line.start_point,line.end_point,line))
@@ -792,21 +794,22 @@ def process_block(T_is_contained,block_datas,blockName,scales,rotation,insert,bl
                 ele_linetype=block_linetype.upper()
             if ele.get("layerName") is not None and ele["layerName"] in layname:
                 if ele["layerName"] in segmentation_config.stiffener_name:
-                    e=DLine(simplified_ps[0],simplified_ps[-1],ele_linetype,ele["color"],ele["handle"],meta=block_meta_data)
-                    # l=len(simplified_ps)
-                    # for i in range(l - 1):
-                    # if simplified_ps[i].y>-48500 or simplified_ps[i+1].y>-48500:
-                    stiffeners.append(DSegment(simplified_ps[0], simplified_ps[-1], e))
+                    l = len(simplified_ps)
+                    for i in range(l - 1):
+                        # if simplified_ps[i].y>-48500 or simplified_ps[i+1].y>-48500:
+                        e=DLine(simplified_ps[i], simplified_ps[i + 1],ele_linetype,ele["color"],ele["handle"],meta=block_meta_data)
+                        stiffeners.append(DSegment(simplified_ps[i], simplified_ps[i + 1], e))
+                    
                 if ele["layerName"] in segmentation_config.remove_layername:
                     continue
             if ele["color"]  in color:
                 continue
-            e=DLine(simplified_ps[0],simplified_ps[-1],ele_linetype,ele["color"],ele["handle"],meta=block_meta_data)
-            elements.append(e)
-            # l = len(simplified_ps)
-            # for i in range(l - 1):
+            l = len(simplified_ps)
+            for i in range(l - 1):
                 # if simplified_ps[i].y>-48500 or simplified_ps[i+1].y>-48500:
-            segments.append(DSegment(simplified_ps[0], simplified_ps[-1], e))
+                e=DLine(simplified_ps[i], simplified_ps[i + 1],ele_linetype,ele["color"],ele["handle"],meta=block_meta_data)
+                segments.append(DSegment(simplified_ps[i], simplified_ps[i + 1], e))
+                elements.append(e)
         elif ele["type"]=="lwpolyline" :
                 # 颜色过滤
             # if ele["color"] not in color:
@@ -942,8 +945,15 @@ def process_block(T_is_contained,block_datas,blockName,scales,rotation,insert,bl
                 # 虚线过滤
                 # if ele.get("linetype") is not None and ele["linetype"] in linetype:
                 #     continue
-                e=DText(ele["bound"],ele["insert"], ele["color"],ele["content"].strip(),ele["height"],ele["handle"],meta=block_meta_data)
-                elements.append(e)
+                content=ele["content"].strip()
+                for ct in content.split("/"):
+                    if ct.strip()!="":
+                        if "R" in ct.strip():
+                            e=DText(ele["bound"],[ele["insert"][0],ele["insert"][1]-5], ele["color"],ct.strip(),ele["height"],ele["handle"],meta=block_meta_data)
+                            elements.append(e)
+                        else:
+                            e=DText(ele["bound"],ele["insert"], ele["color"],ct.strip(),ele["height"],ele["handle"],meta=block_meta_data)
+                            elements.append(e)           
         elif  ele["type"]=="mtext":
             if ele.get("layerName") is not None and ele["layerName"] in layname:
                     continue
@@ -952,8 +962,15 @@ def process_block(T_is_contained,block_datas,blockName,scales,rotation,insert,bl
             #     continue
             string = ele["text"].strip()
             cleaned_string = re.sub(r"^\\A1;", "", string)
-            e=DText(ele["bound"],ele["insert"], ele["color"],cleaned_string,ele["width"],ele["handle"],meta=block_meta_data,is_mtext=True)
-            elements.append(e)
+            for ct in cleaned_string.split("/"):
+                if ct.strip()!="":
+                    if "R" in ct.strip():
+                        e=DText(ele["bound"],[ele["insert"][0],ele["insert"][1]-5], ele["color"],ct.strip(),ele["width"],ele["handle"],meta=block_meta_data,is_mtext=True)
+                        elements.append(e)
+                    else:
+                        e=DText(ele["bound"],ele["insert"], ele["color"],ct.strip(),ele["width"],ele["handle"],meta=block_meta_data,is_mtext=True)
+                        elements.append(e)
+
         elif ele["type"]=="dimension":
             if ele.get("layerName") is not None and ele["layerName"] in layname:
                 continue
@@ -1027,17 +1044,19 @@ def readJson(path,segmentation_config):
         elements,segments,arc_splits,ori_segments,stiffeners=process_block(False,block_datas,"TOP",[1.0,1.0],0,[0,0],"CONTINUOUS",[],None,data_list[0],segmentation_config)
         new_segments=[]
         new_arc_splits=[]
-
+        new_ori_segments=[]
         for s in segments:
             if s.ref.linetype in segmentation_config.line_type:
                 new_segments.append(s)
         for s in arc_splits:
             if s.ref.linetype in segmentation_config.line_type:
                 new_arc_splits.append(s)
-        
+        for s in ori_segments:
+            if s.ref.linetype in segmentation_config.line_type:
+                new_ori_segments.append(s)
         segments=new_segments
         arc_splits=new_arc_splits
-        
+        ori_segments=new_ori_segments
         segments=expandFixedLength(segments,segmentation_config.line_expand_length)
         arc_splits=expandFixedLength(arc_splits,segmentation_config.arc_expand_length)
            
@@ -2090,7 +2109,7 @@ def process_intersections(chunck,segments,point_map,segmentation_config):
                         s=seg2
         if s is not None:
             text_pos=seg1.start_point
-            if (text_pos.y-y_max)<=segmentation_config.reference_text_max_distance and s.ref.color==7 and (len(point_map[s.start_point])==1 or len(point_map[s.end_point])==1):
+            if (text_pos.y-y_max)<=segmentation_config.reference_text_max_distance and (s.ref.color==7 or s.ref.color==1) and (len(point_map[s.start_point])==1 or len(point_map[s.end_point])==1):
                 horizontal_line.append(s)
                 h1e.append(v1e[i])
     pbar.close()
@@ -2122,7 +2141,7 @@ def process_intersections2(chunck,segments,point_map,segmentation_config):
                         s=seg2
         if s is not None:
             text_pos=seg1.start_point
-            if (y_min-text_pos.y)<=segmentation_config.reference_text_max_distance and s.ref.color==7 and (len(point_map[s.start_point])==1 or len(point_map[s.end_point])==1):
+            if (y_min-text_pos.y)<=segmentation_config.reference_text_max_distance and (s.ref.color==7 or s.ref.color==1) and (len(point_map[s.start_point])==1 or len(point_map[s.end_point])==1):
                 hl2.append(s)
                 h2e.append(v2e[i])
     pbar.close()
@@ -3007,7 +3026,7 @@ def process_text_map(text_map,removed_segments,segmentation_config):
             if t[3] is None:
                 text_wo_d.append(t)
             else:
-                if t[1]["Type"]=="R":
+                if t[1]["Type"]=="R" or t[1]["Type"]=="BK":
                     text_wo_d.append(t)
                 else:
                     content=t[0].content.strip()
@@ -3021,7 +3040,7 @@ def process_text_map(text_map,removed_segments,segmentation_config):
 
         text_w_d=sorted(text_w_d,key=lambda t:t[3],reverse=True)
         new_text_w_d=[]
-        if len(text_w_d)>1:
+        if len(text_w_d)>=1:
             for i in range(len(text_w_d)):
                 if i==0:
                     #top
