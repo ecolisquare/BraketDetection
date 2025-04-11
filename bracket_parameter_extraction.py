@@ -59,6 +59,12 @@ def parse_elbow_plate(label="", annotation_position="other", is_fb=False):
         return {
             "Type": "B_anno"
         } 
+    if match := re.fullmatch(pattern_bk, label):
+        bk_code = match.group("bk_code")
+        return {
+            "Type": "BK",
+            "Typical Section Code": bk_code,
+        }
     # Check different annotation types
     if annotation_position == "top":
         # Annotations at the top prioritize parsing as B, BK, or R type
