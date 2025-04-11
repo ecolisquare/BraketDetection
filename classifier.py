@@ -467,17 +467,20 @@ def match_template(edges,detected_free_edges,template,edge_types,thickness):
         else:
             constraint_idx+=1
             key=f"constraint{constraint_idx}"
-        if ignore_types[0]=="line" and non_free_edges_types_seq[i]=="cornerhole" and len(non_free_edges_seq[i])==1 and non_free_edges_seq[i][0]=="line" and j>=len(non_free_edges_types):
+        if ignore_types[0]=="line" and non_free_edges_types_seq[i]=="cornerhole" and len(non_free_edges_seq[i])==1 and non_free_edges_seq[i][0]=="line" and j>=len(non_free_edges):
             template_map[key]=[]
         elif ignore_types[0]=="line" and non_free_edges_types_seq[i]=="cornerhole" and len(non_free_edges_seq[i])==1 and non_free_edges_seq[i][0]=="line" and not(non_free_edges_types[j]=="cornerhole" and len(non_free_edges[j])==1 and isinstance(non_free_edges[j][0].ref,DLine)):
             template_map[key]=[]
-        elif ignore_types[0]=="arc" and non_free_edges_types_seq[i]=="cornerhole" and len(non_free_edges_seq[i])==1 and non_free_edges_seq[i][0]=="arc" and j>=len(non_free_edges_types):
+        elif ignore_types[0]=="arc" and non_free_edges_types_seq[i]=="cornerhole" and len(non_free_edges_seq[i])==1 and non_free_edges_seq[i][0]=="arc" and j>=len(non_free_edges):
             template_map[key]=[]
         elif ignore_types[0]=="arc" and non_free_edges_types_seq[i]=="cornerhole" and len(non_free_edges_seq[i])==1 and non_free_edges_seq[i][0]=="arc" and not(non_free_edges_types[j]=="cornerhole" and len(non_free_edges[j])==1 and isinstance(non_free_edges[j][0].ref,DArc)):
             template_map[key]=[]
         else:
-            template_map[key]=non_free_edges[j]
-            j+=1
+            if j >=len(non_free_edges):
+                template_map[key]=[]
+            else:
+                template_map[key]=non_free_edges[j]
+                j+=1
     return template_map
 # 标准肘板的匹配分类函数
 def poly_classifier(features,all_anno,poly_refs, texts,dimensions,conerhole_num, poly_free_edges, edges, thickness, feature_map, edge_types, standard_classification_file_path, info_json_path, keyname, is_output_json = False):
