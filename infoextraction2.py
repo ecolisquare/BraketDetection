@@ -1930,9 +1930,11 @@ def calculate_poly_features(poly, segments, segmentation_config, point_map, inde
     has_B_hint=False
     for t_t in tis:
         content=t_t[0].content.strip()
+        if t_t[2]["Type"]=="BK":
+            has_B_anno=True
         if t_t[2]["Type"]=="B":
             has_B_hint=True
-            if "B" in content and "FB" not in content:
+            if "B" in content:
                 has_B_anno=True
             bracket_parameter=t_t[2]
             if bracket_parameter["Thickness"] is not None:
