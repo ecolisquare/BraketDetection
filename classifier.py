@@ -783,14 +783,11 @@ def refine_poly_classifier(classification_table, mixed_types, edges_sequence, re
         temp_edge_seq = classification_table[type]["non_free_edges"]
         tmp_edge_seq = []
         for edge in temp_edge_seq:
-            if edge["type"] == "cornerhole":
-                continue
+            if isinstance(edge["edges"][0], list):
+                e = edge["edges"][0]
             else:
-                if isinstance(edge["edges"][0], list):
-                    e = edge["edges"][0]
-                else:
-                    e = edge["edges"]
-                tmp_edge_seq.append([edge["type"], e])
+                e = edge["edges"]
+            tmp_edge_seq.append([edge["type"], e])
         temp_free_edge_seq = [item for item in temp_free_edge_seq if item != "KS_corner"]
 
         tmp_edge_seq.insert(0, ["free", temp_free_edge_seq])
@@ -827,107 +824,4 @@ def calculate_similarity(seq1, seq2):
             match_count += 1
 
     return match_count / min_length
-
-# 大类分类函数
-def poly_classifier_v2(features,all_anno,poly_refs, texts,dimensions,conerhole_num, poly_free_edges, edges, classification_file_path):
-    classification_table = load_classification_table(classification_file_path)
-
-    # Step 1: 获取角隅孔数
-
-    # Step 2: 获取自由边的轮廓
-    free_edges_sequence = []
-    max_free_edge_length=float("-inf")
-    for seg in poly_free_edges[0]:
-        max_free_edge_length=max(max_free_edge_length,seg.length())
-    for i, seg in enumerate(poly_free_edges[0]):
-        if isinstance(seg.ref, DLine) or isinstance(seg.ref, DLwpolyline):
-            if (i == 0 or i == len(poly_free_edges[0]) - 1):
-                if i==0:
-                    last_free_edge=poly_free_edges[0][1]
-                else:
-                    last_free_edge=poly_free_edges[0][-2]
-                cons_edge=find_cons_edge(poly_refs,seg)
-                # print(cons_edge)
-                if is_toe(seg,cons_edge,max_free_edge_length):
-                    free_edges_sequence.append("toe")
-                elif is_ks_corner(seg,last_free_edge,cons_edge,max_free_edge_length):
-                    free_edges_sequence.append("KS_corner")
-                else:
-                    free_edges_sequence.append("line")
-            else:
-                free_edges_sequence.append("line")
-        elif isinstance(seg.ref, DArc):
-            free_edges_sequence.append("arc")
-    reversed_free_edges_sequence = free_edges_sequence[::-1]  # Reverse free edges
-
-    # Step 3: 以自由边为分界，获取固定边和角隅孔组成的顺序轮廓
-    cycle_edges = edges + edges
-    al_edges = []
-    start = False
-    for edge in cycle_edges:
-        # 如果遇到第一个非 Cornerhole 和非 Constraint 边，开始收集
-        if not start and edge[0].isCornerhole == False and edge[0].isConstraint == False:
-            start = True
-        
-        # 如果已经开始收集，且当前边是 Cornerhole 或 Constraint，加入 al_edges
-        elif start and (edge[0].isCornerhole or edge[0].isConstraint):
-            al_edges.append(edge)
-        
-        # 如果已经开始收集，且当前边不再是 Cornerhole 或 Constraint，停止收集
-        elif start and edge[0].isCornerhole == False and edge[0].isConstraint == False:
-            start = False
-
-    # Step 4: 构建 edges_sequence 和 reversed_edges_sequence
-    edges_sequence = []
-    reversed_edges_sequence = []
-    for edge in al_edges:
-        if edge[0].isCornerhole:
-            type = "cornerhole"
-        elif edge[0].isConstraint:
-            type = "constraint"
-        else:
-            type = None
-        
-        if type is not None:
-            seq = []
-            for seg in edge:
-                if isinstance(seg.ref, DLine) or isinstance(seg.ref, DLwpolyline):
-                    seq.append("line")
-                elif isinstance(seg.ref, DArc):
-                    seq.append("arc")
-            edges_sequence.append([type, seq])
-            reversed_edges_sequence.insert(0, [type, list(reversed(seq))])
-
-    non_conerhole_edges = []
-    reversed_non_conerhole_edges = []
-    # 去掉非自由边轮廓中的角隅孔，只保留固定边，对角隅孔进行统计
-    for i in range(len(edges_sequence)):
-        if(edges_sequence[i][0] != "cornerhole"):
-            non_conerhole_edges.append(edges_sequence[i][1])
-        if(reversed_edges_sequence[i][0] != "conerhole"):
-            reversed_non_conerhole_edges.append(reversed_edges_sequence[i][1])
-    
-    matched_type = []
-    for key_name, row in classification_table.items():
-        #非自由边轮廓去除角隅孔后严格匹配
-        temp_sequence = []
-        for i, non_free in enumerate(row["non_free_edges"]):
-            # Check if the type and edges of the current non-free match in sequence
-            if non_free["type"] == "constraint":
-                temp_sequence.append(non_free["edges"])
-
-        if temp_sequence != non_conerhole_edges and temp_sequence != reversed_non_conerhole_edges:
-            continue
-        matched_type.append(key_name)
-    
-    matched_type = free_edges_sequence_classifier(classification_table, free_edges_sequence,reversed_free_edges_sequence, matched_type)
-    
-    # 后续增加整体以及混淆匹配
-    if len(matched_type.split(","))<=1 and matched_type!="Unclassified":
-        return matched_type,classification_table[matched_type]
-    elif matched_type=="Unclassified":
-        return matched_type,None
-    else:
-        matched_type = tidy_matched_type(matched_type)
-        return matched_type[0], classification_table[matched_type[0]]
 
