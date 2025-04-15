@@ -1168,7 +1168,9 @@ def get_free_edge_des(edge,edge_types):
 def calculate_poly_features(poly, segments, segmentation_config, point_map, index,star_pos_map,cornor_holes,texts,dimensions,text_map,stiffeners):
     # step1: 计算几何中心坐标
     poly_centroid = calculate_poly_centroid(poly)
-
+    #TODO:
+    #DSegment -> [DSegments in poly]
+    poly_map={}
     # step2: 合并边界线
     poly_refs = calculate_poly_refs(poly,segmentation_config)
     
@@ -1689,6 +1691,10 @@ def calculate_poly_features(poly, segments, segmentation_config, point_map, inde
                 edges.append(current_edge)
 
 
+    #TODO
+    #constraint_edge   start_point end_point
+    #poly_map
+    #edges constraint_edges poly_ref
   
     # step 5.5：找到所有的标注
     
@@ -1956,7 +1962,11 @@ def calculate_poly_features(poly, segments, segmentation_config, point_map, inde
 
     all_edge_map,edge_types,features,feature_map,constraint_edge_no,free_edge_no=match_edge_anno(constraint_edges,free_edges,edges,all_anno,all_map)
     
-    #TODO:是否是标准肘板的判断
+
+    
+    #TODO
+    #toe  gap
+    #segment  front  back   gap_hint    
     is_standard_elbow=True
     bracket_parameter=None
     strengthen_parameter=None
