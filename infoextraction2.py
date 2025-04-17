@@ -2252,18 +2252,28 @@ def calculate_new_hint_info(edges_info,other_edges_info,hint_info,other_hint_inf
                 new_d_s=[]
                 for d_t in d_s:
                     if len(d_t)==3:
-                        if isinstance(d_t[0],DDimension):
-                            content=d_t[0].text
+                        if isinstance(d_t[0],DDimension) and d_t[0].dimtype!=0:
+                            content=f"值：{d_t[0].text}"
+                        elif isinstance(d_t[0],DDimension):
+                            content=f"{d_t[1]}"
                         else:
-                            content=d_t[0].content
+                            content=f"值：{d_t[0].content}"
                         sub_ty=d_t[1].split("：")[-1]
-                        new_d_s.append([d_t[0],f"值：{content}，参考边：{sub_ty}",edge_map[d_t[2]]])
-                    else:
-                        if isinstance(d_t[0],DDimension):
-                            content=d_t[0].text
+                        if isinstance(d_t[0],DDimension) and d_t[0].dimtype!=0:
+                            new_d_s.append([d_t[0],f"值：{content}，参考边：{sub_ty}",edge_map[d_t[2]]])
+                        elif isinstance(d_t[0],DDimension):
+                            new_d_s.append([d_t[0],f"{d_t[1]}",edge_map[d_t[2]]])
                         else:
-                            content=d_t[0].content
-                        new_d_s.append([d_t[0],f"值：{content}"])
+                            new_d_s.append([d_t[0],f"值：{content}，参考边：{sub_ty}",edge_map[d_t[2]]])
+                        
+                    else:
+                        if isinstance(d_t[0],DDimension) and d_t[0].dimtype!=0:
+                            content=f"值：{d_t[0].text}"
+                        elif  isinstance(d_t[0],DDimension):
+                            content=f"{d_t[1]}"
+                        else:
+                            content=f"值：{d_t[0].content}"
+                        new_d_s.append([d_t[0],content])
 
                 new_dic[ty]=new_d_s
             else:
@@ -2290,18 +2300,27 @@ def calculate_new_hint_info_bk(edges_info,other_edges_info,hint_info,other_hint_
                 new_d_s=[]
                 for d_t in d_s:
                     if len(d_t)==3:
-                        if isinstance(d_t[0],DDimension):
-                            content=d_t[0].text
+                        if isinstance(d_t[0],DDimension) and d_t[0].dimtype!=0:
+                            content=f"值：{d_t[0].text}"
+                        elif isinstance(d_t[0],DDimension):
+                            content=f"{d_t[1]}"
                         else:
-                            content=d_t[0].content
+                            content=f"值：{d_t[0].content}"
                         sub_ty=d_t[1].split("：")[-1]
-                        new_d_s.append([d_t[0],f"值：{content}，参考边：{sub_ty}",edge_map[d_t[2]]])
-                    else:
-                        if isinstance(d_t[0],DDimension):
-                            content=d_t[0].text
+                        if isinstance(d_t[0],DDimension) and d_t[0].dimtype!=0:
+                            new_d_s.append([d_t[0],f"值：{content}，参考边：{sub_ty}",edge_map[d_t[2]]])
+                        elif isinstance(d_t[0],DDimension):
+                            new_d_s.append([d_t[0],f"{d_t[1]}",edge_map[d_t[2]]])
                         else:
-                            content=d_t[0].content
-                        new_d_s.append([d_t[0],f"值：{content}"])
+                            new_d_s.append([d_t[0],f"值：{content}，参考边：{sub_ty}",edge_map[d_t[2]]])
+                    else:
+                        if isinstance(d_t[0],DDimension) and d_t[0].dimtype!=0:
+                            content=f"值：{d_t[0].text}"
+                        elif  isinstance(d_t[0],DDimension):
+                            content=f"{d_t[1]}"
+                        else:
+                            content=f"值：{d_t[0].content}"
+                        new_d_s.append([d_t[0],content])
 
                 new_dic[ty]=new_d_s
             else:
