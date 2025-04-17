@@ -493,6 +493,10 @@ def poly_classifier(features,all_anno,poly_refs, texts,dimensions,conerhole_num,
     max_free_edge_length=float("-inf")
     for seg in poly_free_edges[0]:
         max_free_edge_length=max(max_free_edge_length,seg.length())
+    constraint_edges=[]
+    for edge in edges:
+        if edge[0].isConstraint and (not edge[0].isCornerhole):
+            constraint_edges.extend(edge)
     for i, seg in enumerate(poly_free_edges[0]):
         if isinstance(seg.ref, DLine) or isinstance(seg.ref, DLwpolyline):
             if (i == 0 or i == len(poly_free_edges[0]) - 1):
@@ -500,7 +504,7 @@ def poly_classifier(features,all_anno,poly_refs, texts,dimensions,conerhole_num,
                     last_free_edge=poly_free_edges[0][1]
                 else:
                     last_free_edge=poly_free_edges[0][-2]
-                cons_edge=find_cons_edge(poly_refs,seg)
+                cons_edge=find_cons_edge(constraint_edges,seg)
                 # print(cons_edge)
                 if is_toe(seg,cons_edge,max_free_edge_length):
                     free_edges_sequence.append("toe")

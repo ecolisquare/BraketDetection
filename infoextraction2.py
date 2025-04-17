@@ -148,7 +148,7 @@ def calculate_combined_ref(segments,segmentation_config):
         if s.ref.color in segmentation_config.constraint_color:
             return s.ref
     return segments[0].ref
-def combine_the_same_line(poly,segmentation_config):
+def combine_the_same_line(poly,segmentation_config,ref_map):
     n=len(poly)
     new_poly=[]
     for i in range(len(poly)):
@@ -173,15 +173,34 @@ def combine_the_same_line(poly,segmentation_config):
                         for k in range(i):
                             new_poly.append(poly[k])
                         new_poly.append(new_segment)
+                        ref_map[new_segment]=[]
+                        if s1 in ref_map:
+                            ref_map[new_segment].extend(ref_map[s1])
+                        else:
+                            ref_map[new_segment].append(s1)
+                        if s2 in ref_map:
+                            ref_map[new_segment].extend(ref_map[s2])
+                        else:
+                            ref_map[new_segment].append(s2)
                         for k in range(j+1,n):
                             new_poly.append(poly[k])
                         return new_poly,True
                     else:
                         ref=calculate_combined_ref([s1,s2],segmentation_config)
                         new_segment=DSegment(s2.start_point,s1.end_point,ref)
+
                         for k in range(i):
                             new_poly.append(poly[k])
                         new_poly.append(new_segment)
+                        ref_map[new_segment]=[]
+                        if s1 in ref_map:
+                            ref_map[new_segment].extend(ref_map[s1])
+                        else:
+                            ref_map[new_segment].append(s1)
+                        if s2 in ref_map:
+                            ref_map[new_segment].extend(ref_map[s2])
+                        else:
+                            ref_map[new_segment].append(s2)
                         for k in range(j+1,n):
                             new_poly.append(poly[k])
                         return new_poly,True
@@ -190,13 +209,32 @@ def combine_the_same_line(poly,segmentation_config):
                         ref=calculate_combined_ref([s1,s2],segmentation_config)
                         new_segment=DSegment(s1.start_point,s2.end_point,ref)
                         new_poly.append(new_segment)
+                        ref_map[new_segment]=[]
+                        if s1 in ref_map:
+                            ref_map[new_segment].extend(ref_map[s1])
+                        else:
+                            ref_map[new_segment].append(s1)
+                        if s2 in ref_map:
+                            ref_map[new_segment].extend(ref_map[s2])
+                        else:
+                            ref_map[new_segment].append(s2)
                         for k in range(1,n-1):
                             new_poly.append(poly[k])
                         return new_poly,True
                     else:
                         ref=calculate_combined_ref([s1,s2],segmentation_config)
                         new_segment=DSegment(s2.start_point,s1.end_point,ref)
+
                         new_poly.append(new_segment)
+                        ref_map[new_segment]=[]
+                        if s1 in ref_map:
+                            ref_map[new_segment].extend(ref_map[s1])
+                        else:
+                            ref_map[new_segment].append(s1)
+                        if s2 in ref_map:
+                            ref_map[new_segment].extend(ref_map[s2])
+                        else:
+                            ref_map[new_segment].append(s2)
                         for k in range(1,n-1):
                             new_poly.append(poly[k])
                         return new_poly,True
@@ -255,13 +293,14 @@ def combine_the_same_line(poly,segmentation_config):
 def calculate_poly_refs(poly,segmentation_config):
     new_poly=poly
     old_poly=poly
+    ref_map={}
     #combine the same line in the poly
     # print("===================")
     # print(len(poly))
     while True:
 
         
-        new_poly,flag=combine_the_same_line(old_poly,segmentation_config)
+        new_poly,flag=combine_the_same_line(old_poly,segmentation_config,ref_map)
         # print(len(new_poly))
         if flag==False:
             break
@@ -270,13 +309,16 @@ def calculate_poly_refs(poly,segmentation_config):
 
     refs = []
     
+    
     for segment in new_poly:
         if isinstance(segment.ref, DArc):
             if len(refs) != 0 and isinstance(refs[-1].ref, DArc):
                 if (segment.ref.start_angle, segment.ref.end_angle, segment.ref.center, segment.ref.radius) == (
                     refs[-1].ref.start_angle, refs[-1].ref.end_angle, refs[-1].ref.center, refs[-1].ref.radius):
+                    ref_map[refs[-1]].append(segment)
                     continue
             refs.append(segment)
+            ref_map[segment]=[segment]
         else:
             # if len(refs) != 0:
             #     last_segment = refs[-1]
@@ -301,6 +343,7 @@ def calculate_poly_refs(poly,segmentation_config):
             if (first_segment.ref.start_angle, first_segment.ref.end_angle, first_segment.ref.center, first_segment.ref.radius) == (
                 last_segment.ref.start_angle, last_segment.ref.end_angle, last_segment.ref.center, last_segment.ref.radius):
                 refs.pop()
+                ref_map[first_segment].append(last_segment)
         # elif not isinstance(first_segment.ref, DArc) and not isinstance(last_segment.ref, DArc):
         #     if is_parallel(first_segment, last_segment,segmentation_config.is_parallel_tolerance):
         #         new_segment = DSegment(
@@ -311,7 +354,7 @@ def calculate_poly_refs(poly,segmentation_config):
         #         refs[0] = new_segment
         #         refs.pop()
 
-    return refs
+    return refs,ref_map
 
 
 def computePolygon(poly,tolerance = 0.1):
@@ -880,7 +923,6 @@ def match_edge_anno(segments,constraint_edges,free_edges,edges,all_anno,all_map)
         all_edge_map[edge]["边长标注"]=[]
         all_edge_map[edge]["垂直标注"]=[]
 
-    #TODO
     for seg, ds in l_whole_map.items():
         for d_t in ds:
             p1,p2,d=d_t
@@ -944,9 +986,6 @@ def match_edge_anno(segments,constraint_edges,free_edges,edges,all_anno,all_map)
             all_edge_map[edge]["尺寸参数"]=[]
     
 
-    #TODO
-    #toe  gap
-    #segment  front  back   gap_hint
     toes =[]
     toe_annos=[]
     toe_points={}
@@ -1255,11 +1294,9 @@ def get_free_edge_des(edge,edge_types):
 def calculate_poly_features(poly, segments, segmentation_config, point_map, index,star_pos_map,cornor_holes,texts,dimensions,text_map,stiffeners):
     # step1: 计算几何中心坐标
     poly_centroid = calculate_poly_centroid(poly)
-    #TODO:
-    #DSegment -> [DSegments in poly]
     poly_map={}
     # step2: 合并边界线
-    poly_refs = calculate_poly_refs(poly,segmentation_config)
+    poly_refs,ref_map= calculate_poly_refs(poly,segmentation_config)
     
     new_poly_ref=[]
     for ref in poly_refs:
@@ -1778,11 +1815,8 @@ def calculate_poly_features(poly, segments, segmentation_config, point_map, inde
                 edges.append(current_edge)
 
 
-    #TODO
-    #constraint_edge   start_point end_point
-    #poly_map
-    #edges constraint_edges poly_ref
-  
+
+
     # step 5.5：找到所有的标注
     
     # print(len(stiffeners))
@@ -1966,19 +2000,55 @@ def calculate_poly_features(poly, segments, segmentation_config, point_map, inde
         return None
 
 
+
+    new_edges=[]
+    new_constraint_edges=[]
+    new_poly_ref=[]
     for i,edge in enumerate(edges):
         if (not edge[0].isConstraint) and (not edge[0].isCornerhole):
-            #自由边
+            new_edges.append(edge)
             continue
         if edge[0].isCornerhole:
-            #角隅孔
+            new_edges.append(edge)
             continue
         else:
-            #约束边
-            continue
+            if len(edge)==1 and isinstance(edge[0].ref,DLine):
+                new_edges.append(edge)
+                new_constraint_edges.append(edge)
+                continue
+            ori_segs=[]
+            for seg in edge:
+                if seg in ref_map:
+                    ori_segs.extend(ref_map[seg])
+                else:
+                    ori_segs.append(seg)
+            ori_map={}
+            for s in ori_segs:
+                if s.start_point not in ori_map:
+                    ori_map[s.start_point]=1
+                else:
+                    ori_map[s.start_point]+=1
+                if s.end_point not in ori_map:
+                    ori_map[s.end_point]=1
+                else:
+                    ori_map[s.end_point]+=1
+            ps=[]
+            for p,cnt in ori_map.items():
+                if cnt==1:
+                    ps.append(p)
+            if len(ps)!=2:
+                new_edges.append(edge)
+                new_constraint_edges.append(edge)
+            else:
+                new_seg=DSegment(ps[0],ps[1],edge[0].ref)
+                new_seg.isConstraint=True
+                new_seg.isCornerhole=False
+                ref_map[new_seg]=ori_segs
+                new_edges.append([new_seg])
+                new_constraint_edges.append([new_seg])
     
-
-
+    edges=new_edges
+    constraint_edges=new_constraint_edges
 
     # step6: 绘制对边分类后的几何图像
     plot_info_poly(polygon,poly_refs, os.path.join(segmentation_config.poly_info_dir, f'infopoly{index}.png'),tis,ds,sfs,others)
@@ -2109,7 +2179,7 @@ def calculate_poly_features(poly, segments, segmentation_config, point_map, inde
     
     is_diff=False
     meta_info=(is_standard_elbow,bracket_parameter,strengthen_parameter,has_hint,is_fb,is_diff)
-    edges_info=(free_edges,constraint_edges,edges,poly_refs)
+    edges_info=(free_edges,constraint_edges,edges,poly_refs,ref_map)
     hint_info=(all_edge_map,edge_types,features,feature_map,constraint_edge_no,free_edge_no,all_anno,tis,ds)
     return edges_info,poly_centroid,hint_info,meta_info
 def is_similar(edges_info,other_edges_info,edge_types,other_edge_types):
@@ -2914,7 +2984,7 @@ def plot_info_poly_std(constraint_edges,ori_edge_map,template_map,path):
     plt.close()
 def outputInfo(index,edges_info,poly_centroid,hint_info,meta_info,segmentation_config):
     is_standard_elbow,bracket_parameter,strengthen_parameter,has_hint,is_fb,is_diff=meta_info
-    free_edges,constraint_edges,edges,poly_refs=edges_info
+    free_edges,constraint_edges,edges,poly_refs,ref_map=edges_info
     all_edge_map,edge_types,features,feature_map,constraint_edge_no,free_edge_no,all_anno,tis,ds=hint_info
     if is_standard_elbow==False:
         new_all_edge_map={}
@@ -3350,6 +3420,21 @@ def outputInfo(index,edges_info,poly_centroid,hint_info,meta_info,segmentation_c
                 else:
                     new_seg=seg
                 correct_edge=[new_seg]
+                log_to_file(file_path,f"        约束边实际轮廓：")
+                actual_segs=[]
+                for seg in edge:
+                    if seg in ref_map:
+                        actual_segs.extend(ref_map[seg])
+                    else:
+                        actual_segs.append(seg)
+                for seg in actual_segs:
+                    if isinstance(seg.ref, DArc):
+                        # actual_radius= seg.ref.radius if seg not in r_map else r_map[seg].content.lstrip("R")
+                        log_to_file(file_path, f"           起点：{seg.ref.start_point}、终点：{seg.ref.end_point}、圆心：{seg.ref.center}、半径：{seg.ref.radius}（圆弧）、句柄: {seg.ref.handle}")
+                    else:
+                        log_to_file(file_path, f"           起点：{seg.start_point}、终点{seg.end_point}（直线）、句柄: {seg.ref.handle}")
+
+
                 log_to_file(file_path,f"        经过延长后直线：")
                 for seg in correct_edge:
                     log_to_file(file_path, f"           起点：{seg.start_point}、终点{seg.end_point}（直线）、长度: {seg.length()}")
