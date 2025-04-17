@@ -2040,7 +2040,8 @@ def calculate_poly_features(poly, segments, segmentation_config, point_map, inde
                 new_edges.append(edge)
                 new_constraint_edges.append(edge)
             else:
-                new_seg=DSegment(ps[0],ps[1],edge[0].ref)
+                new_ref=DLine(ps[0],ps[1])
+                new_seg=DSegment(ps[0],ps[1],new_ref)
                 new_seg.isConstraint=True
                 new_seg.isCornerhole=False
                 ref_map[new_seg]=ori_segs
