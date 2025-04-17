@@ -538,6 +538,7 @@ def find_cons_edge(poly_refs,seg):
             continue
         if s.start_point==seg.start_point or s.start_point == seg.end_point or s.end_point ==seg.start_point or s.end_point==seg.end_point:
             return s
+    return None
         
 def match_l_anno(l_anno,poly_refs,constraint_edges,free_edges,segmentation_config):
     
@@ -805,7 +806,7 @@ def find_reference_edge(seg,fr_edges,cons_edges,p1,p2,inter):
         return True,ref_edge
     return False,edge
 
-def match_edge_anno(constraint_edges,free_edges,edges,all_anno,all_map):
+def match_edge_anno(segments,constraint_edges,free_edges,edges,all_anno,all_map):
     features=set()
     feature_map={}
     corner_holes=[]
@@ -863,6 +864,7 @@ def match_edge_anno(constraint_edges,free_edges,edges,all_anno,all_map):
                 edge_type[seg]="line"
         elif isinstance(seg.ref, DArc):
             edge_type[seg]="arc"
+
     
 
 
@@ -941,6 +943,63 @@ def match_edge_anno(constraint_edges,free_edges,edges,all_anno,all_map):
             all_edge_map[edge]["短边是否平行于相邻边"]=False
             all_edge_map[edge]["尺寸参数"]=[]
     
+
+    #TODO
+    #toe  gap
+    #segment  front  back   gap_hint
+    toes =[]
+    toe_annos=[]
+    toe_points={}
+    for edge in fr_edges:
+        if edge_type[edge]=="toe":
+            toes.append(edge)
+            toe_points[edge.start_point]=edge
+            toe_points[edge.end_point]=edge
+
+            cons_edge=find_cons_edge(cons_edges,edge)
+            if cons_edge is None:
+                all_edge_map[edge]["存在正面或背面结构约束"].append([DDimension(),"无"])
+                toe_annos.append("无")
+                continue
+            p=None
+            if cons_edge.start_point==edge.start_point or cons_edge.end_point==edge.start_point:
+                p=edge.start_point
+            else:
+                p=edge.end_point
+            q=None
+            if p==cons_edge.start_point:
+                q=cons_edge.end_point
+            else:
+                q=cons_edge.start_point
+            anno_="无"
+
+            v=DPoint(edge.end_point.x-edge.start_point.x,edge.end_point.y-edge.start_point.y)
+            l=math.sqrt(v.x*v.x+v.y*v.y)
+            v=DPoint(-v.y/l*50,v.x/l*50)
+            m=edge.mid_point()
+            seg=DSegment(DPoint(m.x+v.x,m.y+v.y),DPoint(m.x-v.x,m.y-v.y))
+            for s in segments:
+                inter=segment_intersection(seg.start_point, seg.end_point, s.start_point, s.end_point)
+                if inter is not None:
+                    distance=DSegment(inter,m).length()
+                    if distance>=10 and distance<=50:
+                        anno_="正面"
+                        break
+            if anno_=="无":
+                for s in segments:
+                    if point_segment_position(s.start_point,cons_edge,epsilon=0.05,anno=False)!="not_on_line":
+                        if DSegment(s.start_point,p).length()<=50 and DSegment(s.start_point,p).length()>=10:
+                            anno_="背面"
+                            break
+                    elif point_segment_position(s.end_point,cons_edge,epsilon=0.05,anno=False)!="not_on_line":
+                        if DSegment(s.end_point,p).length()<=50 and DSegment(s.end_point,p).length()>=10:
+                            anno_="背面"
+                            break
+            toe_annos.append(anno_)
+            all_edge_map[edge]["存在正面或背面结构约束"].append([DDimension(),anno_])
+
+
+    #趾端周围结构    
     #自由边直线以及趾端边长标注
     for seg,ds in d_map.items():
         if seg not in edge_type:
@@ -955,7 +1014,7 @@ def match_edge_anno(constraint_edges,free_edges,edges,all_anno,all_map):
                 all_edge_map[seg]["边长标注"].append([d,f"句柄：{d.handle}，值：{d.text}，箭头起点：{v1}，箭头终点：{v2}"])
   
 
-    #自由边直线延长线与约束边交点标注
+    #自由边直线延长线与约束边交点标注/背部结构gap参数
     for seg,ds in l_half_map.items():
         for d_t in ds:
             v1,v2,d=d_t
@@ -969,6 +1028,13 @@ def match_edge_anno(constraint_edges,free_edges,edges,all_anno,all_map):
                     features.add('short_anno')
                     feature_map[free_edge].add('short_anno')
                     break
+                else:
+                    if v1 in toe_points:
+                        all_edge_map[toe_points[v1]]["Gap尺寸标注"].append([d,f"句柄：{d.handle}，值：{d.text}，箭头起点：{v1}，箭头终点：{v2}"])
+                        all_edge_map[toe_points[v1]]["Gap"].append([DDimension(),d.text.strip()])
+                    elif v2 in toe_points:
+                        all_edge_map[toe_points[v2]]["Gap尺寸标注"].append([d,f"句柄：{d.handle}，值：{d.text}，箭头起点：{v1}，箭头终点：{v2}"])
+                        all_edge_map[toe_points[v2]]["Gap"].append([DDimension(),d.text.strip()])
             # point_segment_position(p1,,epsilon=0.2,anno=False)!="not_on_line"
     
 
@@ -1004,7 +1070,7 @@ def match_edge_anno(constraint_edges,free_edges,edges,all_anno,all_map):
                     all_edge_map[seg]["与约束边及其平行线夹角标注"].append([d,f"句柄：{d.handle}，值：{d.text}，参考点1：{p1}，参考点2：{p2}，参考中心： {inter}，参考边：{ref_edge}"])
                 feature_map[seg].add('angl')
             elif edge_type[seg]=="KS_corner":
-                #(TODO:寻找参考边)
+
                 flag,ref_edge=find_reference_edge(seg,fr_edges,cons_edges,p1,p2,inter)
                 features.add('angl')
                 feature_map[seg].add('angl')
@@ -1099,10 +1165,11 @@ def match_edge_anno(constraint_edges,free_edges,edges,all_anno,all_map):
                     break
             all_edge_map[edge[0]]["短边是否平行于相邻边"]=flag
             all_edge_map[edge[1]]["短边是否平行于相邻边"]=flag
-    #vu角隅孔短边尺寸标注
+    #vu角隅孔短边尺寸标注/gap正面
     for seg,ds in l_cornor_map.items():
         for d_t in ds:
             v1,v2,d=d_t
+            flag=False
             for i,start_edge in enumerate(corner_hole_start_edge):
                 edge=corner_holes[i]
                 if is_vu(edge):
@@ -1111,7 +1178,16 @@ def match_edge_anno(constraint_edges,free_edges,edges,all_anno,all_map):
                         all_edge_map[edge[0]]["短边尺寸标注"].append([d,f"句柄：{d.handle}，值：{d.text}，箭头起点：{v1}，箭头终点：{v2}"])
                         all_edge_map[edge[1]]["短边尺寸标注"].append([d,f"句柄：{d.handle}，值：{d.text}，箭头起点：{v1}，箭头终点：{v2}"])
                         # features.add('vuf')
+                        flag=True
                         break
+            if flag==False:
+                if v1 in toe_points:
+                    all_edge_map[toe_points[v1]]["Gap尺寸标注"].append([d,f"句柄：{d.handle}，值：{d.text}，箭头起点：{v1}，箭头终点：{v2}"])
+                    all_edge_map[toe_points[v1]]["Gap"].append([DDimension(),d.text.strip()])
+                elif v2 in toe_points:
+                    all_edge_map[toe_points[v2]]["Gap尺寸标注"].append([d,f"句柄：{d.handle}，值：{d.text}，箭头起点：{v1}，箭头终点：{v2}"])
+                    all_edge_map[toe_points[v2]]["Gap"].append([DDimension(),d.text.strip()])
+
     #自由边直线平行标注
     for key,ds in l_para_map.items():
         cons_edge,free_edge=key
@@ -1148,6 +1224,17 @@ def match_edge_anno(constraint_edges,free_edges,edges,all_anno,all_map):
                 all_edge_map[edge]["尺寸参数"].append([t,f"句柄：{t.handle}，值：{t.content}"])
     for s,fs in feature_map.items():
         feature_map[s]=list(fs)
+    #补充gap值
+    for edge in toes:
+        if len(all_edge_map[edge]["Gap"])>1:
+            all_edge_map[edge]["Gap"]=[all_edge_map[edge]["Gap"][0]]
+        elif len(all_edge_map[edge]["Gap"])==0:
+            if all_edge_map[edge]["存在正面或背面结构约束"]=="无":
+                all_edge_map[edge]["Gap"].append([DDimension(),"无"])
+            elif all_edge_map[edge]["存在正面或背面结构约束"]=="正面":
+                all_edge_map[edge]["Gap"].append([DDimension(),"35"])
+            else:
+                all_edge_map[edge]["Gap"].append([DDimension(),"15"])
     return all_edge_map,edge_type,list(features),feature_map,constraint_edge_no,free_edge_no
 
 def  get_edge_des(edge):
@@ -1960,13 +2047,11 @@ def calculate_poly_features(poly, segments, segmentation_config, point_map, inde
     all_map=(r_map,l_whole_map,l_half_map,l_cornor_map,l_para_map,l_para_single_map,l_n_para_map,l_n_para_single_map,l_ver_map,l_ver_single_map,d_map,a_map)
 
 
-    all_edge_map,edge_types,features,feature_map,constraint_edge_no,free_edge_no=match_edge_anno(constraint_edges,free_edges,edges,all_anno,all_map)
+    all_edge_map,edge_types,features,feature_map,constraint_edge_no,free_edge_no=match_edge_anno(segments,constraint_edges,free_edges,edges,all_anno,all_map)
     
 
     
-    #TODO
-    #toe  gap
-    #segment  front  back   gap_hint    
+
     is_standard_elbow=True
     bracket_parameter=None
     strengthen_parameter=None
@@ -2474,7 +2559,7 @@ def plot_info_poly_std(constraint_edges,ori_edge_map,template_map,path):
                     if isinstance(d,DDimension):
                         if len(d_t)==2:
                             ps=calculate_dimesion_pos(d,constraint_edges)
-                            if len(ps)==0:
+                            if ps is None or len(ps)==0:
                                 continue
                             elif len(ps)==2:
                                 v1,v2=ps
