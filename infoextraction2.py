@@ -882,6 +882,10 @@ def match_edge_anno(segments,constraint_edges,free_edges,edges,all_anno,all_map)
     for constraint_edge in constraint_edges:
         for edge in constraint_edge:
             cons_edges.append(edge)
+
+
+
+
     max_free_edge_length=float("-inf")
     for seg in free_edges[0]:
         max_free_edge_length=max(max_free_edge_length,seg.length())
@@ -1063,7 +1067,17 @@ def match_edge_anno(segments,constraint_edges,free_edges,edges,all_anno,all_map)
                 if isinstance(free_edge.ref,DArc):
                     continue
                 if point_segment_position(v1,free_edge,epsilon=0.2,anno=False)!="not_on_line" or point_segment_position(v2,free_edge,epsilon=0.2,anno=False)!="not_on_line":
-                    all_edge_map[free_edge]["延长线与约束边交点标注"].append([d,f"句柄：{d.handle}，值：{d.text}，箭头起点：{v1}，箭头终点：{v2}，参考边：约束边",seg])
+                    if point_segment_position(v1,free_edge,epsilon=0.2,anno=False)!="not_on_line":
+                        v=v2
+                    else:
+                        v=v1
+                    if DSegment(v,seg.start_point).length() < DSegment(v,seg.end_point).length():
+                        point1,point2=seg.start_point,seg.end_point
+                    else:
+                        point1,point2=seg.end_point,seg.start_point
+
+                    
+                    all_edge_map[free_edge]["延长线与约束边交点标注"].append([d,f"句柄：{d.handle}，值：{d.text}，箭头起点：{v1}，箭头终点：{v2}，参考边：约束边",seg,(seg,point1,point2)])
                     features.add('short_anno')
                     feature_map[free_edge].add('short_anno')
                     break
@@ -2119,7 +2133,6 @@ def calculate_poly_features(poly, segments, segmentation_config, point_map, inde
 
 
     all_edge_map,edge_types,features,feature_map,constraint_edge_no,free_edge_no=match_edge_anno(segments,constraint_edges,free_edges,edges,all_anno,all_map)
-    
 
     
 
@@ -2279,13 +2292,85 @@ def is_similar(edges_info,other_edges_info,edge_types,other_edge_types):
     # print("111111111111111111")
     # print(des1,des2)
     if des1==des2:
+        point_map={}
+        order_list1=[]
+        cons_edges1=[]
+        for i in range(len(non_free_edges1)):
+            for j in range(len(non_free_edges1[i])):
+                cons_edges1.append(non_free_edges1[i][j])
+
+        order_list2=[]
+        cons_edges2=[]
+        for i in range(len(non_free_edges2)):
+            for j in range(len(non_free_edges2[i])):
+                cons_edges2.append(non_free_edges2[i][j])
+
+
+
+        for i in range(len(cons_edges1)-1):
+            current_edge=cons_edges1[i]
+            next_edge=cons_edges1[i+1]
+            pairs=[(current_edge.start_point,next_edge.start_point),(current_edge.start_point,next_edge.end_point),(current_edge.end_point,next_edge.start_point),(current_edge.end_point,next_edge.end_point)]
+            distance=float('inf')
+            min_pair=None
+            for pair in pairs:
+                p1,p2=pair
+                dis=DSegment(p1,p2).length()
+                if dis< distance:
+                    distance=dis
+                    min_pair=pair
+            p2,p=min_pair
+            if  p2==current_edge.start_point:
+                p1=current_edge.end_point
+            else:
+                p1=current_edge.start_point
+            order_list1.append(p1)
+            order_list1.append(p2)
+            if i==len(cons_edges1)-2:
+                order_list1.append(p)
+                if p==next_edge.start_point:
+                    order_list1.append(next_edge.end_point)
+                else:
+                    order_list1.append(next_edge.start_point)
+
+
+
+        for i in range(len(cons_edges2)-1):
+            current_edge=cons_edges2[i]
+            next_edge=cons_edges2[i+1]
+            pairs=[(current_edge.start_point,next_edge.start_point),(current_edge.start_point,next_edge.end_point),(current_edge.end_point,next_edge.start_point),(current_edge.end_point,next_edge.end_point)]
+            distance=float('inf')
+            min_pair=None
+            for pair in pairs:
+                p1,p2=pair
+                dis=DSegment(p1,p2).length()
+                if dis< distance:
+                    distance=dis
+                    min_pair=pair
+            p2,p=min_pair
+            if  p2==current_edge.start_point:
+                p1=current_edge.end_point
+            else:
+                p1=current_edge.start_point
+            order_list2.append(p1)
+            order_list2.append(p2)
+            if i==len(cons_edges2)-2:
+                order_list2.append(p)
+                if p==next_edge.start_point:
+                    order_list2.append(next_edge.end_point)
+                else:
+                    order_list2.append(next_edge.start_point)
+        for i in range(min(len(order_list1),len(order_list2))):
+            point_map[order_list2[i]]=order_list1[i]
+
         edge_map={}
         for i,edge in enumerate(free_edges1):
             edge_map[free_edges2[i]]=edge
         for i in range(len(non_free_edges1)):
             for j in range(len(non_free_edges1[i])):
                 edge_map[non_free_edges2[i][j]]=non_free_edges1[i][j]
-        return True,edge_map
+        return True,edge_map,point_map
+    
     
 
     des2=""
@@ -2301,16 +2386,87 @@ def is_similar(edges_info,other_edges_info,edge_types,other_edge_types):
     # print("222222222222222222222222")
     # print(des1,des2)
     if des1==des2:
+        point_map={}
+        order_list1=[]
+        cons_edges1=[]
+        for i in range(len(non_free_edges1)):
+            for j in range(len(non_free_edges1[i])):
+                cons_edges1.append(non_free_edges1[i][j])
+
+        order_list2=[]
+        cons_edges2=[]
+        for i in range(len(r_non_free_edges2)):
+            for j in range(len(r_non_free_edges2[i])):
+                cons_edges2.append(r_non_free_edges2[i][j])
+
+
+
+        for i in range(len(cons_edges1)-1):
+            current_edge=cons_edges1[i][0]
+            next_edge=cons_edges1[i+1][0]
+            pairs=[(current_edge.start_point,next_edge.start_point),(current_edge.start_point,next_edge.end_point),(current_edge.end_point,next_edge.start_point),(current_edge.end_point,next_edge.end_point)]
+            distance=float('inf')
+            min_pair=None
+            for pair in pairs:
+                p1,p2=pair
+                dis=DSegment(p1,p2).length()
+                if dis< distance:
+                    distance=dis
+                    min_pair=pair
+            p2,p=min_pair
+            if  p2==current_edge.start_point:
+                p1=current_edge.end_point
+            else:
+                p1=current_edge.start_point
+            order_list1.append(p1)
+            order_list1.append(p2)
+            if i==len(cons_edges1)-2:
+                order_list1.append(p)
+                if p==next_edge.start_point:
+                    order_list1.append(next_edge.end_point)
+                else:
+                    order_list1.append(next_edge.start_point)
+
+
+
+        for i in range(len(cons_edges2)-1):
+            current_edge=cons_edges2[i][0]
+            next_edge=cons_edges2[i+1][0]
+            pairs=[(current_edge.start_point,next_edge.start_point),(current_edge.start_point,next_edge.end_point),(current_edge.end_point,next_edge.start_point),(current_edge.end_point,next_edge.end_point)]
+            distance=float('inf')
+            min_pair=None
+            for pair in pairs:
+                p1,p2=pair
+                dis=DSegment(p1,p2).length()
+                if dis< distance:
+                    distance=dis
+                    min_pair=pair
+            p2,p=min_pair
+            if  p2==current_edge.start_point:
+                p1=current_edge.end_point
+            else:
+                p1=current_edge.start_point
+            order_list2.append(p1)
+            order_list2.append(p2)
+            if i==len(cons_edges2)-2:
+                order_list2.append(p)
+                if p==next_edge.start_point:
+                    order_list2.append(next_edge.end_point)
+                else:
+                    order_list2.append(next_edge.start_point)
+        for i in range(min(len(order_list1),len(order_list2))):
+            point_map[order_list2[i]]=order_list1[i]
+
         edge_map={}
         for i,edge in enumerate(free_edges1):
             edge_map[r_free_edges2[i]]=edge
         for i in range(len(non_free_edges1)):
             for j in range(len(non_free_edges1[i])):
                 edge_map[r_non_free_edges2[i][j]]=non_free_edges1[i][j]
-        return True,edge_map 
+        return True,edge_map,point_map
 
-    return False,None
-def calculate_new_hint_info(edges_info,other_edges_info,hint_info,other_hint_info,meta_info,other_meta_info,edge_map):
+    return False,None,None
+def calculate_new_hint_info(edges_info,other_edges_info,hint_info,other_hint_info,meta_info,other_meta_info,edge_map,point_map):
 
     new_all_edge_map={}
     other_all_edge_map=other_hint_info[0]
@@ -2322,7 +2478,21 @@ def calculate_new_hint_info(edges_info,other_edges_info,hint_info,other_hint_inf
             if isinstance(d_s,list):
                 new_d_s=[]
                 for d_t in d_s:
-                    if len(d_t)==3:
+                    if len(d_t)==4:
+                        if isinstance(d_t[0],DDimension) and d_t[0].dimtype!=0:
+                            content=f"值：{d_t[0].text}"
+                        elif isinstance(d_t[0],DDimension):
+                            content=f"{d_t[1]}"
+                        else:
+                            content=f"值：{d_t[0].content}"
+                        sub_ty=d_t[1].split("：")[-1]
+                        if isinstance(d_t[0],DDimension) and d_t[0].dimtype!=0:
+                            new_d_s.append([d_t[0],f"值：{content}，参考边：{sub_ty}",edge_map[d_t[2]],(edge_map[d_t[2]],point_map[d_t[3][1]],point_map[d_t[3][1]])])
+                        elif isinstance(d_t[0],DDimension):
+                            new_d_s.append([d_t[0],f"{d_t[1]}",edge_map[d_t[2]]])
+                        else:
+                            new_d_s.append([d_t[0],f"值：{content}，参考边：{sub_ty}",edge_map[d_t[2]]])
+                    elif len(d_t)==3:
                         if isinstance(d_t[0],DDimension) and d_t[0].dimtype!=0:
                             content=f"值：{d_t[0].text}"
                         elif isinstance(d_t[0],DDimension):
@@ -2358,7 +2528,7 @@ def calculate_new_hint_info(edges_info,other_edges_info,hint_info,other_hint_inf
 
     new_meta_info=(meta_info[0],other_meta_info[1],other_meta_info[2],other_meta_info[3],other_meta_info[4],True)
     return new_hint_info,new_meta_info
-def calculate_new_hint_info_bk(edges_info,other_edges_info,hint_info,other_hint_info,meta_info,other_meta_info,edge_map):
+def calculate_new_hint_info_bk(edges_info,other_edges_info,hint_info,other_hint_info,meta_info,other_meta_info,edge_map,point_map):
 
     new_all_edge_map={}
     other_all_edge_map=other_hint_info[0]
@@ -2370,7 +2540,21 @@ def calculate_new_hint_info_bk(edges_info,other_edges_info,hint_info,other_hint_
             if isinstance(d_s,list):
                 new_d_s=[]
                 for d_t in d_s:
-                    if len(d_t)==3:
+                    if len(d_t)==4:
+                        if isinstance(d_t[0],DDimension) and d_t[0].dimtype!=0:
+                            content=f"值：{d_t[0].text}"
+                        elif isinstance(d_t[0],DDimension):
+                            content=f"{d_t[1]}"
+                        else:
+                            content=f"值：{d_t[0].content}"
+                        sub_ty=d_t[1].split("：")[-1]
+                        if isinstance(d_t[0],DDimension) and d_t[0].dimtype!=0:
+                            new_d_s.append([d_t[0],f"值：{content}，参考边：{sub_ty}",edge_map[d_t[2]],(edge_map[d_t[2]],point_map[d_t[3][1]],point_map[d_t[3][2]])])
+                        elif isinstance(d_t[0],DDimension):
+                            new_d_s.append([d_t[0],f"{d_t[1]}",edge_map[d_t[2]]])
+                        else:
+                            new_d_s.append([d_t[0],f"值：{content}，参考边：{sub_ty}",edge_map[d_t[2]]])
+                    elif len(d_t)==3:
                         if isinstance(d_t[0],DDimension) and d_t[0].dimtype!=0:
                             content=f"值：{d_t[0].text}"
                         elif isinstance(d_t[0],DDimension):
@@ -2456,9 +2640,9 @@ def hint_search_step(edges_infos,poly_centroids,hint_infos,meta_infos,code_map):
                 if code in code_map:
                     info=code_map[code]
                     other_edges_info,other_poly_centroid,other_hint_info,other_meta_info=info
-                    flag,edge_map=is_similar(edges_info,other_edges_info,hint_info[1],other_hint_info[1])
+                    flag,edge_map,point_map=is_similar(edges_info,other_edges_info,hint_info[1],other_hint_info[1])
                     if flag:
-                        new_hint_info,new_meta_info=calculate_new_hint_info_bk(edges_info,other_edges_info,hint_info,other_hint_info,meta_info,other_meta_info,edge_map)
+                        new_hint_info,new_meta_info=calculate_new_hint_info_bk(edges_info,other_edges_info,hint_info,other_hint_info,meta_info,other_meta_info,edge_map,point_map)
                         
                         new_edges_infos.append(edges_info)
                         new_poly_centroids.append(poly_centroid)
@@ -2494,9 +2678,9 @@ def diffusion_step(edges_infos,poly_centroids,hint_infos,meta_infos):
                     if other_is_standard_elbow  and other_has_hint==True and DSegment(DPoint(poly_centroid[0],poly_centroid[1]),DPoint(other_poly_centroid[0],other_poly_centroid[1])).length()<100000 :
 
     
-                        flag,edge_map=is_similar(edges_info,edges_infos[j],hint_info[1],other_hint_info[1])
+                        flag,edge_map,point_map=is_similar(edges_info,edges_infos[j],hint_info[1],other_hint_info[1])
                         if flag:
-                            new_hint_info,new_meta_info=calculate_new_hint_info(edges_info,edges_infos[j],hint_info,hint_infos[j],meta_info,meta_infos[j],edge_map)
+                            new_hint_info,new_meta_info=calculate_new_hint_info(edges_info,edges_infos[j],hint_info,hint_infos[j],meta_info,meta_infos[j],edge_map,point_map)
                             
                             new_edges_infos.append(edges_info)
                             new_poly_centroids.append(poly_centroid)
@@ -2995,7 +3179,14 @@ def outputInfo(index,edges_info,poly_centroid,hint_info,meta_info,segmentation_c
                 if isinstance(ds,list):
                     new_ds=[]
                     for d_t in ds:
-                        if len(d_t)==3:
+                        if len(d_t)==4:
+                            d,des,seg=d_t[0],d_t[1],d_t[2] 
+                            if seg in constraint_edge_no:
+                                des+=str(constraint_edge_no[seg])
+                            else:
+                                des+=str(free_edge_no[seg])
+                            new_ds.append([d,des])
+                        elif len(d_t)==3:
                             d,des,seg=d_t 
                             if seg in constraint_edge_no:
                                 des+=str(constraint_edge_no[seg])
@@ -3214,7 +3405,14 @@ def outputInfo(index,edges_info,poly_centroid,hint_info,meta_info,segmentation_c
                 if isinstance(ds,list):
                     new_ds=[]
                     for d_t in ds:
-                        if len(d_t)==3:
+                        if len(d_t)==4:
+                            d,des,seg=d_t[0],d_t[1],d_t[2] 
+                            if seg in constraint_edge_no:
+                                des+=str(constraint_edge_no[seg])
+                            else:
+                                des+=str(free_edge_no[seg])
+                            new_ds.append([d,des])
+                        elif len(d_t)==3:
                             d,des,seg=d_t 
                             if seg in constranit_edge_template_no:
                                 des+=str(constranit_edge_template_no[seg])
@@ -3229,6 +3427,28 @@ def outputInfo(index,edges_info,poly_centroid,hint_info,meta_info,segmentation_c
             new_all_edge_map[s]=new_dic
         ori_edge_map=all_edge_map
         all_edge_map=new_all_edge_map
+
+
+        constarint_idx=1
+        cornerhole_idx=1
+        template_edges=[]
+        # print("============")
+        while True:
+            # print(constarint_idx,cornerhole_idx)
+            if f'constraint{constarint_idx}' in template_map:
+                template_edges.append(template_map[f'constraint{constarint_idx}'])
+                constarint_idx+=1
+            else:
+                break
+            if f'cornerhole{cornerhole_idx}' in template_map:  
+                template_edges.append(template_map[f'cornerhole{cornerhole_idx}'])
+                cornerhole_idx+=1
+
+
+       
+        
+
+
 
 
 
@@ -3269,9 +3489,15 @@ def outputInfo(index,edges_info,poly_centroid,hint_info,meta_info,segmentation_c
                 for ty,annos in all_edge_map[seg].items():
                     if ty=="是否与约束边平行" or ty=="是否与相邻约束边夹角为90度" :
                         continue
+                
                     anno_des=""
-                    for anno in annos:
-                        anno_des=f"{anno_des},{anno[1]}"
+                    if ty=="":
+                        for anno in annos:
+                            anno_des=f"{anno_des},{anno[1]}"
+                    else:
+
+                        for anno in annos:
+                            anno_des=f"{anno_des},{anno[1]}"
                     des=f"{des}\n\t\t\t{ty}:{anno_des}"
                 log_to_file(file_path, f"           标注:\n\t\t\t{des}")
             elif edge_types[seg]=="toe":  
@@ -3295,20 +3521,11 @@ def outputInfo(index,edges_info,poly_centroid,hint_info,meta_info,segmentation_c
             
             free_idx+=1
         
-        constarint_idx=1
-        cornerhole_idx=1
-        template_edges=[]
-        # print("============")
-        while True:
-            # print(constarint_idx,cornerhole_idx)
-            if f'constraint{constarint_idx}' in template_map:
-                template_edges.append(template_map[f'constraint{constarint_idx}'])
-                constarint_idx+=1
-            else:
-                break
-            if f'cornerhole{cornerhole_idx}' in template_map:  
-                template_edges.append(template_map[f'cornerhole{cornerhole_idx}'])
-                cornerhole_idx+=1
+
+
+
+
+
         log_to_file(file_path, "边界信息（非自由边）：")
         k=1
         constarint_idx=0
@@ -3595,7 +3812,14 @@ def outputInfo(index,edges_info,poly_centroid,hint_info,meta_info,segmentation_c
                 if isinstance(ds,list):
                     new_ds=[]
                     for d_t in ds:
-                        if len(d_t)==3:
+                        if len(d_t)==4:
+                            d,des,seg=d_t[0],d_t[1],d_t[2] 
+                            if seg in constraint_edge_no:
+                                des+=str(constraint_edge_no[seg])
+                            else:
+                                des+=str(free_edge_no[seg])
+                            new_ds.append([d,des])
+                        elif len(d_t)==3:
                             d,des,seg=d_t 
                             if seg in constraint_edge_no:
                                 des+=str(constraint_edge_no[seg])
