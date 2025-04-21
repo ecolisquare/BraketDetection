@@ -3172,6 +3172,41 @@ def outputInfo(index,edges_info,poly_centroid,hint_info,meta_info,segmentation_c
     free_edges,constraint_edges,edges,poly_refs,ref_map=edges_info
     all_edge_map,edge_types,features,feature_map,constraint_edge_no,free_edge_no,all_anno,tis,ds=hint_info
     if is_standard_elbow==False:
+        template_cons_edges=[]
+        for i,edge in enumerate(edges):
+    
+
+            if len(edge)==0:
+                continue
+
+            elif edge[0].isCornerhole:
+                continue
+            else:
+                for seg in edge:
+                    template_cons_edges.append(seg)
+
+        order_set=set()
+       
+        for i in range(len(template_cons_edges)-1):
+            current_edge=template_cons_edges[i]
+            next_edge=template_cons_edges[i+1]
+            pairs=[(current_edge.start_point,next_edge.start_point),(current_edge.start_point,next_edge.end_point),(current_edge.end_point,next_edge.start_point),(current_edge.end_point,next_edge.end_point)]
+            distance=float('inf')
+            min_pair=None
+            for pair in pairs:
+                p1,p2=pair
+                dis=DSegment(p1,p2).length()
+                if dis< distance:
+                    distance=dis
+                    min_pair=pair
+            p2,p=min_pair
+            if  p2==current_edge.start_point:
+                p1=current_edge.end_point
+            else:
+                p1=current_edge.start_point
+            order_set.add((current_edge,p1))
+            if i==len(template_cons_edges)-2:
+                order_set.add((next_edge,p))
         new_all_edge_map={}
         for s,dic in all_edge_map.items():
             new_dic={}
@@ -3181,10 +3216,15 @@ def outputInfo(index,edges_info,poly_centroid,hint_info,meta_info,segmentation_c
                     for d_t in ds:
                         if len(d_t)==4:
                             d,des,seg=d_t[0],d_t[1],d_t[2] 
+                            _,p1,p2=d_t[3]
                             if seg in constraint_edge_no:
                                 des+=str(constraint_edge_no[seg])
                             else:
                                 des+=str(free_edge_no[seg])
+                            if (seg,p1) in order_set:
+                                des+="，1号边"
+                            else:
+                                des+="，2号边"
                             new_ds.append([d,des])
                         elif len(d_t)==3:
                             d,des,seg=d_t 
@@ -3398,35 +3438,6 @@ def outputInfo(index,edges_info,poly_centroid,hint_info,meta_info,segmentation_c
             if f'cornerhole{cornerhole_idx}' in template_map:  
                 cornerhole_idx+=1
 
-        new_all_edge_map={}
-        for s,dic in all_edge_map.items():
-            new_dic={}
-            for ty,ds in dic.items():
-                if isinstance(ds,list):
-                    new_ds=[]
-                    for d_t in ds:
-                        if len(d_t)==4:
-                            d,des,seg=d_t[0],d_t[1],d_t[2] 
-                            if seg in constraint_edge_no:
-                                des+=str(constraint_edge_no[seg])
-                            else:
-                                des+=str(free_edge_no[seg])
-                            new_ds.append([d,des])
-                        elif len(d_t)==3:
-                            d,des,seg=d_t 
-                            if seg in constranit_edge_template_no:
-                                des+=str(constranit_edge_template_no[seg])
-                            else:
-                                des+=str(free_edge_template_no[seg])
-                            new_ds.append([d,des])
-                        else:
-                            new_ds.append(d_t)
-                    new_dic[ty]=new_ds
-                else:
-                    new_dic[ty]=ds
-            new_all_edge_map[s]=new_dic
-        ori_edge_map=all_edge_map
-        all_edge_map=new_all_edge_map
 
 
         constarint_idx=1
@@ -3444,9 +3455,80 @@ def outputInfo(index,edges_info,poly_centroid,hint_info,meta_info,segmentation_c
                 template_edges.append(template_map[f'cornerhole{cornerhole_idx}'])
                 cornerhole_idx+=1
 
+        template_cons_edges=[]
+        for i,edge in enumerate(template_edges):
+    
 
+            if len(edge)==0:
+                continue
+
+            elif edge[0].isCornerhole:
+                continue
+            else:
+                for seg in edge:
+                    template_cons_edges.append(seg)
+
+        order_set=set()
        
+        for i in range(len(template_cons_edges)-1):
+            current_edge=template_cons_edges[i]
+            next_edge=template_cons_edges[i+1]
+            pairs=[(current_edge.start_point,next_edge.start_point),(current_edge.start_point,next_edge.end_point),(current_edge.end_point,next_edge.start_point),(current_edge.end_point,next_edge.end_point)]
+            distance=float('inf')
+            min_pair=None
+            for pair in pairs:
+                p1,p2=pair
+                dis=DSegment(p1,p2).length()
+                if dis< distance:
+                    distance=dis
+                    min_pair=pair
+            p2,p=min_pair
+            if  p2==current_edge.start_point:
+                p1=current_edge.end_point
+            else:
+                p1=current_edge.start_point
+            order_set.add((current_edge,p1))
+            if i==len(template_cons_edges)-2:
+                order_set.add((next_edge,p))
+
         
+
+
+        
+        new_all_edge_map={}
+        for s,dic in all_edge_map.items():
+            new_dic={}
+            for ty,ds in dic.items():
+                if isinstance(ds,list):
+                    new_ds=[]
+                    for d_t in ds:
+                        if len(d_t)==4:
+                            d,des,seg=d_t[0],d_t[1],d_t[2] 
+                            _,p1,p2=d_t[3]
+                            if seg in constraint_edge_no:
+                                des+=str(constraint_edge_no[seg])
+                            else:
+                                des+=str(free_edge_no[seg])
+                            if (seg,p1) in order_set:
+                                des+="，1号边"
+                            else:
+                                des+="，2号边"
+                            new_ds.append([d,des])
+                        elif len(d_t)==3:
+                            d,des,seg=d_t 
+                            if seg in constranit_edge_template_no:
+                                des+=str(constranit_edge_template_no[seg])
+                            else:
+                                des+=str(free_edge_template_no[seg])
+                            new_ds.append([d,des])
+                        else:
+                            new_ds.append(d_t)
+                    new_dic[ty]=new_ds
+                else:
+                    new_dic[ty]=ds
+            new_all_edge_map[s]=new_dic
+        ori_edge_map=all_edge_map
+        all_edge_map=new_all_edge_map
 
 
 
@@ -3805,6 +3887,41 @@ def outputInfo(index,edges_info,poly_centroid,hint_info,meta_info,segmentation_c
         if len(matched_types)>1 :
             log_to_file("./output/duplicate_class.txt",f"{os.path.splitext(os.path.basename(segmentation_config.json_path))[0]}_infopoly{index}   {str(matched_types)}")
     else:
+        template_cons_edges=[]
+        for i,edge in enumerate(edges):
+    
+
+            if len(edge)==0:
+                continue
+
+            elif edge[0].isCornerhole:
+                continue
+            else:
+                for seg in edge:
+                    template_cons_edges.append(seg)
+
+        order_set=set()
+       
+        for i in range(len(template_cons_edges)-1):
+            current_edge=template_cons_edges[i]
+            next_edge=template_cons_edges[i+1]
+            pairs=[(current_edge.start_point,next_edge.start_point),(current_edge.start_point,next_edge.end_point),(current_edge.end_point,next_edge.start_point),(current_edge.end_point,next_edge.end_point)]
+            distance=float('inf')
+            min_pair=None
+            for pair in pairs:
+                p1,p2=pair
+                dis=DSegment(p1,p2).length()
+                if dis< distance:
+                    distance=dis
+                    min_pair=pair
+            p2,p=min_pair
+            if  p2==current_edge.start_point:
+                p1=current_edge.end_point
+            else:
+                p1=current_edge.start_point
+            order_set.add((current_edge,p1))
+            if i==len(template_cons_edges)-2:
+                order_set.add((next_edge,p))
         new_all_edge_map={}
         for s,dic in all_edge_map.items():
             new_dic={}
@@ -3814,10 +3931,15 @@ def outputInfo(index,edges_info,poly_centroid,hint_info,meta_info,segmentation_c
                     for d_t in ds:
                         if len(d_t)==4:
                             d,des,seg=d_t[0],d_t[1],d_t[2] 
+                            _,p1,p2=d_t[3]
                             if seg in constraint_edge_no:
                                 des+=str(constraint_edge_no[seg])
                             else:
                                 des+=str(free_edge_no[seg])
+                            if (seg,p1) in order_set:
+                                des+="，1号边" 
+                            else:
+                                des+="，2号边"
                             new_ds.append([d,des])
                         elif len(d_t)==3:
                             d,des,seg=d_t 
