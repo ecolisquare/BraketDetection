@@ -3868,6 +3868,27 @@ def outputInfo(index,edges_info,poly_centroid,hint_info,meta_info,segmentation_c
             log_to_file(file_path,f"    特殊符号：{special}")
         log_to_file(file_path, f"肘板类别为{classification_res}")
         log_to_file(file_path, f"肘板混淆类分类特征为：{str(features)}")
+        free_idx=1
+        free_codes=[]
+        non_free_codes=[]
+        while f'free{free_idx}' in template_map:
+            if len(template_map[f'free{free_idx}'])==0:
+                free_idx+=1
+                free_codes.append([])
+                continue
+
+            free_codes.append(feature_map[template_map[f'free{free_idx}'][0]])
+            free_idx+=1
+        for i,edge in enumerate(template_edges):
+            if len(edge)==0:
+                non_free_codes.append([])
+            elif edge[0].isCornerhole:
+                non_free_codes.append(feature_map[edge[0]])
+            else:
+                non_free_codes.append(feature_map[edge[0]])
+        log_to_file(file_path, f"肘板混淆类分类逐边特征为：")
+        log_to_file(file_path, f"   free_codes：{str(free_codes)}")
+        log_to_file(file_path, f"   non_free_codes：{str(non_free_codes)}")
         log_to_file(file_path, f"标准肘板")
         if is_diff==False:
             plot_info_poly_std(constraint_edges,ori_edge_map,template_map,os.path.join(segmentation_config.poly_info_dir, f'std_infopoly{index}.png'))
@@ -4103,6 +4124,20 @@ def outputInfo(index,edges_info,poly_centroid,hint_info,meta_info,segmentation_c
 
         log_to_file(file_path, f"肘板类别为{classification_res}")
         log_to_file(file_path, f"肘板混淆类分类特征为:{str(features)}")
+        free_codes=[]
+        non_free_codes=[]
+        for edge in free_edges[0]:
+            free_codes.append(feature_map[edge])
+        for i,edge in enumerate(edges):
+            if len(edge)==0:
+                non_free_codes.append([])
+            elif edge[0].isCornerhole:
+                non_free_codes.append(feature_map[edge[0]])
+            else:
+                non_free_codes.append(feature_map[edge[0]])
+        log_to_file(file_path, f"肘板混淆类分类逐边特征为：")
+        log_to_file(file_path, f"   free_codes：{str(free_codes)}")
+        log_to_file(file_path, f"   non_free_codes：{str(non_free_codes)}")
         log_to_file(file_path, f"标准肘板")
         return poly_refs, classification_res
 
