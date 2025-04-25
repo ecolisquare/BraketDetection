@@ -2402,8 +2402,8 @@ def is_similar(edges_info,other_edges_info,edge_types,other_edge_types):
 
 
         for i in range(len(cons_edges1)-1):
-            current_edge=cons_edges1[i][0]
-            next_edge=cons_edges1[i+1][0]
+            current_edge=cons_edges1[i]
+            next_edge=cons_edges1[i+1]
             pairs=[(current_edge.start_point,next_edge.start_point),(current_edge.start_point,next_edge.end_point),(current_edge.end_point,next_edge.start_point),(current_edge.end_point,next_edge.end_point)]
             distance=float('inf')
             min_pair=None
@@ -2430,8 +2430,8 @@ def is_similar(edges_info,other_edges_info,edge_types,other_edge_types):
 
 
         for i in range(len(cons_edges2)-1):
-            current_edge=cons_edges2[i][0]
-            next_edge=cons_edges2[i+1][0]
+            current_edge=cons_edges2[i]
+            next_edge=cons_edges2[i+1]
             pairs=[(current_edge.start_point,next_edge.start_point),(current_edge.start_point,next_edge.end_point),(current_edge.end_point,next_edge.start_point),(current_edge.end_point,next_edge.end_point)]
             distance=float('inf')
             min_pair=None
@@ -2669,7 +2669,8 @@ def diffusion_step(edges_infos,poly_centroids,hint_infos,meta_infos):
         is_standard_elbow,bracket_parameter,strengthen_parameter,has_hint,is_fb,is_diff=meta_info
         
         if has_hint==False and is_standard_elbow:
-            f=False
+            distance=float('inf')
+            info_=None
             for j in range(len(meta_infos)):
                 if j!=i:
                     other_poly_centroid=poly_centroids[j]
@@ -2677,18 +2678,26 @@ def diffusion_step(edges_infos,poly_centroids,hint_infos,meta_infos):
                     other_is_standard_elbow,other_bracket_parameter,other_strengthen_parameter,other_has_hint,other_is_fb,other_is_diff=meta_infos[j]
                     if other_is_standard_elbow  and other_has_hint==True and DSegment(DPoint(poly_centroid[0],poly_centroid[1]),DPoint(other_poly_centroid[0],other_poly_centroid[1])).length()<100000 :
 
-    
+
                         flag,edge_map,point_map=is_similar(edges_info,edges_infos[j],hint_info[1],other_hint_info[1])
                         if flag:
-                            new_hint_info,new_meta_info=calculate_new_hint_info(edges_info,edges_infos[j],hint_info,hint_infos[j],meta_info,meta_infos[j],edge_map,point_map)
+                            dis=DSegment(DPoint(poly_centroid[0],poly_centroid[1]),DPoint(other_poly_centroid[0],other_poly_centroid[1])).length()
+                            if dis<distance:
+                                distance=dis
+                                info_=[edges_info,edges_infos[j],hint_info,hint_infos[j],meta_info,meta_infos[j],edge_map,point_map] 
+
+            
+            if info_ is not None:
+
                             
-                            new_edges_infos.append(edges_info)
-                            new_poly_centroids.append(poly_centroid)
-                            new_hint_infos.append(new_hint_info)
-                            new_meta_infos.append(new_meta_info)
-                            f=True
-                            break
-            if f==False:
+                new_hint_info,new_meta_info=calculate_new_hint_info(info_[0],info_[1],info_[2],info_[3],info_[4],info_[5],info_[6],info_[7])
+                
+                new_edges_infos.append(edges_info)
+                new_poly_centroids.append(poly_centroid)
+                new_hint_infos.append(new_hint_info)
+                new_meta_infos.append(new_meta_info)
+        
+            else:
                 new_edges_infos.append(edges_info)
                 new_poly_centroids.append(poly_centroid)
                 new_hint_infos.append(hint_info)

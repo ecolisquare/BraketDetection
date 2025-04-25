@@ -95,7 +95,7 @@ class SegmentationConfig:
 
         
 
-        self.parallel_max_distance_relax=60
+        self.parallel_max_distance_relax=55
         self.parallel_min_distance_relax=5
         self.contraint_factor=0.98
         self.free_edge_min_length=130
