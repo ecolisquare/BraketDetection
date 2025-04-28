@@ -67,8 +67,21 @@ if __name__ == '__main__':
     verbose=segmentation_config.verbose
     json_path = input("请输入路径: ")
     add_bracket_layer_name = input("请输入补充肘板边界图层名：")
+    round=input("请输入轮次:")
     segmentation_config.json_path = json_path
     segmentation_config.remove_layername.append(add_bracket_layer_name)
+    output_path=f"{segmentation_config.poly_info_dir}/round{round}"
+    segmentation_config.line_image_path = os.path.join(output_path, "line.png")
+    segmentation_config.poly_image_dir = os.path.join(output_path, "poly_image")
+    segmentation_config.poly_info_dir = os.path.join(output_path)
+    segmentation_config.res_image_path = os.path.join(output_path, "res.png")
+    segmentation_config.dxf_output_folder = os.path.join(output_path)
+    create_folder_safe(f"{segmentation_config.poly_info_dir}")
+    create_folder_safe(f"{segmentation_config.poly_info_dir}/标准肘板详细信息参考图")
+    create_folder_safe(f"{segmentation_config.poly_info_dir}/所有肘板图像(仅限开发模式)")
+    create_folder_safe(f"{segmentation_config.poly_info_dir}/所有有效回路图像")
+    create_folder_safe(f"{segmentation_config.poly_info_dir}/非标准肘板")
+    create_folder_safe(f"{segmentation_config.poly_info_dir}/标准肘板")
     if segmentation_config.verbose:
         print("读取json文件")
     # 获取补充肘板的边界
