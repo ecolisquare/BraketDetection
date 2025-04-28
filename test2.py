@@ -73,13 +73,18 @@ def process_json_data(json_path, output_path, training_data_output_folder, train
     segmentation_config.json_path = json_path
     segmentation_config.line_image_path = os.path.join(output_path, "line.png")
     segmentation_config.poly_image_dir = os.path.join(output_path, "poly_image")
-    segmentation_config.poly_info_dir = os.path.join(output_path, "poly_info")
+    segmentation_config.poly_info_dir = os.path.join(output_path)
     segmentation_config.res_image_path = os.path.join(output_path, "res.png")
     segmentation_config.dxf_output_folder = os.path.join(output_path)
 
     try:
         # os.makedirs(segmentation_config.poly_image_dir, exist_ok=True)
-        os.makedirs(segmentation_config.poly_info_dir, exist_ok=True)
+        # os.makedirs(segmentation_config.poly_info_dir, exist_ok=True)
+        create_folder_safe(f"{output_path}/标准肘板详细信息参考图")
+        create_folder_safe(f"{output_path}/所有肘板图像(仅限开发模式)")
+        create_folder_safe(f"{output_path}/所有有效回路图像")
+        create_folder_safe(f"{output_path}/非标准肘板")
+        create_folder_safe(f"{output_path}/标准肘板")
     except Exception as e:
         print(f"创建文件夹时出错: {e}")
 
@@ -190,7 +195,7 @@ def process_json_data(json_path, output_path, training_data_output_folder, train
     draw_rectangle_in_dxf(dxf_path, dxf_output_folder, bboxs, classi_res,indices,free_edge_handles)
 
 if __name__ == '__main__':
-    folder_path = "./data/test_data"
+    folder_path = "./data/new"
     output_folder = "./output"
     training_data_output_folder = "./DGCNN/data_folder"
     training_img_output_folder = "./training_img"

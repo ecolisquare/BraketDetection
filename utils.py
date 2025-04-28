@@ -15,7 +15,48 @@ from functools import partial
 from itertools import combinations
 from bracket_parameter_extraction import *
 from shapely.geometry import Polygon
+import shutil
+from datetime import datetime
 
+def create_folder_safe(folder_path):
+    """
+    安全创建文件夹，如果已存在则重命名为.old后缀
+    
+    参数:
+        folder_path (str): 要创建的文件夹路径
+        
+    返回:
+        bool: 是否成功创建新文件夹
+    """
+    # 标准化路径
+    folder_path = os.path.normpath(folder_path)
+    
+    # 如果文件夹不存在，直接创建
+    if not os.path.exists(folder_path):
+        os.makedirs(folder_path)
+        print(f"成功创建文件夹: {folder_path}")
+        return True
+    
+    # 如果已经存在，尝试重命名
+    old_folder_path = f"{folder_path}.old"
+    
+    # 如果.old文件夹已存在，添加时间戳
+    if os.path.exists(old_folder_path):
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        old_folder_path = f"{folder_path}.old_{timestamp}"
+    
+    try:
+        # 重命名原有文件夹
+        shutil.move(folder_path, old_folder_path)
+        print(f"已重命名原有文件夹: {folder_path} -> {old_folder_path}")
+        
+        # 创建新文件夹
+        os.makedirs(folder_path)
+        print(f"成功创建新文件夹: {folder_path}")
+        return True
+    except Exception as e:
+        print(f"操作失败: {e}")
+        return False
 def numberInString(content):
     flag=False
     for i in range(10):

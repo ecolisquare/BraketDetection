@@ -12,10 +12,21 @@ from classifier import *
 from draw_dxf import *
 
 if __name__ == '__main__':
+
+
+
     segmentation_config=SegmentationConfig()
     verbose=segmentation_config.verbose
     json_path = input("请输入路径: ")
     segmentation_config.json_path = json_path
+    create_folder_safe(f"{segmentation_config.poly_info_dir}")
+    create_folder_safe(f"{segmentation_config.poly_info_dir}/标准肘板详细信息参考图")
+    create_folder_safe(f"{segmentation_config.poly_info_dir}/所有肘板图像(仅限开发模式)")
+    create_folder_safe(f"{segmentation_config.poly_info_dir}/所有有效回路图像")
+    create_folder_safe(f"{segmentation_config.poly_info_dir}/非标准肘板")
+    create_folder_safe(f"{segmentation_config.poly_info_dir}/标准肘板")
+
+
     if segmentation_config.verbose:
         print("读取json文件")
     #文件中线段元素的读取和根据颜色过滤

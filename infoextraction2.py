@@ -1867,7 +1867,7 @@ def calculate_poly_features(poly, segments, segmentation_config, point_map, inde
     # print("=============")
     # print(cornerhole_edges)
     if segmentation_config.mode=="dev":
-        plot_info_poly(polygon,poly_refs, os.path.join(segmentation_config.poly_info_dir, f'infopoly{index}.png'),tis,ds,sfs,others)
+        plot_info_poly(polygon,poly_refs, os.path.join(segmentation_config.poly_info_dir, f'所有肘板图像(仅限开发模式)/infopoly{index}.png'),tis,ds,sfs,others)
     if len(free_edges) > 1:
         print(f"回路{index}超过两条自由边！")
         #return poly_refs
@@ -2066,7 +2066,7 @@ def calculate_poly_features(poly, segments, segmentation_config, point_map, inde
     constraint_edges=new_constraint_edges
 
     # step6: 绘制对边分类后的几何图像
-    plot_info_poly(polygon,poly_refs, os.path.join(segmentation_config.poly_info_dir, f'infopoly{index}.png'),tis,ds,sfs,others)
+    plot_info_poly(polygon,poly_refs, os.path.join(segmentation_config.poly_info_dir, f'所有有效回路图像/infopoly{index}.png'),tis,ds,sfs,others)
 
     # for i,t_t in enumerate(tis):
     #     print(t_t[0].content)
@@ -3249,7 +3249,7 @@ def outputInfo(index,edges_info,poly_centroid,hint_info,meta_info,segmentation_c
                     new_dic[ty]=ds
             new_all_edge_map[s]=new_dic
         all_edge_map=new_all_edge_map
-        file_path = os.path.join(segmentation_config.poly_info_dir, f'info{index}.txt')
+        file_path = os.path.join(segmentation_config.poly_info_dir, f'非标准肘板/info{index}.txt')
         clear_file(file_path)
         log_to_file(file_path, f"几何中心坐标：{poly_centroid}")
         log_to_file(file_path, f"边界数量（含自由边）：{len(constraint_edges) + len(free_edges)}")
@@ -3545,7 +3545,7 @@ def outputInfo(index,edges_info,poly_centroid,hint_info,meta_info,segmentation_c
 
 
 
-        file_path = os.path.join(segmentation_config.poly_info_dir, f'info{index}.txt')
+        file_path = os.path.join(segmentation_config.poly_info_dir, f'标准肘板/info{index}.txt')
         clear_file(file_path)
         log_to_file(file_path, f"几何中心坐标：{poly_centroid}")
 
@@ -3900,7 +3900,7 @@ def outputInfo(index,edges_info,poly_centroid,hint_info,meta_info,segmentation_c
         log_to_file(file_path, f"   non_free_codes：{str(non_free_codes)}")
         log_to_file(file_path, f"标准肘板")
         if is_diff==False:
-            plot_info_poly_std(constraint_edges,ori_edge_map,template_map,os.path.join(segmentation_config.poly_info_dir, f'std_infopoly{index}.png'))
+            plot_info_poly_std(constraint_edges,ori_edge_map,template_map,os.path.join(segmentation_config.poly_info_dir, f'标准肘板详细信息参考图/std_infopoly{index}.png'))
         if classification_res == "Unclassified":
             # log_to_file("./output/Unclassified.txt", f"{os.path.splitext(os.path.basename(segmentation_config.json_path))[0]}_infopoly{index}")
             return poly_refs, classification_res
@@ -3985,7 +3985,7 @@ def outputInfo(index,edges_info,poly_centroid,hint_info,meta_info,segmentation_c
                     new_dic[ty]=ds
             new_all_edge_map[s]=new_dic
         all_edge_map=new_all_edge_map
-        file_path = os.path.join(segmentation_config.poly_info_dir, f'info{index}.txt')
+        file_path = os.path.join(segmentation_config.poly_info_dir, f'标准肘板(无分类)/info{index}.txt')
 
         clear_file(file_path)
         log_to_file(file_path, f"几何中心坐标：{poly_centroid}")
