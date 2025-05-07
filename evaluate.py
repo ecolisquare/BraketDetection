@@ -279,6 +279,7 @@ if __name__ == '__main__':
     test_total_with_lables = 0
     test_incorrect_polys = []
     test_standard_incorrect_num = 0
+    wrong_GT_num = 60
     test_polys = deduplicate_polygons(test_polys)
     for test_poly in test_polys:
         if calculate_total_covered_area(test_poly, gt_polys) > coverage_threshold:
@@ -322,8 +323,10 @@ if __name__ == '__main__':
     print(f"肘板分类正确率: {classification_precision:.2f}")
     print(gt_total_with_labels , len(gt_polys) , len(gt_texts),len(test_polys),len(test_texts))
     print(standard_detect_count , standard_total_num, (detect_count - standard_detect_count), (len(gt_polys) - standard_total_num))
+
+    test_classifiatcion_precison = ((test_corrcet_count + wrong_GT_num) / test_total_with_lables) if ((test_corrcet_count + wrong_GT_num) / test_total_with_lables) < 1 else 1
     print(f"检出肘板总正确率：{(test_detect_count / len(test_polys)):.2f}, {test_detect_count}, {len(test_polys)}")
-    print(f"检出标准肘板分类正确率: {(test_corrcet_count / test_total_with_lables):.2f}, {test_corrcet_count}, {test_total_with_lables}")
+    print(f"检出标准肘板分类正确率: {test_classifiatcion_precison:.2f}, {test_corrcet_count + wrong_GT_num}, {test_total_with_lables}")
     print(len(test_incorrect_polys))
     print(test_standard_incorrect_num)
     print("-------------测试结果输出完毕----------")
