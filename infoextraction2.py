@@ -566,12 +566,14 @@ def is_vertical_(point1,point2,segment,epsilon=0.05):
         return True
     return False 
 
-def is_toe(free_edge,cons_edge,max_free_edge_length):
+def is_toe(free_edge,last_free_edge,cons_edge,max_free_edge_length):
+    if last_free_edge is not None and isinstance(last_free_edge.ref,DArc) and is_tangent_(free_edge,last_free_edge):
+        return False
     if (free_edge.length()<56 or free_edge.length()<=0.105*max_free_edge_length) and is_vertical_(free_edge.start_point,free_edge.end_point,cons_edge,epsilon=0.35):
         return True
     return False
 def is_ks_corner(free_edge,last_free_edge,cons_edge,max_free_edge_length):
-    if (not is_toe(free_edge,cons_edge,max_free_edge_length)) and (not is_vertical_(free_edge.start_point,free_edge.end_point,cons_edge,epsilon=0.35)) and isinstance(last_free_edge.ref,DLine) and free_edge.length() <= 100:
+    if (not is_toe(free_edge,last_free_edge,cons_edge,max_free_edge_length)) and (not is_vertical_(free_edge.start_point,free_edge.end_point,cons_edge,epsilon=0.35)) and isinstance(last_free_edge.ref,DLine) and free_edge.length() <= 100:
         return True
     return False
 
@@ -728,12 +730,24 @@ def match_a_anno(a_anno,free_edges,constraint_edges):
                 a_map[target]=[]
             a_map[target].append((p1,p2,inter,d))
             cons_edge=find_cons_edge(cons_edges,target)
-                
-            if is_toe(target,cons_edge,max_free_edge_length):
-            
-                toe_angle_anno.append(d)
+            if target==s_free_edges[0] and len(s_free_edges)>1:
+                last_free_edge=s_free_edges[1]
+                if is_toe(target,last_free_edge,cons_edge,max_free_edge_length):
+                    toe_angle_anno.append(d)
+                else:
+                    angle_anno.append(d)
+            elif  target==s_free_edges[-1] and len(s_free_edges)>1:
+                last_free_edge=s_free_edges[-2]
+                if is_toe(target,last_free_edge,cons_edge,max_free_edge_length):
+                    toe_angle_anno.append(d)
+                else:
+                    angle_anno.append(d)
             else:
                 angle_anno.append(d)
+
+
+
+
     return a_map,angle_anno,toe_angle_anno
 
 
@@ -901,7 +915,7 @@ def match_edge_anno(segments,constraint_edges,free_edges,edges,all_anno,all_map)
                     last_free_edge=free_edges[0][-2]
                 cons_edge=find_cons_edge(cons_edges,seg)
                 # print(cons_edge)
-                if is_toe(seg,cons_edge,max_free_edge_length):
+                if is_toe(seg,last_free_edge,cons_edge,max_free_edge_length):
                     edge_type[seg]="toe"
                 elif is_ks_corner(seg,last_free_edge,cons_edge,max_free_edge_length):
                     edge_type[seg]="KS_corner"
@@ -1066,8 +1080,8 @@ def match_edge_anno(segments,constraint_edges,free_edges,edges,all_anno,all_map)
                     continue
                 if isinstance(free_edge.ref,DArc):
                     continue
-                if point_segment_position(v1,free_edge,epsilon=0.2,anno=False)!="not_on_line" or point_segment_position(v2,free_edge,epsilon=0.2,anno=False)!="not_on_line":
-                    if point_segment_position(v1,free_edge,epsilon=0.2,anno=False)!="not_on_line":
+                if point_segment_position(v1,free_edge,epsilon=0.25,anno=False)!="not_on_line" or point_segment_position(v2,free_edge,epsilon=0.25,anno=False)!="not_on_line":
+                    if point_segment_position(v1,free_edge,epsilon=0.25,anno=False)!="not_on_line":
                         v=v2
                     else:
                         v=v1

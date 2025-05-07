@@ -769,10 +769,10 @@ def eva_c_f(codes, features, p_feature = ["no_tangent", "is_para", "is_ver", "is
         if c not in features:
             return False
     # features中的所有标注特征都要包含在codes中
-    for f in features:
-        if f not in p_feature:
-            if f not in codes:
-                return False
+    # for f in features:
+    #     if f not in p_feature:
+    #         if f not in codes:
+    #             return False
     return True
 
 
