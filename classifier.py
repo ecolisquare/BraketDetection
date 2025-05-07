@@ -608,10 +608,10 @@ def poly_classifier(features,all_anno,poly_refs, texts,dimensions,conerhole_num,
     matched_type = free_edges_sequence_classifier(classification_table, free_edges_sequence,reversed_free_edges_sequence, matched_type_list)
 
     # print(matched_type)
-    if len(matched_type.split(","))<=1 and matched_type!="Unclassified":
-        return matched_type,classification_table[matched_type]
-    elif matched_type=="Unclassified":
-        return matched_type,None
+    # if len(matched_type.split(","))<=1 and matched_type!="Unclassified":
+    #     return matched_type,classification_table[matched_type]
+    # elif matched_type=="Unclassified":
+    #     return matched_type,None,False
     
     
     matched_type=","+matched_type+','
@@ -619,10 +619,10 @@ def poly_classifier(features,all_anno,poly_refs, texts,dimensions,conerhole_num,
     matched_type=tidy_matched_type(matched_type)
 
     # step8: 考虑整体轮廓筛选
-    if len(matched_type.split(","))<=1 and matched_type!="Unclassified":
-        return matched_type,classification_table[matched_type]
-    elif matched_type=="Unclassified":
-        return matched_type,None
+    # if len(matched_type.split(","))<=1 and matched_type!="Unclassified":
+    #     return matched_type,classification_table[matched_type]
+    # elif matched_type=="Unclassified":
+    #     return matched_type,None
     # 去除自由边所有"KS_corner"以及轮廓中所有"["cornerhole", ["line"]]"
     free_edges_sequence = [item for item in free_edges_sequence if item != "KS_corner"]
     reversed_free_edges_sequence = [item for item in reversed_free_edges_sequence if item != "KS_corner"]
@@ -641,7 +641,7 @@ def poly_classifier(features,all_anno,poly_refs, texts,dimensions,conerhole_num,
     matched_type = tidy_matched_type(matched_type)
     
     if len(matched_type) == 0:
-        return "Unclassified", None
+        return "Unclassified", None,False
 
     # 匹配最佳标准肘板分类，feature必须是该类别的子集，且特征占比最高
     # for type_name in matched_type.split(','):
@@ -760,8 +760,20 @@ def poly_classifier(features,all_anno,poly_refs, texts,dimensions,conerhole_num,
     else:
         matched_type = res_matched_type
         output_template = classification_table[res_matched_type.split(',')[0]]
+    flag=best_match_flag
+    if flag and matched_type!="Unclassified" and len(res_matched_type.split(','))==1:
+        #轮廓是否近似
+        template_map=match_template(edges,poly_free_edges,output_template,edge_types,thickness=thickness)
+        for key,eds in template_map.items():
+            if len(eds)==0:
+                flag=False
+                break
+    else:
+        flag=False
 
-    return matched_type,output_template
+
+
+    return matched_type,output_template,flag
 
 def eva_c_f(codes, features, p_feature = ["no_tangent", "is_para", "is_ver", "is_ontoe"]):
     # codes中的所有特征都要包含在features中

@@ -3409,7 +3409,7 @@ def outputInfo(index,edges_info,poly_centroid,hint_info,meta_info,segmentation_c
         log_to_file(file_path, f"肘板加强类别为:{s_info}")
         log_to_file(file_path, f"非标准肘板")
         
-        return poly_refs, "Unstandard"
+        return poly_refs, "Unstandard",False
 
 
     cornerhole_num=0
@@ -3422,7 +3422,7 @@ def outputInfo(index,edges_info,poly_centroid,hint_info,meta_info,segmentation_c
     thickness=0
     if meta_info[1] is not None and meta_info[1]["Thickness"] is not None:
         thickness=meta_info[1]["Thickness"]
-    classification_res,output_template = poly_classifier(features,all_anno,poly_refs, tis,ds,cornerhole_num, free_edges, edges, thickness,feature_map,edge_types,
+    classification_res,output_template,flag_ = poly_classifier(features,all_anno,poly_refs, tis,ds,cornerhole_num, free_edges, edges, thickness,feature_map,edge_types,
                                          segmentation_config.standard_type_path, segmentation_config.json_output_path, 
                                          f"{os.path.splitext(os.path.basename(segmentation_config.json_path))[0]}_infopoly{index}",
                                          is_output_json=True)
@@ -3917,7 +3917,7 @@ def outputInfo(index,edges_info,poly_centroid,hint_info,meta_info,segmentation_c
             plot_info_poly_std(constraint_edges,ori_edge_map,template_map,os.path.join(segmentation_config.poly_info_dir, f'标准肘板详细信息参考图/std_infopoly{index}.png'))
         if classification_res == "Unclassified":
             # log_to_file("./output/Unclassified.txt", f"{os.path.splitext(os.path.basename(segmentation_config.json_path))[0]}_infopoly{index}")
-            return poly_refs, classification_res
+            return poly_refs, classification_res,flag_
         # else:
         #     if len(classification_res.split(","))>1:
         #         log_to_file("./output/duplicate_class.txt",f"{os.path.splitext(os.path.basename(segmentation_config.json_path))[0]}_infopoly{index}")
@@ -4162,17 +4162,19 @@ def outputInfo(index,edges_info,poly_centroid,hint_info,meta_info,segmentation_c
         log_to_file(file_path, f"   free_codes：{str(free_codes)}")
         log_to_file(file_path, f"   non_free_codes：{str(non_free_codes)}")
         log_to_file(file_path, f"标准肘板")
-        return poly_refs, classification_res
+        return poly_refs, classification_res,False
 
-    return poly_refs, classification_res
+    return poly_refs, classification_res,False
 
 
 def classificationAndOutputStep(indices,edges_infos,poly_centroids,hint_infos,meta_infos,segmentation_config):
     poly_infos=[]
     types=[]
+    flags=[]
     for i in range(len(indices)):
         index,edges_info,poly_centroid,hint_info,meta_info=indices[i],edges_infos[i],poly_centroids[i],hint_infos[i],meta_infos[i]
-        poly_refs, classification_res=outputInfo(index,edges_info,poly_centroid,hint_info,meta_info,segmentation_config)
+        poly_refs, classification_res,flag_=outputInfo(index,edges_info,poly_centroid,hint_info,meta_info,segmentation_config)
         poly_infos.append(poly_refs)
         types.append(classification_res)
-    return poly_infos,types
+        flags.append(flag_)
+    return poly_infos,types,flags

@@ -100,15 +100,23 @@ if __name__ == '__main__':
   
     edges_infos,poly_centroids,hint_infos,meta_infos=diffusion_step(edges_infos,poly_centroids,hint_infos,meta_infos)
 
-    polys_info,classi_res=classificationAndOutputStep(indices,edges_infos,poly_centroids,hint_infos,meta_infos,segmentation_config)
+    polys_info,classi_res,flags=classificationAndOutputStep(indices,edges_infos,poly_centroids,hint_infos,meta_infos,segmentation_config)
     free_edge_handles = []
-    for idx,(poly_refs,cls) in enumerate(zip(polys_info,classi_res)):
+    all_handles=[]
+    not_all_handles=[]
+    for idx,(poly_refs,cls,flag) in enumerate(zip(polys_info,classi_res,flags)):
         if cls=='Unclassified' or cls=='Unstandard':
             continue
         else:
             for seg in poly_refs:
                 if seg.isConstraint == False and seg.isCornerhole == False:
                     free_edge_handles.append(seg.ref.handle)
+            if len(cls.split(','))==1 and flag:
+                for seg in poly_refs:
+                    all_handles.append(seg.ref.handle)
+            else:
+                for seg in poly_refs:
+                    not_all_handles.append(seg.ref.handle)
     bboxs = []
     for poly_refs in polys_info:
         max_x = float('-inf')
@@ -131,4 +139,4 @@ if __name__ == '__main__':
     
     dxf_path = os.path.splitext(segmentation_config.json_path)[0] + '.dxf'
     dxf_output_folder = segmentation_config.dxf_output_folder
-    draw_rectangle_in_dxf(dxf_path, dxf_output_folder, bboxs, classi_res,indices, free_edge_handles)
+    draw_rectangle_in_dxf(dxf_path, dxf_output_folder, bboxs, classi_res,indices, free_edge_handles,all_handles,not_all_handles)
