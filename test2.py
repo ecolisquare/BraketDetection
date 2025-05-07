@@ -85,6 +85,7 @@ def process_json_data(json_path, output_path, training_data_output_folder, train
         create_folder_safe(f"{output_path}/所有有效回路图像")
         create_folder_safe(f"{output_path}/非标准肘板")
         create_folder_safe(f"{output_path}/标准肘板")
+        create_folder_safe(f"{output_path}/标准肘板(无分类)")
     except Exception as e:
         print(f"创建文件夹时出错: {e}")
 

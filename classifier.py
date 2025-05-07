@@ -235,14 +235,28 @@ def generate_key(edge):
     else:
         new_edge = edge
     return min(tuple(new_edge), tuple(reversed(new_edge)))
-def is_toe(free_edge,cons_edge,max_free_edge_length):
+
+
+def is_tangent_(line,arc):
+    s1,s2=DSegment(arc.ref.center,arc.ref.start_point),DSegment(arc.ref.center,arc.ref.end_point)
+    v1,v2=line.start_point,line.end_point
+    if v1==arc.ref.start_point or v2==arc.ref.start_point:
+        return is_vertical_(v1,v2,s1,0.35)
+    if v1==arc.ref.end_point or v2==arc.ref.end_point:
+        return is_vertical_(v1,v2,s2,0.35)
+    return True
+def is_toe(free_edge,last_free_edge,cons_edge,max_free_edge_length):
+    if last_free_edge is not None and isinstance(last_free_edge.ref,DArc) and is_tangent_(free_edge,last_free_edge):
+        return False
     if (free_edge.length()<56 or free_edge.length()<=0.105*max_free_edge_length) and is_vertical_(free_edge.start_point,free_edge.end_point,cons_edge,epsilon=0.35):
         return True
     return False
 def is_ks_corner(free_edge,last_free_edge,cons_edge,max_free_edge_length):
-    if (not is_toe(free_edge,cons_edge,max_free_edge_length)) and (not is_vertical_(free_edge.start_point,free_edge.end_point,cons_edge,epsilon=0.35)) and isinstance(last_free_edge.ref,DLine) and free_edge.length() <= 100:
+    if (not is_toe(free_edge,last_free_edge,cons_edge,max_free_edge_length)) and (not is_vertical_(free_edge.start_point,free_edge.end_point,cons_edge,epsilon=0.35)) and isinstance(last_free_edge.ref,DLine) and free_edge.length() <= 100:
         return True
     return False
+
+
 
 # 自由边约束过滤
 def free_edges_sequence_classifier(classification_table, free_edges_sequence, reversed_free_edges_sequence, matched_type_list):
@@ -506,7 +520,7 @@ def poly_classifier(features,all_anno,poly_refs, texts,dimensions,conerhole_num,
                     last_free_edge=poly_free_edges[0][-2]
                 cons_edge=find_cons_edge(constraint_edges,seg)
                 # print(cons_edge)
-                if is_toe(seg,cons_edge,max_free_edge_length):
+                if is_toe(seg,last_free_edge,cons_edge,max_free_edge_length):
                     free_edges_sequence.append("toe")
                 elif is_ks_corner(seg,last_free_edge,cons_edge,max_free_edge_length):
                     free_edges_sequence.append("KS_corner")
@@ -608,10 +622,10 @@ def poly_classifier(features,all_anno,poly_refs, texts,dimensions,conerhole_num,
     matched_type = free_edges_sequence_classifier(classification_table, free_edges_sequence,reversed_free_edges_sequence, matched_type_list)
 
     # print(matched_type)
-    # if len(matched_type.split(","))<=1 and matched_type!="Unclassified":
-    #     return matched_type,classification_table[matched_type]
-    # elif matched_type=="Unclassified":
-    #     return matched_type,None,False
+    if len(matched_type.split(","))<=1 and matched_type!="Unclassified":
+        return matched_type,classification_table[matched_type]
+    elif matched_type=="Unclassified":
+        return matched_type,None
     
     
     matched_type=","+matched_type+','
@@ -619,16 +633,16 @@ def poly_classifier(features,all_anno,poly_refs, texts,dimensions,conerhole_num,
     matched_type=tidy_matched_type(matched_type)
 
     # step8: 考虑整体轮廓筛选
-    # if len(matched_type.split(","))<=1 and matched_type!="Unclassified":
-    #     return matched_type,classification_table[matched_type]
-    # elif matched_type=="Unclassified":
-    #     return matched_type,None
+    if len(matched_type.split(","))<=1 and matched_type!="Unclassified":
+        return matched_type,classification_table[matched_type]
+    elif matched_type=="Unclassified":
+        return matched_type,None
     # 去除自由边所有"KS_corner"以及轮廓中所有"["cornerhole", ["line"]]"
     free_edges_sequence = [item for item in free_edges_sequence if item != "KS_corner"]
     reversed_free_edges_sequence = [item for item in reversed_free_edges_sequence if item != "KS_corner"]
     # edges_sequence = [item for item in edges_sequence if item != ["cornerhole", ["line"]]]
     # reversed_edges_sequence = [item for item in reversed_edges_sequence if item != ["cornerhole", ["line"]]]
-
+    print(free_edges_sequence)
     edges_sequence.insert(0,["free", free_edges_sequence])
     reversed_edges_sequence.insert(0, ["free", reversed_free_edges_sequence])
     mixed_types = matched_type.split(',')
@@ -641,7 +655,7 @@ def poly_classifier(features,all_anno,poly_refs, texts,dimensions,conerhole_num,
     matched_type = tidy_matched_type(matched_type)
     
     if len(matched_type) == 0:
-        return "Unclassified", None,False
+        return "Unclassified", None
 
     # 匹配最佳标准肘板分类，feature必须是该类别的子集，且特征占比最高
     # for type_name in matched_type.split(','):
@@ -739,7 +753,7 @@ def poly_classifier(features,all_anno,poly_refs, texts,dimensions,conerhole_num,
                 else:
                     best_match_flag = False
                 cornerhole_idx+=1
-        
+        print(type_name,best_match_flag,f_score)
         # 如果完全匹配成功，直接作为最终结果；否则则进行分数比较
         if best_match_flag:
             best_matched_type = type_name if best_matched_type is None else f'{best_matched_type},{type_name}'
@@ -760,20 +774,10 @@ def poly_classifier(features,all_anno,poly_refs, texts,dimensions,conerhole_num,
     else:
         matched_type = res_matched_type
         output_template = classification_table[res_matched_type.split(',')[0]]
-    flag=best_match_flag
-    if flag and matched_type!="Unclassified" and len(res_matched_type.split(','))==1:
-        #轮廓是否近似
-        template_map=match_template(edges,poly_free_edges,output_template,edge_types,thickness=thickness)
-        for key,eds in template_map.items():
-            if len(eds)==0:
-                flag=False
-                break
-    else:
-        flag=False
 
 
 
-    return matched_type,output_template,flag
+    return matched_type,output_template
 
 def eva_c_f(codes, features, p_feature = ["no_tangent", "is_para", "is_ver", "is_ontoe"]):
     # codes中的所有特征都要包含在features中

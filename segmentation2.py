@@ -25,7 +25,7 @@ if __name__ == '__main__':
     create_folder_safe(f"{segmentation_config.poly_info_dir}/所有有效回路图像")
     create_folder_safe(f"{segmentation_config.poly_info_dir}/非标准肘板")
     create_folder_safe(f"{segmentation_config.poly_info_dir}/标准肘板")
-
+    create_folder_safe(f"{segmentation_config.poly_info_dir}/标准肘板(无分类)")
 
     if segmentation_config.verbose:
         print("读取json文件")

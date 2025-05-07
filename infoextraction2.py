@@ -2,7 +2,7 @@ from  element import *
 from plot_geo import plot_geometry,plot_polys, plot_info_poly,p_minus,p_add,p_mul
 import os
 from utils import segment_intersection_line,segment_intersection,computeBoundingBox,is_parallel,conpute_angle_of_two_segments,point_segment_position,shrinkFixedLength,check_points_against_segments,check_points_against_free_segments,check_parallel_anno,check_vertical_anno,check_non_parallel_anno
-from classifier import poly_classifier,match_template
+from classifier import poly_classifier,match_template,load_classification_table,eva_c_f
 from scipy.spatial import ConvexHull
 import matplotlib.pyplot as plt
 from shapely.geometry import Point, Polygon
@@ -2209,6 +2209,7 @@ def calculate_poly_features(poly, segments, segmentation_config, point_map, inde
     meta_info=(is_standard_elbow,bracket_parameter,strengthen_parameter,has_hint,is_fb,is_diff)
     edges_info=(free_edges,constraint_edges,edges,poly_refs,ref_map)
     hint_info=(all_edge_map,edge_types,features,feature_map,constraint_edge_no,free_edge_no,all_anno,tis,ds)
+
     return edges_info,poly_centroid,hint_info,meta_info
 def is_similar(edges_info,other_edges_info,edge_types,other_edge_types):
 
@@ -3409,7 +3410,7 @@ def outputInfo(index,edges_info,poly_centroid,hint_info,meta_info,segmentation_c
         log_to_file(file_path, f"肘板加强类别为:{s_info}")
         log_to_file(file_path, f"非标准肘板")
         
-        return poly_refs, "Unstandard",False
+        return poly_refs, "Unstandard"
 
 
     cornerhole_num=0
@@ -3422,7 +3423,7 @@ def outputInfo(index,edges_info,poly_centroid,hint_info,meta_info,segmentation_c
     thickness=0
     if meta_info[1] is not None and meta_info[1]["Thickness"] is not None:
         thickness=meta_info[1]["Thickness"]
-    classification_res,output_template,flag_ = poly_classifier(features,all_anno,poly_refs, tis,ds,cornerhole_num, free_edges, edges, thickness,feature_map,edge_types,
+    classification_res,output_template = poly_classifier(features,all_anno,poly_refs, tis,ds,cornerhole_num, free_edges, edges, thickness,feature_map,edge_types,
                                          segmentation_config.standard_type_path, segmentation_config.json_output_path, 
                                          f"{os.path.splitext(os.path.basename(segmentation_config.json_path))[0]}_infopoly{index}",
                                          is_output_json=True)
@@ -3917,7 +3918,7 @@ def outputInfo(index,edges_info,poly_centroid,hint_info,meta_info,segmentation_c
             plot_info_poly_std(constraint_edges,ori_edge_map,template_map,os.path.join(segmentation_config.poly_info_dir, f'标准肘板详细信息参考图/std_infopoly{index}.png'))
         if classification_res == "Unclassified":
             # log_to_file("./output/Unclassified.txt", f"{os.path.splitext(os.path.basename(segmentation_config.json_path))[0]}_infopoly{index}")
-            return poly_refs, classification_res,flag_
+            return poly_refs, classification_res
         # else:
         #     if len(classification_res.split(","))>1:
         #         log_to_file("./output/duplicate_class.txt",f"{os.path.splitext(os.path.basename(segmentation_config.json_path))[0]}_infopoly{index}")
@@ -4162,19 +4163,83 @@ def outputInfo(index,edges_info,poly_centroid,hint_info,meta_info,segmentation_c
         log_to_file(file_path, f"   free_codes：{str(free_codes)}")
         log_to_file(file_path, f"   non_free_codes：{str(non_free_codes)}")
         log_to_file(file_path, f"标准肘板")
-        return poly_refs, classification_res,False
+        return poly_refs, classification_res
 
-    return poly_refs, classification_res,False
+    return poly_refs, classification_res
 
 
 def classificationAndOutputStep(indices,edges_infos,poly_centroids,hint_infos,meta_infos,segmentation_config):
+    classification_table = load_classification_table(segmentation_config.standard_type_path)
     poly_infos=[]
     types=[]
     flags=[]
     for i in range(len(indices)):
         index,edges_info,poly_centroid,hint_info,meta_info=indices[i],edges_infos[i],poly_centroids[i],hint_infos[i],meta_infos[i]
-        poly_refs, classification_res,flag_=outputInfo(index,edges_info,poly_centroid,hint_info,meta_info,segmentation_config)
+        poly_refs, classification_res=outputInfo(index,edges_info,poly_centroid,hint_info,meta_info,segmentation_config)
         poly_infos.append(poly_refs)
         types.append(classification_res)
-        flags.append(flag_)
+        if classification_res=="Unstandard" or classification_res=="Unclassified" or len(classification_res.split(","))>1:
+            flags.append(False)
+        else:
+            thickness=0
+            if meta_info[1] is not None and meta_info[1]["Thickness"] is not None:
+                thickness=meta_info[1]["Thickness"]
+            free_edges,constraint_edges,edges,poly_refs,ref_map=edges_info
+            template_map=match_template(edges,free_edges,classification_table[classification_res],hint_info[1],thickness)
+            feature_map=hint_info[3]
+            flag=True
+            for key,eds in template_map.items():
+                if len(eds)==0:
+                    flag=False
+            free_code = classification_table[classification_res]["free_code"]
+            no_free_code = classification_table[classification_res]["no_free_code"]
+            best_match_flag=True
+            # 自由边特征比对
+            free_idx = 1
+            f_score=0
+            while f'free{free_idx}' in template_map:
+                if len(template_map[f'free{free_idx}'])==0:
+                    free_idx += 1
+                    continue
+                seg=template_map[f'free{free_idx}'][0]
+                f = feature_map[seg]
+                c = free_code[free_idx - 1]
+                if eva_c_f(c, f):
+                    f_score += 1
+                else:
+                    best_match_flag = False
+                free_idx += 1
+            
+            # 非自由边特征对比
+            constarint_idx=1
+            cornerhole_idx=1
+            while True:
+                if f'constraint{constarint_idx}' in template_map:
+                    seg = template_map[f'constraint{constarint_idx}'][0]
+                    f = feature_map[seg]
+                    c = no_free_code[constarint_idx + cornerhole_idx - 2]
+                    if eva_c_f(c, f):
+                        f_score += 1
+                    else:
+                        best_match_flag = False
+                    constarint_idx+=1
+                else:
+                    break
+                if f'cornerhole{cornerhole_idx}' in template_map:
+                    if len(template_map[f'cornerhole{cornerhole_idx}'])==0:
+                        cornerhole_idx+=1
+                        break
+                    seg = template_map[f'cornerhole{cornerhole_idx}'][0]
+                    f = feature_map[seg]
+                    c = no_free_code[constarint_idx + cornerhole_idx - 2]
+                    if eva_c_f(c, f):
+                        f_score += 1
+                    else:
+                        best_match_flag = False
+                    cornerhole_idx+=1   
+            if best_match_flag==False:
+                flag=False
+            flags.append(flag)
+
+
     return poly_infos,types,flags
