@@ -52,7 +52,7 @@ import json
 
 
 
-def draw_rectangle_in_dxf(file_path, folder, bbox_list, classi_res,idxs, free_edge_handles,all_handles,not_all_handles):
+def draw_rectangle_in_dxf(file_path, folder, bbox_list, classi_res,idxs, free_edge_handles,non_free_edge_handles,all_handles,not_all_handles):
     folder = os.path.normpath(os.path.abspath(folder))
     os.makedirs(folder, exist_ok=True)
 
@@ -100,7 +100,12 @@ def draw_rectangle_in_dxf(file_path, folder, bbox_list, classi_res,idxs, free_ed
             e.dxf.layer = all_layer
         elif e.dxf.handle in not_all_handles:
             e.dxf.layer= not_all_layer
-
+    non_free_edge_layer_name = "Non_Free_Edge"
+    if non_free_edge_layer_name not in doc.layers:
+        doc.layers.add(non_free_edge_layer_name, color=7)
+    for e in msp:
+        if e.dxf.handle in non_free_edge_handles:
+            e.dxf.layer = non_free_edge_layer_name
     file_name = os.path.basename(file_path)[:-4]
     doc.saveas(os.path.join(folder, f"{file_name}_braket.dxf"))
 
