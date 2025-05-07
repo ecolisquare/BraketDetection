@@ -58,6 +58,32 @@ def read_json(json_path, bracket_layer):
     
     return texts, polys,poly_ids
 
+def deduplicate_polygons(polys, iou_thresh=0.8):
+    polygons = [Polygon(p) for p in polys]
+    keep_flags = [True] * len(polygons)
+
+    for i in range(len(polygons)):
+        if not keep_flags[i]:
+            continue
+        for j in range(i + 1, len(polygons)):
+            if not keep_flags[j]:
+                continue
+            inter = polygons[i].intersection(polygons[j]).area
+            area_i = polygons[i].area
+            area_j = polygons[j].area
+
+            # IOU-like: 相交面积大于较小多边形面积的80%
+            if inter / min(area_i, area_j) > iou_thresh:
+                # 保留面积大的多边形
+                if area_i >= area_j:
+                    keep_flags[j] = False
+                else:
+                    keep_flags[i] = False
+                    break  # i 被删除了，就不需要继续和其他比了
+
+    # 返回保留的多边形对应的原始坐标
+    deduped_polys = [polys[i] for i in range(len(polys)) if keep_flags[i]]
+    return deduped_polys
 
 def calculate_total_covered_area(gt_poly, test_polys):
     """
@@ -238,14 +264,48 @@ if __name__ == '__main__':
                     continue
                 if nearest_gt_text.content in nearest_test_text.content:
                     flag = True
-                if flag:
-                    correct_polys.append(gt_poly)
-                    successful_classifications += 1
-                    break
-                else:
-                    incorrect_polys.append(gt_poly)
+        if flag:
+            correct_polys.append(gt_poly)
+            successful_classifications += 1
+        else:
+            incorrect_polys.append(gt_poly)
     successful_classifications = min(successful_classifications + wrong_GT_num, gt_total_with_labels)
     classification_precision = successful_classifications / gt_total_with_labels if gt_total_with_labels > 0 else 1
+
+    # 肘板检出且分类正确率统计
+    coverage_threshold = 0.05
+    test_detect_count = 0
+    test_corrcet_count = 0
+    test_total_with_lables = 0
+    test_incorrect_polys = []
+    test_polys = deduplicate_polygons(test_polys)
+    for test_poly in test_polys:
+        if calculate_total_covered_area(test_poly, gt_polys) > coverage_threshold:
+            detect_count += 1
+            nearest_test_text = find_nearest_text(test_poly, test_texts, standard_bracket_type)
+            if nearest_test_text is None:
+                continue
+            if nearest_test_text.content not in standard_bracket_type:
+                continue
+            test_total_with_lables += 1
+            test_polygon = Polygon(test_poly)
+            flag = False
+            for gt_poly in gt_polys:
+                gt_polygon = Polygon(gt_poly)
+                if gt_polygon.intersects(test_polygon):
+                    nearest_gt_text = find_nearest_text(gt_poly, gt_texts, standard_bracket_type)
+                    if nearest_gt_text is None:
+                        continue
+                    if nearest_gt_text.content in nearest_test_text.content:
+                        flag = True
+            if flag:
+                test_corrcet_count += 1
+        else:
+            test_incorrect_polys.append(test_poly)
+
+                    
+
+    detection_precison = detect_count / len(gt_polys) if len(gt_polys) > 0 else 1
 
     # 输出评估结果
     sys.stdout = sys.__stdout__
@@ -256,6 +316,9 @@ if __name__ == '__main__':
     print(f"肘板分类正确率: {classification_precision:.2f}")
     print(gt_total_with_labels , len(gt_polys) , len(gt_texts),len(test_polys),len(test_texts))
     print(standard_detect_count , standard_total_num, (detect_count - standard_detect_count), (len(gt_polys) - standard_total_num))
+    print(f"检出肘板总正确率：{(test_detect_count / len(test_polys)):.2f}, {test_detect_count}, {len(test_polys)}")
+    print(f"检出标准肘板分类正确率: {(test_corrcet_count / test_total_with_lables):.2f}, {test_corrcet_count}, {test_total_with_lables}")
+    print(len(test_incorrect_polys))
     print("-------------测试结果输出完毕----------")
     # print([ len(s) for s in test_polys_seg ])
 
@@ -277,6 +340,9 @@ if __name__ == '__main__':
         doc.layers.add("Incorrect", color=6)
     if "Braket" not in doc.layers:
         doc.layers.add("Braket", color=30)
+    if "Test_Incorrect" not in doc.layers:
+        doc.layers.add("Test_Incorrect", color=70)
+
     bbox_list=[]
     classi_res=[]
 
@@ -304,6 +370,7 @@ if __name__ == '__main__':
         if classification != "Unclassified":
             text = msp.add_text(classification, dxfattribs={"layer": "Incorrect", "height": 50})
             text.dxf.insert = ((x1 + x2) / 2, y2)
+            
     bbox_list=[]
     for poly in test_polys:
         x_min,x_max,y_min,y_max=computeBBox(poly)
@@ -329,6 +396,27 @@ if __name__ == '__main__':
     for t in poly_ids:
         text = msp.add_text(t.content, dxfattribs={"layer": "Braket", "height": 50})
         text.dxf.insert = (t.insert.x,t.insert.y)
+    
+    bbox_list=[]
+    for poly in test_incorrect_polys:
+        x_min,x_max,y_min,y_max=computeBBox(poly)
+        bbox = [[x_min,y_min],[x_max,y_max]]
+        bbox_list.append(bbox)
+    for bbox in bbox_list:
+        x1 = bbox[0][0] - 20
+        y1 = bbox[0][1] - 20
+        x2 = bbox[1][0] + 20
+        y2 = bbox[1][1] + 20
+
+        # 使用多段线绘制矩形
+        rectangle_points = [
+            (x1, y1),  # Top-left
+            (x2, y1),  # Top-right
+            (x2, y2),  # Bottom-right
+            (x1, y2),  # Bottom-left
+        ]
+        msp.add_lwpolyline(rectangle_points, close=True, dxfattribs={"layer": "Test_Incorrect"})
+
     # 保存修改后的 DXF 文件
     file_name = os.path.basename(file_path)[:-4]
     doc.saveas("./output/incorrect.dxf")
