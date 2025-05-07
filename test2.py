@@ -161,6 +161,7 @@ def process_json_data(json_path, output_path, training_data_output_folder, train
 
     polys_info,classi_res=classificationAndOutputStep(indices,edges_infos,poly_centroids,hint_infos,meta_infos,segmentation_config)
     free_edge_handles = []
+    non_free_edge_handles = []
     for idx,(poly_refs,cls) in enumerate(zip(polys_info,classi_res)):
         if cls=='Unclassified' or cls=='Unstandard':
             continue
@@ -168,7 +169,8 @@ def process_json_data(json_path, output_path, training_data_output_folder, train
             for seg in poly_refs:
                 if seg.isConstraint == False and seg.isCornerhole == False:
                     free_edge_handles.append(seg.ref.handle)
-
+                else:
+                    non_free_edge_handles.append(seg.ref.handle)
 
     bboxs = []
     for poly_refs in polys_info:
@@ -192,7 +194,7 @@ def process_json_data(json_path, output_path, training_data_output_folder, train
     
     dxf_path = os.path.splitext(segmentation_config.json_path)[0] + '.dxf'
     dxf_output_folder = segmentation_config.dxf_output_folder
-    draw_rectangle_in_dxf(dxf_path, dxf_output_folder, bboxs, classi_res,indices,free_edge_handles)
+    draw_rectangle_in_dxf(dxf_path, dxf_output_folder, bboxs, classi_res,indices,free_edge_handles, non_free_edge_handles)
 
 if __name__ == '__main__':
     folder_path = "./data/new"

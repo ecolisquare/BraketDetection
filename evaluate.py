@@ -278,6 +278,7 @@ if __name__ == '__main__':
     test_corrcet_count = 0
     test_total_with_lables = 0
     test_incorrect_polys = []
+    test_standard_incorrect_num = 0
     test_polys = deduplicate_polygons(test_polys)
     for test_poly in test_polys:
         if calculate_total_covered_area(test_poly, gt_polys) > coverage_threshold:
@@ -302,7 +303,12 @@ if __name__ == '__main__':
                 test_corrcet_count += 1
         else:
             test_incorrect_polys.append(test_poly)
-
+            nearest_test_text = find_nearest_text(test_poly, test_texts, standard_bracket_type)
+            if nearest_test_text is None:
+                continue
+            if nearest_test_text.content not in standard_bracket_type:
+                continue
+            test_standard_incorrect_num += 1
                     
 
     detection_precison = detect_count / len(gt_polys) if len(gt_polys) > 0 else 1
@@ -319,6 +325,7 @@ if __name__ == '__main__':
     print(f"检出肘板总正确率：{(test_detect_count / len(test_polys)):.2f}, {test_detect_count}, {len(test_polys)}")
     print(f"检出标准肘板分类正确率: {(test_corrcet_count / test_total_with_lables):.2f}, {test_corrcet_count}, {test_total_with_lables}")
     print(len(test_incorrect_polys))
+    print(test_standard_incorrect_num)
     print("-------------测试结果输出完毕----------")
     # print([ len(s) for s in test_polys_seg ])
 
