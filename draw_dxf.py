@@ -84,28 +84,30 @@ def draw_rectangle_in_dxf(file_path, folder, bbox_list, classi_res,idxs, free_ed
         text2 = msp.add_text(f"poly_id {idxs[idx]}", dxfattribs={"layer": "Braket", "height": 50})
         text2.dxf.insert = ((x1 + x2) / 2, y1)
 
-    free_edge_layer_name = "Free_Edge"
-    all_layer="精确匹配"
-    not_all_layer="模糊匹配"
-    if free_edge_layer_name not in doc.layers:
-        doc.layers.add(free_edge_layer_name, color=7)
-    if all_layer not in doc.layers:
-        doc.layers.add(all_layer, color=7)
-    if not_all_layer not in doc.layers:
-        doc.layers.add(not_all_layer, color=7)
+
+    all_free_layer="精确匹配_自由边"
+    all_non_free_layer="精确匹配_非自由边"
+    not_all_free_layer="模糊匹配_自由边"
+    not_all_non_free_layer="模糊匹配_非自由边"
+    if all_free_layer not in doc.layers:
+        doc.layers.add(all_free_layer, color=7)
+    if all_non_free_layer not in doc.layers:
+        doc.layers.add(all_non_free_layer, color=7)
+    if not_all_free_layer not in doc.layers:
+        doc.layers.add(not_all_free_layer, color=7)
+    if not_all_non_free_layer not in doc.layers:
+        doc.layers.add(not_all_non_free_layer, color=7)
     for e in msp:
-        if e.dxf.handle in free_edge_handles:
-            e.dxf.layer = free_edge_layer_name
-        if e.dxf.handle in all_handles:
-            e.dxf.layer = all_layer
-        elif e.dxf.handle in not_all_handles:
-            e.dxf.layer= not_all_layer
-    non_free_edge_layer_name = "Non_Free_Edge"
-    if non_free_edge_layer_name not in doc.layers:
-        doc.layers.add(non_free_edge_layer_name, color=7)
-    for e in msp:
-        if e.dxf.handle in non_free_edge_handles:
-            e.dxf.layer = non_free_edge_layer_name
+        if e.dxf.handle in free_edge_handles and e.dxf.handle in all_handles:
+            e.dxf.layer = all_free_layer
+        if e.dxf.handle in free_edge_handles and e.dxf.handle in not_all_handles:
+            e.dxf.layer = not_all_free_layer
+        if e.dxf.handle in non_free_edge_handles and e.dxf.handle in all_handles:
+            e.dxf.layer = all_non_free_layer
+        if e.dxf.handle in non_free_edge_handles and e.dxf.handle in not_all_handles:
+            e.dxf.layer = not_all_non_free_layer
+
+
     file_name = os.path.basename(file_path)[:-4]
     doc.saveas(os.path.join(folder, f"{file_name}_braket.dxf"))
 
