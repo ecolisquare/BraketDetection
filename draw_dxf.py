@@ -63,6 +63,10 @@ def draw_rectangle_in_dxf(file_path, folder, bbox_list, classi_res,idxs, free_ed
         doc.layers.add("Braket", color=30)
 
     for idx, (bbox, classification) in enumerate(zip(bbox_list, classi_res)):
+        if classification=='Unclassified':
+            continue
+        if ',' in classification:
+            continue
         x1 = bbox[0][0] - 20
         y1 = bbox[0][1] - 20
         x2 = bbox[1][0] + 20

@@ -12,6 +12,7 @@ def read_json(json_path, bracket_layer):
     texts=[]
     polys=[]
     poly_ids=[]
+    lines=[]
     try:  
         with open(json_path, 'r', encoding='utf-8') as file:  
             data_list = json.load(file)
@@ -50,13 +51,17 @@ def read_json(json_path, bracket_layer):
                     if seg.length()>0:
                         poly.append(seg)
                 polys.append(poly)
+            elif ele["type"]=="line":
+                start=DPoint(ele["start"][0],ele["start"][1])
+                end=DPoint(ele["end"][0],ele["end"][1])
+                lines.append(DSegment(start,end))
         
     except FileNotFoundError:  
         print("The file does not exist.")
     except json.JSONDecodeError:  
         print("Error decoding JSON.")
     
-    return texts, polys,poly_ids
+    return texts, polys,poly_ids,lines
 
 def deduplicate_polygons(polys, iou_thresh=0.8):
     polygons = [Polygon(p) for p in polys]
@@ -170,7 +175,7 @@ if __name__ == '__main__':
     test_dxf_path = r"./output/Large8_braket.dxf"
     gt_dxf_path = r"./gt/Large8gt.dxf"
     test_bracket_layer = "Braket"
-    gt_bracket_layer = "肘板检测"
+    gt_bracket_layer = "肘板标注"
 
     standard_file_path = "./standard_type.json"
     standard_bracket_table = load_classification_table(standard_file_path)
@@ -195,8 +200,14 @@ if __name__ == '__main__':
     gt_json_path = os.path.join(os.path.dirname(gt_dxf_path), (os.path.basename(gt_dxf_path).split('.')[0] + ".json"))
 
     # 解析两个json文件
-    test_texts, test_polys_seg,poly_ids = read_json(test_json_path, test_bracket_layer)
-    gt_texts, gt_polys_seg,_= read_json(gt_json_path, gt_bracket_layer)
+    test_texts, test_polys_seg,poly_ids,_ = read_json(test_json_path, test_bracket_layer)
+    gt_texts, gt_polys_seg,_,__= read_json(gt_json_path, gt_bracket_layer)
+
+
+    _,__,___,acc_lines=read_json(test_json_path,"精确匹配_非自由边")
+    _,__,__,n_acc_lines=read_json(test_json_path,"模糊匹配_非自由边")
+
+
 
 
 
@@ -240,6 +251,8 @@ if __name__ == '__main__':
     # 评估肘板分类正确率
     gt_total_with_labels = 0
     successful_classifications = 0
+    acc=0
+    n_acc=0
     wrong_GT_num = 60
     correct_polys = []
     incorrect_polys = []
@@ -255,6 +268,8 @@ if __name__ == '__main__':
         gt_polygon = Polygon(gt_poly)
         flag = False
         for test_poly in test_polys:
+            if  flag:
+                break
             test_polygon = Polygon(test_poly)
             if test_polygon.intersects(gt_polygon):
                 nearest_test_text = find_nearest_text(test_poly, test_texts, standard_bracket_type)
@@ -264,6 +279,17 @@ if __name__ == '__main__':
                     continue
                 if nearest_gt_text.content in nearest_test_text.content:
                     flag = True
+                    flag_=True
+                    for line in acc_lines:
+                        m=line.mid_point()
+                        point=Point(m.x,m.y)
+                        if test_polygon.contains(point):
+
+                            flag_=False
+                            acc+=1
+                            break
+                    if flag_==True:
+                        n_acc+=1
         if flag:
             correct_polys.append(gt_poly)
             successful_classifications += 1
@@ -283,7 +309,7 @@ if __name__ == '__main__':
     test_polys = deduplicate_polygons(test_polys)
     for test_poly in test_polys:
         if calculate_total_covered_area(test_poly, gt_polys) > coverage_threshold:
-            detect_count += 1
+            test_detect_count += 1
             nearest_test_text = find_nearest_text(test_poly, test_texts, standard_bracket_type)
             if nearest_test_text is None:
                 continue
@@ -312,7 +338,7 @@ if __name__ == '__main__':
             test_standard_incorrect_num += 1
                     
 
-    detection_precison = detect_count / len(gt_polys) if len(gt_polys) > 0 else 1
+    # detection_precison = detect_count / len(gt_polys) if len(gt_polys) > 0 else 1
 
     # 输出评估结果
     sys.stdout = sys.__stdout__
@@ -329,6 +355,7 @@ if __name__ == '__main__':
     print(f"检出标准肘板分类正确率: {test_classifiatcion_precison:.2f}, {test_corrcet_count + wrong_GT_num}, {test_total_with_lables}")
     print(len(test_incorrect_polys))
     print(test_standard_incorrect_num)
+    print(f"分类正确肘板中精确匹配:{acc},模糊匹配{n_acc}")
     print("-------------测试结果输出完毕----------")
     # print([ len(s) for s in test_polys_seg ])
 

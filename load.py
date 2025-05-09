@@ -640,8 +640,11 @@ def convertLWPolyline(doc, entity:ezdxf.entities.Spline):
 
     mid['vertices'] = []
     mid['verticesType'] = []
-
+    mid['verticesWidth'] = []
     # print(entity.dxf.handle, entity.dxf.count)
+    for p in entity.get_points():
+        x,y,s_w,e_w,bulge=p
+        mid['verticesWidth'].append([s_w,e_w])
     for i in range(entity.dxf.count  - 1):
         start_point = entity.__getitem__(i)
         end_point = entity.__getitem__(i + 1)

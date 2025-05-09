@@ -166,7 +166,7 @@ def process_json_data(json_path, output_path, training_data_output_folder, train
     not_all_handles=[]
     non_free_edge_handles = []
     for idx,(poly_refs,cls,flag) in enumerate(zip(polys_info,classi_res,flags)):
-        if cls=='Unclassified' or cls=='Unstandard':
+        if cls=='Unclassified' or cls=='Unstandard' or ',' in cls:
             continue
         else:
             for seg in poly_refs:

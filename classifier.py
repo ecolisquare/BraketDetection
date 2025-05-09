@@ -246,8 +246,8 @@ def is_tangent_(line,arc):
         return is_vertical_(v1,v2,s2,0.35)
     return True
 def is_toe(free_edge,last_free_edge,cons_edge,max_free_edge_length):
-    if last_free_edge is not None and isinstance(last_free_edge.ref,DArc) and is_tangent_(free_edge,last_free_edge):
-        return False
+    # if last_free_edge is not None and isinstance(last_free_edge.ref,DArc) and is_tangent_(free_edge,last_free_edge):
+    #     return False
     if (free_edge.length()<56 or free_edge.length()<=0.105*max_free_edge_length) and is_vertical_(free_edge.start_point,free_edge.end_point,cons_edge,epsilon=0.35):
         return True
     return False
@@ -268,21 +268,21 @@ def free_edges_sequence_classifier(classification_table, free_edges_sequence, re
             matched_type = b_type if matched_type is None else f'{matched_type},{b_type}'
     
     # 自由边无趾端的匹配
-    if matched_type is None:
-        free_edges_sequence_copy = copy.deepcopy(free_edges_sequence)
-        reversed_free_edges_sequence_copy = copy.deepcopy(reversed_free_edges_sequence)
-        if free_edges_sequence_copy[0] == "toe":
-            free_edges_sequence_copy[0] = "line"
-        if free_edges_sequence_copy[-1] == "toe":
-            free_edges_sequence_copy[-1] = "line"
-        if reversed_free_edges_sequence_copy[0] == "toe":
-            reversed_free_edges_sequence_copy[0] = "line"
-        if reversed_free_edges_sequence_copy[-1] == "toe":
-            reversed_free_edges_sequence_copy[-1] = "line"
-        for b_type in matched_type_list:
-            temp_free_edge_seq = classification_table[b_type]["free_edges"]
-            if is_free_edges_equal(free_edges_sequence_copy, temp_free_edge_seq) or is_free_edges_equal(reversed_free_edges_sequence_copy, temp_free_edge_seq):
-                matched_type = b_type if matched_type is None else f'{matched_type},{b_type}'
+    # if matched_type is None:
+    #     free_edges_sequence_copy = copy.deepcopy(free_edges_sequence)
+    #     reversed_free_edges_sequence_copy = copy.deepcopy(reversed_free_edges_sequence)
+    #     if free_edges_sequence_copy[0] == "toe":
+    #         free_edges_sequence_copy[0] = "line"
+    #     if free_edges_sequence_copy[-1] == "toe":
+    #         free_edges_sequence_copy[-1] = "line"
+    #     if reversed_free_edges_sequence_copy[0] == "toe":
+    #         reversed_free_edges_sequence_copy[0] = "line"
+    #     if reversed_free_edges_sequence_copy[-1] == "toe":
+    #         reversed_free_edges_sequence_copy[-1] = "line"
+    #     for b_type in matched_type_list:
+    #         temp_free_edge_seq = classification_table[b_type]["free_edges"]
+    #         if is_free_edges_equal(free_edges_sequence_copy, temp_free_edge_seq) or is_free_edges_equal(reversed_free_edges_sequence_copy, temp_free_edge_seq):
+    #             matched_type = b_type if matched_type is None else f'{matched_type},{b_type}'
     
     return matched_type if matched_type is not None else "Unclassified"
 
@@ -642,7 +642,7 @@ def poly_classifier(features,all_anno,poly_refs, texts,dimensions,conerhole_num,
     reversed_free_edges_sequence = [item for item in reversed_free_edges_sequence if item != "KS_corner"]
     # edges_sequence = [item for item in edges_sequence if item != ["cornerhole", ["line"]]]
     # reversed_edges_sequence = [item for item in reversed_edges_sequence if item != ["cornerhole", ["line"]]]
-    print(free_edges_sequence)
+    # print(free_edges_sequence)
     edges_sequence.insert(0,["free", free_edges_sequence])
     reversed_edges_sequence.insert(0, ["free", reversed_free_edges_sequence])
     mixed_types = matched_type.split(',')
@@ -753,7 +753,7 @@ def poly_classifier(features,all_anno,poly_refs, texts,dimensions,conerhole_num,
                 else:
                     best_match_flag = False
                 cornerhole_idx+=1
-        print(type_name,best_match_flag,f_score)
+        # print(type_name,best_match_flag,f_score)
         # 如果完全匹配成功，直接作为最终结果；否则则进行分数比较
         if best_match_flag:
             best_matched_type = type_name if best_matched_type is None else f'{best_matched_type},{type_name}'
@@ -767,13 +767,73 @@ def poly_classifier(features,all_anno,poly_refs, texts,dimensions,conerhole_num,
     # 如果成功匹配到标准肘板类别，则返回该类别；否则，则仅返回其中一类别模板
     if best_matched_type is not None:
         res_matched_type = best_matched_type
+    
+    res_matched_type_="Unclassified"
+    if len(res_matched_type.split(","))>1:
+        max_feature_num = -1
+        for type_name in res_matched_type.split(','):
+            f_score = 0
+            if type_name.strip()=="":
+                continue
+            free_code = classification_table[type_name]["free_code"]
+            no_free_code = classification_table[type_name]["no_free_code"]
+            template_map=match_template(edges,poly_free_edges,classification_table[type_name],edge_types,thickness=thickness)
 
-    if res_matched_type == "Unclassified":
-        matched_type = res_matched_type
+            # 自由边特征比对
+            free_idx = 1
+            while f'free{free_idx}' in template_map:
+                if len(template_map[f'free{free_idx}'])==0:
+                    free_idx += 1
+                    continue
+                seg=template_map[f'free{free_idx}'][0]
+                f = feature_map[seg]
+                c = free_code[free_idx - 1]
+                if eva_c_f(f, c):
+                    f_score += 1
+                free_idx += 1
+            
+            # 非自由边特征对比
+            constarint_idx=1
+            cornerhole_idx=1
+            while True:
+                if f'constraint{constarint_idx}' in template_map:
+                    seg = template_map[f'constraint{constarint_idx}'][0]
+                    f = feature_map[seg]
+                    c = no_free_code[constarint_idx + cornerhole_idx - 2]
+                    if eva_c_f(f, c):
+                        f_score += 1
+
+                    constarint_idx+=1
+                else:
+                    break
+                if f'cornerhole{cornerhole_idx}' in template_map:
+                    if len(template_map[f'cornerhole{cornerhole_idx}'])==0:
+                        cornerhole_idx+=1
+                        break
+                    seg = template_map[f'cornerhole{cornerhole_idx}'][0]
+                    f = feature_map[seg]
+                    c = no_free_code[constarint_idx + cornerhole_idx - 2]
+                    if eva_c_f(f, c):
+                        f_score += 1
+
+                    cornerhole_idx+=1
+            # print(type_name,best_match_flag,f_score)
+            # 如果完全匹配成功，直接作为最终结果；否则则进行分数比较
+            if f_score > max_feature_num:
+                max_feature_num = f_score
+                res_matched_type_ = type_name
+            elif f_score == max_feature_num:
+                res_matched_type_ = f'{res_matched_type_},{type_name}'
+
+    else:
+        res_matched_type_=res_matched_type
+
+    if res_matched_type_ == "Unclassified":
+        matched_type = res_matched_type_
         output_template = None
     else:
-        matched_type = res_matched_type
-        output_template = classification_table[res_matched_type.split(',')[0]]
+        matched_type = res_matched_type_
+        output_template = classification_table[res_matched_type_.split(',')[0]]
 
 
 

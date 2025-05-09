@@ -567,8 +567,8 @@ def is_vertical_(point1,point2,segment,epsilon=0.05):
     return False 
 
 def is_toe(free_edge,last_free_edge,cons_edge,max_free_edge_length):
-    if last_free_edge is not None and isinstance(last_free_edge.ref,DArc) and is_tangent_(free_edge,last_free_edge):
-        return False
+    # if last_free_edge is not None and isinstance(last_free_edge.ref,DArc) and is_tangent_(free_edge,last_free_edge):
+    #     return False
     if (free_edge.length()<56 or free_edge.length()<=0.105*max_free_edge_length) and is_vertical_(free_edge.start_point,free_edge.end_point,cons_edge,epsilon=0.35):
         return True
     return False
