@@ -928,6 +928,7 @@ def is_new_feature_pass(matched_type, classification_table,edges, poly_free_edge
 
     # 自由边特征比对
     free_idx = 1
+    f_score=0
     while f'free{free_idx}' in template_map:
         if len(template_map[f'free{free_idx}'])==0:
             free_idx += 1

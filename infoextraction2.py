@@ -1991,7 +1991,7 @@ def calculate_poly_features(poly, segments, segmentation_config, point_map, inde
             elif not (seg.isConstraint or seg.isCornerhole):
                 all_edge_poly.append(seg.start_point)
                 all_edge_poly.append(seg.end_point)
-    if not is_near_convex(all_edge_poly, index,segmentation_config.near_convex_tolerance):
+    if  is_near_convex(all_edge_poly, index,segmentation_config.near_convex_tolerance):
         print(f"回路{index}整体轮廓不是凸多边形")
         return None
     
@@ -2869,6 +2869,8 @@ def plot_info_poly_std(constraint_edges,ori_edge_map,template_map,path):
             continue
         seg=template_map[f'free{free_idx}'][0]
         draw_segment(seg,ax)
+        mid=seg.mid_point()
+        ax.text(mid.x, mid.y, free_idx,rotation=0,color="#0000FF", fontsize=25)
         free_idx+=1
         for ty,ds in ori_edge_map[seg].items():
             if isinstance(ds,list):
@@ -2885,14 +2887,14 @@ def plot_info_poly_std(constraint_edges,ori_edge_map,template_map,path):
                                 ax.plot(v2.x,v2.y,'g.')
                                 q=DSegment(v1,v2).mid_point()
                                 s=DSegment(v1,v2)
-                                ax.text(q.x, q.y, d.text,rotation=0,color="#EEC933", fontsize=15)
+                                ax.text(q.x, q.y, f"{d.text}({free_idx-1})",rotation=0,color="#0000FF", fontsize=15)
                                 ax.plot([s.start_point.x,s.end_point.x], [s.start_point.y,s.end_point.y], color="#FF0000", lw=2,linestyle='--')
                             elif len(ps)==3:
                                 p1,p2,inter=ps
                                 ax.plot(p1.x,p1.y,'g.')
                                 ax.plot(p2.x,p2.y,'g.')
                                 ax.plot(inter.x,inter.y,'g.')
-                                ax.text(inter.x, inter.y, d.text,rotation=0,color="#EEC933", fontsize=15)
+                                ax.text(inter.x, inter.y, f"{d.text}({free_idx-1})",rotation=0,color="#0000FF", fontsize=15)
                                 s=DSegment(p1,inter)
                                 ax.plot([s.start_point.x,s.end_point.x], [s.start_point.y,s.end_point.y], color="#FF0000", lw=2,linestyle='--')
                                 s=DSegment(p2,inter)
@@ -2913,20 +2915,20 @@ def plot_info_poly_std(constraint_edges,ori_edge_map,template_map,path):
                                 s=DSegment(v1,v2)
                                 ax.plot(v1.x,v1.y,'g.')
                                 ax.plot(v2.x,v2.y,'g.')
-                                ax.text(q.x, q.y, d.text,rotation=0,color="#EEC933", fontsize=15)
+                                ax.text(q.x, q.y, f"{d.text}({free_idx-1})",rotation=0,color="#0000FF", fontsize=15)
                                 ax.plot([s.start_point.x,s.end_point.x], [s.start_point.y,s.end_point.y], color="#FF0000", lw=2,linestyle='--')
                             elif len(ps)==3:
                                 p1,p2,inter=ps
                                 ax.plot(p1.x,p1.y,'g.')
                                 ax.plot(p2.x,p2.y,'g.')
                                 ax.plot(inter.x,inter.y,'g.')
-                                ax.text(inter.x, inter.y, d.text,rotation=0,color="#EEC933", fontsize=15)
+                                ax.text(inter.x, inter.y, f"{d.text}({free_idx-1})",rotation=0,color="#0000FF", fontsize=15)
                                 s=DSegment(p1,inter)
                                 ax.plot([s.start_point.x,s.end_point.x], [s.start_point.y,s.end_point.y], color="#FF0000", lw=2,linestyle='--')
                                 s=DSegment(p2,inter)
                                 ax.plot([s.start_point.x,s.end_point.x], [s.start_point.y,s.end_point.y], color="#FF0000", lw=2,linestyle='--')
                     elif isinstance(d,DText):
-                        ax.text(d.insert.x, d.insert.y, d.content,rotation=0,color="#EEC933", fontsize=15)
+                        ax.text(d.insert.x, d.insert.y,f"{d.content}({free_idx-1})",rotation=0,color="#0000FF", fontsize=15)
     
     constarint_idx=1
     cornerhole_idx=1
@@ -2956,12 +2958,16 @@ def plot_info_poly_std(constraint_edges,ori_edge_map,template_map,path):
             k+=1
             corner_hole_start_edge=edge[0]
             cornerhole_idx+=1
+            mid=edge[0].mid_point()
+            ax.text(mid.x, mid.y, cornerhole_idx,rotation=0,color="#FF0000", fontsize=25)
             for seg in edge:
                 draw_segment(seg,ax)
         else:
           
             k+=1
             constarint_idx+=1
+            mid=edge[0].mid_point()
+            ax.text(mid.x, mid.y, constarint_idx,rotation=0,color="#00FF00", fontsize=25)
             next_cons_edge=[]
             last_cons_edge=[]
             index=i+1
@@ -3020,14 +3026,14 @@ def plot_info_poly_std(constraint_edges,ori_edge_map,template_map,path):
                                         ax.plot(v2.x,v2.y,'g.')
                                         q=DSegment(v1,v2).mid_point()
                                         s=DSegment(v1,v2)
-                                        ax.text(q.x, q.y, d.text,rotation=0,color="#EEC933", fontsize=15)
+                                        ax.text(q.x, q.y, f"{d.text}({constarint_idx})",rotation=0,color="#00FF00", fontsize=15)
                                         ax.plot([s.start_point.x,s.end_point.x], [s.start_point.y,s.end_point.y], color="#FF0000", lw=2,linestyle='--')
                                     elif len(ps)==3:
                                         p1,p2,inter=ps
                                         ax.plot(p1.x,p1.y,'g.')
                                         ax.plot(p2.x,p2.y,'g.')
                                         ax.plot(inter.x,inter.y,'g.')
-                                        ax.text(inter.x, inter.y, d.text,rotation=0,color="#EEC933", fontsize=15)
+                                        ax.text(inter.x, inter.y, f"{d.text}({constarint_idx})",rotation=0,color="#00FF00", fontsize=15)
                                         s=DSegment(p1,inter)
                                         ax.plot([s.start_point.x,s.end_point.x], [s.start_point.y,s.end_point.y], color="#FF0000", lw=2,linestyle='--')
                                         s=DSegment(p2,inter)
@@ -3048,14 +3054,14 @@ def plot_info_poly_std(constraint_edges,ori_edge_map,template_map,path):
                                         s=DSegment(v1,v2)
                                         ax.plot(v1.x,v1.y,'g.')
                                         ax.plot(v2.x,v2.y,'g.')
-                                        ax.text(q.x, q.y, d.text,rotation=0,color="#EEC933", fontsize=15)
+                                        ax.text(q.x, q.y, f"{d.text}({constarint_idx})",rotation=0,color="#00FF00", fontsize=15)
                                         ax.plot([s.start_point.x,s.end_point.x], [s.start_point.y,s.end_point.y], color="#FF0000", lw=2,linestyle='--')
                                     elif len(ps)==3:
                                         p1,p2,inter=ps
                                         ax.plot(p1.x,p1.y,'g.')
                                         ax.plot(p2.x,p2.y,'g.')
                                         ax.plot(inter.x,inter.y,'g.')
-                                        ax.text(inter.x, inter.y, d.text,rotation=0,color="#EEC933", fontsize=15)
+                                        ax.text(inter.x, inter.y, f"{d.text}({constarint_idx})",rotation=0,color="#00FF00", fontsize=15)
                                         s=DSegment(p1,inter)
                                         ax.plot([s.start_point.x,s.end_point.x], [s.start_point.y,s.end_point.y], color="#FF0000", lw=2,linestyle='--')
                                         s=DSegment(p2,inter)
@@ -3063,7 +3069,7 @@ def plot_info_poly_std(constraint_edges,ori_edge_map,template_map,path):
 
 
                             elif isinstance(d,DText):
-                                ax.text(d.insert.x, d.insert.y, d.content,rotation=0,color="#EEC933", fontsize=15)
+                                ax.text(d.insert.x, d.insert.y, f"{d.content}({constarint_idx})",rotation=0,color="#00FF00", fontsize=15)
 
 
 
