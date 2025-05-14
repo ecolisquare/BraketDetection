@@ -835,12 +835,12 @@ def poly_classifier(features,all_anno,poly_refs, texts,dimensions,conerhole_num,
         output_template = classification_table[res_matched_type_.split(',')[0]]
 
     # 添加new特征的判断
-    if is_new_feature_pass(matched_type, classification_table, edges, poly_free_edges, edge_types, thickness, feature_map):
-        return matched_type,output_template
-    else:
-        matched_type = "Unclassified"
-        output_template = None
-        return matched_type,output_template
+    matched_type_list = matched_type.split(',')
+    matched_type = None
+    for type_name in matched_type_list:
+        if is_new_feature_pass(type_name, classification_table, edges, poly_free_edges, edge_types, thickness, feature_map):
+            matched_type = type_name if matched_type is None else f'{matched_type},{type_name}'
+    return matched_type, output_template
 
 def eva_c_f(codes, features, p_feature = ["no_tangent", "is_para", "is_ver", "is_ontoe"]):
     # codes中的所有特征都要包含在features中
