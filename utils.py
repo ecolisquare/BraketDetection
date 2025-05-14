@@ -1101,12 +1101,22 @@ def readJson(path,segmentation_config):
         ori_segments=new_ori_segments
         segments=expandFixedLength(segments,segmentation_config.line_expand_length)
         arc_splits=expandFixedLength(arc_splits,segmentation_config.arc_expand_length)
-           
+        sign_handles=[]
+        for ele in data_list[0]:
+            if ele["type"]=="lwpolyline":
+                vs=ele["vertices"]
+                vs_type=ele["verticesType"]
+                vs_width=ele["verticesWidth"]
+                if len(vs)==3 and len(vs_type)==3 and vs_type==["line","line","line"] and len(vs_width)==4 and vs_width[1]==[0,0] and vs_width[3]==[0,0] and vs_width[0][0]==0 and vs_width[0][1]>0 and vs_width[2][0]>0 and vs_width[2][1]==0:
+                    start=DPoint(vs[0][0],vs[0][1])
+                    end=DPoint(vs[-1][2],vs[-1][3])
+                    if DSegment(start,end).length()>100 and DSegment(start,end).length() <500:
+                        sign_handles.append(ele["handle"])
         
         
        
        
-        return elements,segments+arc_splits,ori_segments,stiffeners
+        return elements,segments+arc_splits,ori_segments,stiffeners,sign_handles
     except FileNotFoundError:  
         print("The file does not exist.")
     except json.JSONDecodeError:  
@@ -1334,7 +1344,7 @@ def split_segments(segments,segmentation_config, intersections,epsilon=0.25,expa
     return new_segments, edge_map,point_map
 
 
-def filter_segments(segments,segmentation_config,intersections,point_map,expansion_param=12,iters=3,interval=1):
+def filter_segments(segments,segmentation_config,intersections,point_map,expansion_param=12,iters=3,interval=1,sign_handles=[]):
     new_segments=[]
     edge_map = {}
     new_point_map={}
@@ -1436,6 +1446,22 @@ def filter_segments(segments,segmentation_config,intersections,point_map,expansi
             if vs==ve:
                 continue
             if div_s==1 or div_e==1:
+                continue
+            flag=False
+            for ns in new_point_map[vs]:
+                if ns==s:
+                    continue
+                if ns.ref is not None and ns.ref.handle is not None and ns.ref.handle in sign_handles:
+                    flag=True
+                    break
+            for ns in new_point_map[ve]:
+                if ns==s:
+                    continue
+                if ns.ref is not None and ns.ref.handle is not None and ns.ref.handle in sign_handles:
+                    flag=True
+                    break
+            if flag:
+                # print(s.ref.handle)
                 continue
             # if div_s==3 and (i+1)%interval==0:
             #     ns=[ss for ss in new_point_map[vs] if ss !=s]
@@ -2193,9 +2219,9 @@ def checkReferenceLine(p,ns,ss,segmentation_config):
         if len(ss)==1:
             return True
         return False
-    if len(ns)>2:
+    if len(ns)>3:
         return False
-    if len(ss)!=2:
+    if len(ss)!=len(ns):
         return False
     return True
 def removeReferenceLines(elements,texts,initial_segments,all_segments,point_map,segmentation_config):
@@ -2291,6 +2317,7 @@ def removeReferenceLines(elements,texts,initial_segments,all_segments,point_map,
                 current_point=s.start_point if s.start_point!=start_point else s.end_point
                 current_line=s
                 k=0
+                total_length=current_line.length()
                 while True:
                     # print(k)
                     k+=1
@@ -2303,8 +2330,11 @@ def removeReferenceLines(elements,texts,initial_segments,all_segments,point_map,
                     if len(current_nedge)==0:
                         break
                     current_line=current_nedge[0]
+                    total_length+=current_line.length()
                     current_point=current_line.start_point if current_line.start_point!=current_point else current_line.end_point
-            
+                # print(total_length)
+                if total_length<100 or total_length>2000:
+                    flag=False
                 if flag and current_point not in text_pos_map:
                     text_pos_map[current_point]=set()
                     text_pos_map[current_point].add(h1e[i])
@@ -2337,6 +2367,7 @@ def removeReferenceLines(elements,texts,initial_segments,all_segments,point_map,
                 start_point=p
                 current_point=s.start_point if s.start_point!=start_point else s.end_point
                 current_line=s
+                total_length=current_line.length()
                 k=0
                 while True:
                     k+=1
@@ -2349,7 +2380,11 @@ def removeReferenceLines(elements,texts,initial_segments,all_segments,point_map,
                     if len(current_nedge)==0:
                         break
                     current_line=current_nedge[0]
+                    total_length+=current_line.length()
                     current_point=current_line.start_point if current_line.start_point!=current_point else current_line.end_point
+                # print(total_length)
+                if total_length<100 or total_length>2000:
+                    flag=False
                 if flag and current_point not in text_pos_map2:
                     text_pos_map2[current_point]=set()
                     text_pos_map2[current_point].add(h2e[i])
@@ -3282,7 +3317,7 @@ def visualize_grid_and_segment(segments, poly,rect, M, N, blocks):
     ax.set_title("Grid and Segment Visualization")
     ax.legend()
     plt.show()
-def findClosedPolys_via_BFS(elements,texts,dimensions,segments,segmentation_config):
+def findClosedPolys_via_BFS(elements,texts,dimensions,segments,sign_handles,segmentation_config):
     verbose=segmentation_config.verbose
     # Step 1: 计算交点
     # if verbose:
@@ -3293,7 +3328,7 @@ def findClosedPolys_via_BFS(elements,texts,dimensions,segments,segmentation_conf
     # if verbose:
     #     print("根据交点分割线段")
     new_segments, edge_map,point_map= split_segments(segments,segmentation_config, isecDic,segmentation_config.segment_filter_length)
-    filtered_segments, filtered_edge_map,filtered_point_map= filter_segments(segments,segmentation_config,isecDic,point_map,segmentation_config.segment_filter_length,segmentation_config.segment_filter_iters,segmentation_config.segment_remove_interval)
+    filtered_segments, filtered_edge_map,filtered_point_map= filter_segments(segments,segmentation_config,isecDic,point_map,segmentation_config.segment_filter_length,segmentation_config.segment_filter_iters,segmentation_config.segment_remove_interval,[])
     
     
     
@@ -3320,7 +3355,7 @@ def findClosedPolys_via_BFS(elements,texts,dimensions,segments,segmentation_conf
     new_segments, edge_map,point_map= split_segments(initial_segments,segmentation_config, isecDic,segmentation_config.segment_filter_length)
     #filter lines
 
-    filtered_segments, filtered_edge_map,filtered_point_map= filter_segments(initial_segments,segmentation_config,isecDic,point_map,segmentation_config.segment_filter_length,segmentation_config.segment_filter_iters,segmentation_config.segment_remove_interval)
+    filtered_segments, filtered_edge_map,filtered_point_map= filter_segments(initial_segments,segmentation_config,isecDic,point_map,segmentation_config.segment_filter_length,segmentation_config.segment_filter_iters,segmentation_config.segment_remove_interval,sign_handles)
     braket_start_lines=findBraketByHints(filtered_segments,text_map)
     # polys=[]
     # outputLines(new_segments,point_map,polys,segmentation_config.line_image_path,segmentation_config.draw_intersections,segmentation_config.draw_segments,segmentation_config.line_image_drawPolys)
@@ -3662,7 +3697,20 @@ def readJson_inbbpolys(path,segmentation_config, bb_polys):
         segments=expandFixedLength(segments,segmentation_config.line_expand_length)
         arc_splits=expandFixedLength(arc_splits,segmentation_config.arc_expand_length)
         
-        return elements,segments+arc_splits,ori_segments,stiffeners
+        sign_handles=[]
+        for ele in data_list_filtered[0]:
+            if ele["type"]=="lwpolyline":
+                vs=ele["vertices"]
+                vs_type=ele["verticesType"]
+                vs_width=ele["verticesWidth"]
+                if len(vs)==3 and len(vs_type)==3 and vs_type==["line","line","line"] and len(vs_width)==4 and vs_width[1]==[0,0] and vs_width[3]==[0,0] and vs_width[0][0]==0 and vs_width[0][1]>0 and vs_width[2][0]>0 and vs_width[2][1]==0:
+                    start=DPoint(vs[0][0],vs[0][1])
+                    end=DPoint(vs[-1][2],vs[-1][3])
+                    if DSegment(start,end).length()>100 and DSegment(start,end).length() <500:
+                        sign_handles.append(ele["handle"])
+        
+        
+        return elements,segments+arc_splits,ori_segments,stiffeners,sign_handles
     except FileNotFoundError:  
         print("The file does not exist.")
     except json.JSONDecodeError:  

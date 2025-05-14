@@ -92,7 +92,7 @@ def process_json_data(json_path, output_path, training_data_output_folder, train
     if segmentation_config.verbose:
         print("读取json文件")
     #文件中线段元素的读取和根据颜色过滤
-    elements,segments,ori_segments,stiffeners=readJson(json_path,segmentation_config)
+    elements,segments,ori_segments,stiffeners,sign_handles=readJson(json_path,segmentation_config)
    
     ori_block=build_initial_block(ori_segments,segmentation_config)
     # grid,meta=segments_in_blocks(ori_segments,segmentation_config)
@@ -114,7 +114,7 @@ def process_json_data(json_path, output_path, training_data_output_folder, train
     
 
     #找出所有包含角隅孔圆弧的基本环
-    polys, new_segments, point_map,star_pos_map,cornor_holes,text_map=findClosedPolys_via_BFS(elements,texts,dimensions,segments,segmentation_config)
+    polys, new_segments, point_map,star_pos_map,cornor_holes,text_map=findClosedPolys_via_BFS(elements,texts,dimensions,segments,sign_handles,segmentation_config)
 
     # #预训练的几何分类模型筛选肘板
     # model_path = "/home/user4/BraketDetection/DGCNN/cpkt/geometry_classifier.pth"
