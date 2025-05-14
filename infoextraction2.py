@@ -1962,6 +1962,10 @@ def calculate_poly_features(poly, segments, segmentation_config, point_map, inde
         new_constraint_edges.append(edge)
     constraint_edges=new_constraint_edges
 
+    # 如果回路轮廓线条数小于等于4条，则不进行输出
+    if len(poly_refs) <= 4:
+        print(f"回路{index}轮廓线条数小于等于4条！")
+        return None
     
     # 如果除去圆弧外固定边多边形不是凸多边形则不进行输出
     constraint_edge_poly = []
@@ -1975,6 +1979,23 @@ def calculate_poly_features(poly, segments, segmentation_config, point_map, inde
     if not is_near_convex(constraint_edge_poly, index,segmentation_config.near_convex_tolerance):
         print(f"回路{index}去圆弧外固定边多边形不是凸多边形")
         return None
+    
+    # 如果整体轮廓不是凸多边形则不进行输出
+    all_edge_poly = []
+
+    for constarint_edge in edges:
+        for seg in constarint_edge:
+            if not (isinstance(seg.ref, DArc) and seg.ref.radius<200):
+                all_edge_poly.append(seg.start_point)
+                all_edge_poly.append(seg.end_point)
+    for free_edge in free_edges:
+        for seg in free_edge:
+            all_edge_poly.append(seg.start_point)
+            all_edge_poly.append(seg.end_point)
+    if not is_near_convex(all_edge_poly, index,segmentation_config.near_convex_tolerance):
+        print(f"回路{index}整体轮廓不是凸多边形")
+        return None
+    
     
     # 如果自由边轮廓中出现了夹角小于45°的折线则不进行输出
     for i in range(len(free_edges[0]) - 1):
