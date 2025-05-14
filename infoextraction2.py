@@ -1983,15 +1983,14 @@ def calculate_poly_features(poly, segments, segmentation_config, point_map, inde
     # 如果整体轮廓不是凸多边形则不进行输出
     all_edge_poly = []
 
-    for constarint_edge in edges:
-        for seg in constarint_edge:
-            if not (isinstance(seg.ref, DArc) and seg.ref.radius<200):
+    for edge in edges:
+        for seg in edge:
+            if seg.isConstraint and not seg.isCornerhole and not (isinstance(seg.ref, DArc) and seg.ref.radius<200):
                 all_edge_poly.append(seg.start_point)
                 all_edge_poly.append(seg.end_point)
-    for free_edge in free_edges:
-        for seg in free_edge:
-            all_edge_poly.append(seg.start_point)
-            all_edge_poly.append(seg.end_point)
+            elif not (seg.isConstraint or seg.isCornerhole):
+                all_edge_poly.append(seg.start_point)
+                all_edge_poly.append(seg.end_point)
     if not is_near_convex(all_edge_poly, index,segmentation_config.near_convex_tolerance):
         print(f"回路{index}整体轮廓不是凸多边形")
         return None
