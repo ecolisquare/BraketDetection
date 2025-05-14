@@ -623,7 +623,10 @@ def poly_classifier(features,all_anno,poly_refs, texts,dimensions,conerhole_num,
 
     # print(matched_type)
     if len(matched_type.split(","))<=1 and matched_type!="Unclassified":
-        return matched_type,classification_table[matched_type]
+        if is_new_feature_pass(matched_type, classification_table, edges, poly_free_edges, edge_types, thickness, feature_map):
+            return matched_type,classification_table[matched_type]
+        else:
+            return "Unclassified", None
     elif matched_type=="Unclassified":
         return matched_type,None
     
@@ -633,10 +636,6 @@ def poly_classifier(features,all_anno,poly_refs, texts,dimensions,conerhole_num,
     matched_type=tidy_matched_type(matched_type)
 
     # step8: 考虑整体轮廓筛选
-    if len(matched_type.split(","))<=1 and matched_type!="Unclassified":
-        return matched_type,classification_table[matched_type]
-    elif matched_type=="Unclassified":
-        return matched_type,None
     # 去除自由边所有"KS_corner"以及轮廓中所有"["cornerhole", ["line"]]"
     free_edges_sequence = [item for item in free_edges_sequence if item != "KS_corner"]
     reversed_free_edges_sequence = [item for item in reversed_free_edges_sequence if item != "KS_corner"]
@@ -835,9 +834,13 @@ def poly_classifier(features,all_anno,poly_refs, texts,dimensions,conerhole_num,
         matched_type = res_matched_type_
         output_template = classification_table[res_matched_type_.split(',')[0]]
 
-
-
-    return matched_type,output_template
+    # 添加new特征的判断
+    matched_type_list = matched_type.split(',')
+    matched_type = None
+    for type_name in matched_type_list:
+        if is_new_feature_pass(type_name, classification_table, edges, poly_free_edges, edge_types, thickness, feature_map):
+            matched_type = type_name if matched_type is None else f'{matched_type},{type_name}'
+    return matched_type, output_template
 
 def eva_c_f(codes, features, p_feature = ["no_tangent", "is_para", "is_ver", "is_ontoe"]):
     # codes中的所有特征都要包含在features中
@@ -849,6 +852,17 @@ def eva_c_f(codes, features, p_feature = ["no_tangent", "is_para", "is_ver", "is
     #     if f not in p_feature:
     #         if f not in codes:
     #             return False
+    return True
+
+def eva_c_f_new(codes, features):
+    # codes中的所有特征都要包含在features中
+    for c in codes:
+        if c == "new" and c not in features:
+            return False
+    # features中的所有标注特征都要包含在codes中
+    for f in features:
+        if f == "new" and f not in codes:
+            return False
     return True
 
 
@@ -905,3 +919,53 @@ def calculate_similarity(seq1, seq2):
 
     return match_count / min_length
 
+def is_new_feature_pass(matched_type, classification_table,edges, poly_free_edges, edge_types, thickness, feature_map):
+    type_name = matched_type.split(',')[0]
+    is_match_flag = True
+    free_code = classification_table[type_name]["free_code"]
+    no_free_code = classification_table[type_name]["no_free_code"]
+    template_map=match_template(edges,poly_free_edges,classification_table[type_name],edge_types,thickness=thickness)
+
+    # 自由边特征比对
+    free_idx = 1
+    while f'free{free_idx}' in template_map:
+        if len(template_map[f'free{free_idx}'])==0:
+            free_idx += 1
+            continue
+        seg=template_map[f'free{free_idx}'][0]
+        f = feature_map[seg]
+        c = free_code[free_idx - 1]
+        if eva_c_f_new(c, f):
+            f_score += 1
+        else:
+            is_match_flag = False
+        free_idx += 1
+    
+    # 非自由边特征对比
+    constarint_idx=1
+    cornerhole_idx=1
+    while True:
+        if f'constraint{constarint_idx}' in template_map:
+            seg = template_map[f'constraint{constarint_idx}'][0]
+            f = feature_map[seg]
+            c = no_free_code[constarint_idx + cornerhole_idx - 2]
+            if eva_c_f_new(c, f):
+                f_score += 1
+            else:
+                is_match_flag = False
+            constarint_idx+=1
+        else:
+            break
+        if f'cornerhole{cornerhole_idx}' in template_map:
+            if len(template_map[f'cornerhole{cornerhole_idx}'])==0:
+                cornerhole_idx+=1
+                break
+            seg = template_map[f'cornerhole{cornerhole_idx}'][0]
+            f = feature_map[seg]
+            c = no_free_code[constarint_idx + cornerhole_idx - 2]
+            if eva_c_f_new(c, f):
+                f_score += 1
+            else:
+                is_match_flag = False
+            cornerhole_idx+=1
+    return is_match_flag
