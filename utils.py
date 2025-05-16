@@ -2225,6 +2225,11 @@ def checkReferenceLine(p,ns,ss,segmentation_config):
         return False
     return True
 def removeReferenceLines(elements,texts,initial_segments,all_segments,point_map,segmentation_config):
+
+
+    #TODO:U型引线的去除
+
+    
     vertical_lines=[]
     vl2=[]
     v1e=[]
@@ -3708,7 +3713,11 @@ def readJson_inbbpolys(path,segmentation_config, bb_polys):
                     end=DPoint(vs[-1][2],vs[-1][3])
                     if DSegment(start,end).length()>100 and DSegment(start,end).length() <500:
                         sign_handles.append(ele["handle"])
-        
+                elif len(vs)==5 and len(vs_type)==5 and vs_type==["line","line","line","line","line"] and len(vs_width)==6 and vs_width[0]==[0,0] and vs_width[2]==[0,0] and vs_width[4]==[0,0] and vs_width[5]==[0,0] and vs_width[1][0]>0 and vs_width[1][1]==0 and vs_width[3][0]==0 and vs_width[3][1]>0:
+                    start=DPoint(vs[0][0],vs[0][1])
+                    end=DPoint(vs[-1][2],vs[-1][3])
+                    if DSegment(start,end).length()>100 and DSegment(start,end).length() <500:
+                        sign_handles.append(ele["handle"])
         
         return elements,segments+arc_splits,ori_segments,stiffeners,sign_handles
     except FileNotFoundError:  

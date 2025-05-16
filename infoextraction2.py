@@ -1858,6 +1858,13 @@ def calculate_poly_features(poly, segments, segmentation_config, point_map, inde
     
     tis=textsInPoly(text_map,poly,segmentation_config,is_fb,polygon)
     ds=dimensionsInPoly(dimensions,poly,segmentation_config)
+
+
+
+    #TODO:对于tis的后处理
+
+
+    
     # print(free_edges)
     # print(cornor_holes[0].segments)
     # for s in poly_refs:
@@ -3217,7 +3224,33 @@ def plot_info_poly_std(constraint_edges,ori_edge_map,template_map,path):
     plt.savefig(path)
     plt.close('all')
     plt.close()
-def outputInfo(index,edges_info,poly_centroid,hint_info,meta_info,segmentation_config):
+def check_one_class(classification_res,template_map,free_edges,constraint_edges,edges,poly_refs,poly,all_edge_map):
+    polygon=computePolygon(poly)
+    if "DPK(" in classification_res or "DPV(" in classification_res:
+        if "free2" not in template_map or len(template_map["free2"])==0 or (not isinstance(template_map["free2"][0].ref,DArc)):
+            return False
+        center=template_map["free2"][0].ref.center 
+        center=Point(center.x,center.y)
+        if polygon.contains(center):
+            return False
+
+    #TODO: 判断可能角隅孔是否被分到约束边
+
+
+
+
+
+    #TODO：DPKN-2 标准肘板没有角度标注   角度标注在all_edge_map中可以查找
+
+
+
+
+
+
+    return True
+
+
+def outputInfo(index,edges_info,poly_centroid,hint_info,meta_info,segmentation_config,poly):
     is_standard_elbow,bracket_parameter,strengthen_parameter,has_hint,is_fb,is_diff=meta_info
     free_edges,constraint_edges,edges,poly_refs,ref_map=edges_info
     all_edge_map,edge_types,features,feature_map,constraint_edge_no,free_edge_no,all_anno,tis,ds=hint_info
@@ -3453,6 +3486,9 @@ def outputInfo(index,edges_info,poly_centroid,hint_info,meta_info,segmentation_c
                                          segmentation_config.standard_type_path, segmentation_config.json_output_path, 
                                          f"{os.path.splitext(os.path.basename(segmentation_config.json_path))[0]}_infopoly{index}",
                                          is_output_json=True)
+    if classification_res is None:
+        classification_res="Unclassified"
+        output_template=None
     free_order=True
     # cons_order=True
     if output_template is not None:
@@ -3462,6 +3498,8 @@ def outputInfo(index,edges_info,poly_centroid,hint_info,meta_info,segmentation_c
         else:
             ignore_types=["line"]
         template_map=match_template(edges,free_edges,output_template,edge_types,thickness)
+        if check_one_class(classification_res,template_map,free_edges,constraint_edges,edges,poly_refs,poly,all_edge_map)==False:
+            return poly_refs,"Unclassified"
         # print(output_template)
         free_edge_template_no={}
         free_idx=1
@@ -4194,14 +4232,14 @@ def outputInfo(index,edges_info,poly_centroid,hint_info,meta_info,segmentation_c
     return poly_refs, classification_res
 
 
-def classificationAndOutputStep(indices,edges_infos,poly_centroids,hint_infos,meta_infos,segmentation_config):
+def classificationAndOutputStep(indices,edges_infos,poly_centroids,hint_infos,meta_infos,segmentation_config,polys):
     classification_table = load_classification_table(segmentation_config.standard_type_path)
     poly_infos=[]
     types=[]
     flags=[]
     for i in range(len(indices)):
         index,edges_info,poly_centroid,hint_info,meta_info=indices[i],edges_infos[i],poly_centroids[i],hint_infos[i],meta_infos[i]
-        poly_refs, classification_res=outputInfo(index,edges_info,poly_centroid,hint_info,meta_info,segmentation_config)
+        poly_refs, classification_res=outputInfo(index,edges_info,poly_centroid,hint_info,meta_info,segmentation_config,polys[index])
         poly_infos.append(poly_refs)
         types.append(classification_res)
         if classification_res=="Unstandard" or classification_res=="Unclassified" or len(classification_res.split(","))>1:
