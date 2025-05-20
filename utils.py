@@ -117,7 +117,7 @@ def conpute_angle_of_two_segments(seg1,seg2):
     
     
     # 归一化叉积
-    cross_product = math.fabs((dx1 * dy2 - dy1 * dx2) / (length1 * length2))
+    cross_product = math.fabs((dx1 * dy2 - dy1 * dx2) / (length1 * length2+1e-4))
     if cross_product>1:
         cross_product=1
 
@@ -138,7 +138,7 @@ def is_parallel(seg1, seg2, tolerance=0.05):
         return False
     
     # 归一化叉积
-    cross_product = (dx1 * dy2 - dy1 * dx2) / (length1 * length2)
+    cross_product = (dx1 * dy2 - dy1 * dx2) / (length1 * length2+1e-4)
     
     # 返回是否接近0
     #print(cross_product)
@@ -153,7 +153,7 @@ def point_segment_position(point: DPoint, segment: DSegment, epsilon=0.05,anno=T
     AP = DPoint(point.x - segment.start_point.x, point.y - segment.start_point.y)
     l1,l2=DSegment(segment.start_point,point).length(),segment.length()
     # 计算叉积，判断点是否在直线上
-    cross_product = (AB.x * AP.y - AB.y * AP.x)/(DSegment(segment.start_point,point).length()*segment.length())
+    cross_product = (AB.x * AP.y - AB.y * AP.x)/(DSegment(segment.start_point,point).length()*segment.length()+1e-4)
 
 
 
@@ -162,12 +162,12 @@ def point_segment_position(point: DPoint, segment: DSegment, epsilon=0.05,anno=T
     # 向量AP表示从起点到点的方向
     BP = DPoint(point.x - segment.end_point.x, point.y - segment.end_point.y)
     # 计算叉积，判断点是否在直线上
-    cross_product2 = (BA.x * BP.y - BA.y * BP.x)/(DSegment(segment.end_point,point).length()*segment.length())
+    cross_product2 = (BA.x * BP.y - BA.y * BP.x)/(DSegment(segment.end_point,point).length()*segment.length()+1e-4)
     if abs(cross_product) > epsilon or abs(cross_product2) > epsilon:
         return "not_on_line"  # 点不在直线上
 
     # 计算点积，判断点是否在线段上
-    dot_product = (AB.x * AP.x + AB.y * AP.y)/(DSegment(segment.start_point,point).length()*segment.length())
+    dot_product = (AB.x * AP.x + AB.y * AP.y)/(DSegment(segment.start_point,point).length()*segment.length()+1e-4)
     if dot_product < 0:
         if l2>40 and l1>0.75*l2 and anno:
             return "not_on_line"
@@ -187,12 +187,12 @@ def point_free_segment_position(point: DPoint, segment: DSegment, epsilon=0.05):
     if l1>4*l2:
         return "not_on_line"
     # 计算叉积，判断点是否在直线上
-    cross_product = (AB.x * AP.y - AB.y * AP.x)/(DSegment(segment.start_point,point).length()*segment.length())
+    cross_product = (AB.x * AP.y - AB.y * AP.x)/(DSegment(segment.start_point,point).length()*segment.length()+1e-4)
     if abs(cross_product) > epsilon:
         return "not_on_line"  # 点不在直线上
 
     # 计算点积，判断点是否在线段上
-    dot_product = (AB.x * AP.x + AB.y * AP.y)/(DSegment(segment.start_point,point).length()*segment.length())
+    dot_product = (AB.x * AP.x + AB.y * AP.y)/(DSegment(segment.start_point,point).length()*segment.length()+1e-4)
     if dot_product < 0:
         if l2>40 and l1>0.75*l2:
             return "not_on_line"
@@ -265,7 +265,7 @@ def check_non_parallel_anno(point1: DPoint, point2: DPoint, constraint_edges: li
 def is_vertical(point1,point2,segment,epsilon=0.05):
     v1=DPoint(point1.x-point2.x,point1.y-point2.y)
     v2=DPoint(segment.start_point.x-segment.end_point.x,segment.start_point.y-segment.end_point.y)
-    cross_product=(v1.x*v2.x+v1.y+v2.y)/(DSegment(point1,point2).length()*segment.length())
+    cross_product=(v1.x*v2.x+v1.y+v2.y)/(DSegment(point1,point2).length()*segment.length()+1e-4)
     if  abs(cross_product) <epsilon:
         return True
     return False 
@@ -391,7 +391,7 @@ def angleOfTwoVectors(A,B):
     lengthA = math.sqrt(A[0]**2 + A[1]**2)  
     lengthB = math.sqrt(B[0]**2 + B[1]**2)  
     dotProduct = A[0] * B[0] + A[1] * B[1]   
-    cos_angle=dotProduct / (lengthA * lengthB)
+    cos_angle=dotProduct / (lengthA * lengthB+1e-4)
     if math.fabs(cos_angle)>1:
         if cos_angle<0:
             cos_angle=-1
@@ -1135,7 +1135,7 @@ def remove_duplicates(input_list):
 # Helper function to compute intersection between two segments
 def segment_intersection(p1, p2, q1, q2, epsilon=1e-9):
     """ Returns the intersection point between two line segments, or None if they don't intersect. """
-    ###TODO: if two segments are colinear or in the same line,get the intersection within a unique method  
+
     def cross_product(v1, v2):
         return v1[0] * v2[1] - v1[1] * v2[0]
 
@@ -1158,7 +1158,7 @@ def segment_intersection(p1, p2, q1, q2, epsilon=1e-9):
     return None
 def segment_intersection_line(p1, p2, q1, q2, epsilon=1e-9):
     """ Returns the intersection point between two line segments, or None if they don't intersect. """
-    ###TODO: if two segments are colinear or in the same line,get the intersection within a unique method  
+
     def cross_product(v1, v2):
         return v1[0] * v2[1] - v1[1] * v2[0]
 
@@ -2180,6 +2180,9 @@ def process_intersections(chunck,segments,point_map,segmentation_config):
             if (text_pos.y-y_max)<=segmentation_config.reference_text_max_distance and (s.ref.color==7 or s.ref.color==1) and (len(point_map[s.start_point])==1 or len(point_map[s.end_point])==1):
                 horizontal_line.append(s)
                 h1e.append(v1e[i])
+            elif (text_pos.y-y_max)<=segmentation_config.reference_text_max_distance and (s.ref.color==7 or s.ref.color==1) and (len(point_map[s.start_point])>1 and  len(point_map[s.end_point])>1) and math.fabs(s.start_point.y-s.end_point.y)<5:
+                horizontal_line.append(s)
+                h1e.append(v1e[i])
     pbar.close()
     return [horizontal_line,h1e]
 
@@ -2212,6 +2215,10 @@ def process_intersections2(chunck,segments,point_map,segmentation_config):
             if (y_min-text_pos.y)<=segmentation_config.reference_text_max_distance and (s.ref.color==7 or s.ref.color==1) and (len(point_map[s.start_point])==1 or len(point_map[s.end_point])==1):
                 hl2.append(s)
                 h2e.append(v2e[i])
+            elif (y_min-text_pos.y)<=segmentation_config.reference_text_max_distance and (s.ref.color==7 or s.ref.color==1) and (len(point_map[s.start_point])>1 and len(point_map[s.end_point])>1) and math.fabs(s.start_point.y-s.end_point.y)<5:
+                hl2.append(s)
+                h2e.append(v2e[i])
+                
     pbar.close()
     return [hl2,h2e]
 def checkReferenceLine(p,ns,ss,segmentation_config):
@@ -2229,7 +2236,7 @@ def removeReferenceLines(elements,texts,initial_segments,all_segments,point_map,
 
     #TODO:U型引线的去除
 
-    
+
     vertical_lines=[]
     vl2=[]
     v1e=[]
@@ -2305,107 +2312,303 @@ def removeReferenceLines(elements,texts,initial_segments,all_segments,point_map,
     text_pos_map2={}
     text_set2=set()
     for i,line in enumerate(horizontal_line):
-        if len(point_map[line.start_point])==1:
-            p=line.end_point
-        else:
-            p=line.start_point
-        
-        ns=[s for s in point_map[p] if s!=line and s.length()>segmentation_config.reference_line_min_length] 
-        sr=[s.ref for s in point_map[p] if s.length()>segmentation_config.reference_line_min_length  and (isinstance(s.ref, DLine) or isinstance(s.ref,DLwpolyline)) and s!=line and angleOfTwoSegmentsWithCommonStarter(p,s,line)>segmentation_config.reference_min_angle and angleOfTwoSegmentsWithCommonStarter(p,s,line)<segmentation_config.reference_max_angle]
-        ss=[s for s in point_map[p] if s.length()>segmentation_config.reference_line_min_length  and (isinstance(s.ref, DLine) or isinstance(s.ref,DLwpolyline)) and s!=line and angleOfTwoSegmentsWithCommonStarter(p,s,line)>segmentation_config.reference_min_angle and angleOfTwoSegmentsWithCommonStarter(p,s,line)<segmentation_config.reference_max_angle]
-        flag=checkReferenceLine(p,ns,ss,segmentation_config)
-        if flag:
-            refs=[]
-            for j,s in enumerate(ss):
-                refs.append(sr[j])
-                start_point=p
-                current_point=s.start_point if s.start_point!=start_point else s.end_point
-                current_line=s
-                k=0
-                total_length=current_line.length()
-                while True:
-                    # print(k)
-                    k+=1
-                    if k>10:
-                        flag=False
-                        break
-                    if len(point_map[current_point])<=1:
-                        break
-                    current_nedge=[sss for sss in point_map[current_point] if sss!=current_line and is_parallel(current_line,sss,segmentation_config.is_parallel_tolerance)]
-                    if len(current_nedge)==0:
-                        break
-                    current_line=current_nedge[0]
-                    total_length+=current_line.length()
-                    current_point=current_line.start_point if current_line.start_point!=current_point else current_line.end_point
-                # print(total_length)
-                if total_length<100 or total_length>2000:
-                    flag=False
-                if flag and current_point not in text_pos_map:
-                    text_pos_map[current_point]=set()
-                    text_pos_map[current_point].add(h1e[i])
-                    if h1e[i] not in text_set:
-                        text_set.add(h1e[i])
-                    h1e[i].textpos=True
-                elif flag:
-                    text_pos_map[current_point].add(h1e[i])
-                    if h1e[i] not in text_set:
-                        text_set.add(h1e[i])
-                    h1e[i].textpos=True
-                if flag==False:
-                    break
+        if len(point_map[line.start_point])==1 or len(point_map[line.end_point])==1:
+            if len(point_map[line.start_point])==1:
+                p=line.end_point
+            else:
+                p=line.start_point
+            
+            ns=[s for s in point_map[p] if s!=line and s.length()>segmentation_config.reference_line_min_length] 
+            sr=[s.ref for s in point_map[p] if s.length()>segmentation_config.reference_line_min_length  and (isinstance(s.ref, DLine) or isinstance(s.ref,DLwpolyline)) and s!=line and angleOfTwoSegmentsWithCommonStarter(p,s,line)>segmentation_config.reference_min_angle and angleOfTwoSegmentsWithCommonStarter(p,s,line)<segmentation_config.reference_max_angle]
+            ss=[s for s in point_map[p] if s.length()>segmentation_config.reference_line_min_length  and (isinstance(s.ref, DLine) or isinstance(s.ref,DLwpolyline)) and s!=line and angleOfTwoSegmentsWithCommonStarter(p,s,line)>segmentation_config.reference_min_angle and angleOfTwoSegmentsWithCommonStarter(p,s,line)<segmentation_config.reference_max_angle]
+            flag=checkReferenceLine(p,ns,ss,segmentation_config)
             if flag:
-                reference_lines.extend(refs)
-                reference_lines.append(line.ref)
+                refs=[]
+                for j,s in enumerate(ss):
+                    refs.append(sr[j])
+                    start_point=p
+                    current_point=s.start_point if s.start_point!=start_point else s.end_point
+                    current_line=s
+                    k=0
+                    total_length=current_line.length()
+                    while True:
+                        # print(k)
+                        k+=1
+                        if k>10:
+                            flag=False
+                            break
+                        if len(point_map[current_point])<=1:
+                            break
+                        current_nedge=[sss for sss in point_map[current_point] if sss!=current_line and is_parallel(current_line,sss,segmentation_config.is_parallel_tolerance)]
+                        if len(current_nedge)==0:
+                            break
+                        current_line=current_nedge[0]
+                        total_length+=current_line.length()
+                        current_point=current_line.start_point if current_line.start_point!=current_point else current_line.end_point
+                    # print(total_length)
+                    if total_length<100 or total_length>2000:
+                        flag=False
+                    if flag and current_point not in text_pos_map:
+                        text_pos_map[current_point]=set()
+                        text_pos_map[current_point].add(h1e[i])
+                        if h1e[i] not in text_set:
+                            text_set.add(h1e[i])
+                        h1e[i].textpos=True
+                    elif flag:
+                        text_pos_map[current_point].add(h1e[i])
+                        if h1e[i] not in text_set:
+                            text_set.add(h1e[i])
+                        h1e[i].textpos=True
+                    if flag==False:
+                        break
+                if flag:
+                    reference_lines.extend(refs)
+                    reference_lines.append(line.ref)
+        else:
+
+            p=line.start_point
+            
+            ns=[s for s in point_map[p] if s!=line and s.length()>segmentation_config.reference_line_min_length] 
+            sr=[s.ref for s in point_map[p] if s.length()>segmentation_config.reference_line_min_length  and (isinstance(s.ref, DLine) or isinstance(s.ref,DLwpolyline)) and s!=line and angleOfTwoSegmentsWithCommonStarter(p,s,line)>segmentation_config.reference_min_angle and angleOfTwoSegmentsWithCommonStarter(p,s,line)<segmentation_config.reference_max_angle]
+            ss=[s for s in point_map[p] if s.length()>segmentation_config.reference_line_min_length  and (isinstance(s.ref, DLine) or isinstance(s.ref,DLwpolyline)) and s!=line and angleOfTwoSegmentsWithCommonStarter(p,s,line)>segmentation_config.reference_min_angle and angleOfTwoSegmentsWithCommonStarter(p,s,line)<segmentation_config.reference_max_angle]
+            flag=checkReferenceLine(p,ns,ss,segmentation_config)
+            if flag:
+                refs=[]
+                for j,s in enumerate(ss):
+                    refs.append(sr[j])
+                    start_point=p
+                    current_point=s.start_point if s.start_point!=start_point else s.end_point
+                    current_line=s
+                    k=0
+                    total_length=current_line.length()
+                    while True:
+                        # print(k)
+                        k+=1
+                        if k>5:
+                            flag=False
+                            break
+                        if len(point_map[current_point])<=1:
+                            break
+                        current_nedge=[sss for sss in point_map[current_point] if sss!=current_line and is_parallel(current_line,sss,segmentation_config.is_parallel_tolerance)]
+                        if len(current_nedge)==0:
+                            break
+                        current_line=current_nedge[0]
+                        total_length+=current_line.length()
+                        current_point=current_line.start_point if current_line.start_point!=current_point else current_line.end_point
+                    # print(total_length)
+                    if total_length<100 or total_length>2000:
+                        flag=False
+                    if flag and current_point not in text_pos_map:
+                        text_pos_map[current_point]=set()
+                        text_pos_map[current_point].add(h1e[i])
+                        if h1e[i] not in text_set:
+                            text_set.add(h1e[i])
+                        h1e[i].textpos=True
+                    elif flag:
+                        text_pos_map[current_point].add(h1e[i])
+                        if h1e[i] not in text_set:
+                            text_set.add(h1e[i])
+                        h1e[i].textpos=True
+                    if flag==False:
+                        break
+                if flag:
+                    reference_lines.extend(refs)
+                    reference_lines.append(line.ref)
+
+
+            p=line.end_point
+            
+            ns=[s for s in point_map[p] if s!=line and s.length()>segmentation_config.reference_line_min_length] 
+            sr=[s.ref for s in point_map[p] if s.length()>segmentation_config.reference_line_min_length  and (isinstance(s.ref, DLine) or isinstance(s.ref,DLwpolyline)) and s!=line and angleOfTwoSegmentsWithCommonStarter(p,s,line)>segmentation_config.reference_min_angle and angleOfTwoSegmentsWithCommonStarter(p,s,line)<segmentation_config.reference_max_angle]
+            ss=[s for s in point_map[p] if s.length()>segmentation_config.reference_line_min_length  and (isinstance(s.ref, DLine) or isinstance(s.ref,DLwpolyline)) and s!=line and angleOfTwoSegmentsWithCommonStarter(p,s,line)>segmentation_config.reference_min_angle and angleOfTwoSegmentsWithCommonStarter(p,s,line)<segmentation_config.reference_max_angle]
+            flag=checkReferenceLine(p,ns,ss,segmentation_config)
+            if flag:
+                refs=[]
+                for j,s in enumerate(ss):
+                    refs.append(sr[j])
+                    start_point=p
+                    current_point=s.start_point if s.start_point!=start_point else s.end_point
+                    current_line=s
+                    k=0
+                    total_length=current_line.length()
+                    while True:
+                        # print(k)
+                        k+=1
+                        if k>5:
+                            flag=False
+                            break
+                        if len(point_map[current_point])<=1:
+                            break
+                        current_nedge=[sss for sss in point_map[current_point] if sss!=current_line and is_parallel(current_line,sss,segmentation_config.is_parallel_tolerance)]
+                        if len(current_nedge)==0:
+                            break
+                        current_line=current_nedge[0]
+                        total_length+=current_line.length()
+                        current_point=current_line.start_point if current_line.start_point!=current_point else current_line.end_point
+                    # print(total_length)
+                    if total_length<100 or total_length>2000:
+                        flag=False
+                    if flag and current_point not in text_pos_map:
+                        text_pos_map[current_point]=set()
+                        text_pos_map[current_point].add(h1e[i])
+                        if h1e[i] not in text_set:
+                            text_set.add(h1e[i])
+                        h1e[i].textpos=True
+                    elif flag:
+                        text_pos_map[current_point].add(h1e[i])
+                        if h1e[i] not in text_set:
+                            text_set.add(h1e[i])
+                        h1e[i].textpos=True
+                    if flag==False:
+                        break
+                if flag:
+                    reference_lines.extend(refs)
+                    reference_lines.append(line.ref)
     for i,line in enumerate(hl2):
-        if len(point_map[line.start_point])==1:
-            p=line.end_point
+        if len(point_map[line.start_point])==1 or len(point_map[line.end_point])==1:
+            if len(point_map[line.start_point])==1:
+                p=line.end_point
+            else:
+                p=line.start_point
+            ns=[s for s in point_map[p] if s!=line and s.length()>segmentation_config.reference_line_min_length] 
+            sr=[s.ref for s in point_map[p] if s.length()>segmentation_config.reference_line_min_length  and (isinstance(s.ref, DLine) or isinstance(s.ref,DLwpolyline)) and s!=line and angleOfTwoSegmentsWithCommonStarter(p,s,line)>segmentation_config.reference_min_angle and angleOfTwoSegmentsWithCommonStarter(p,s,line)<segmentation_config.reference_max_angle]
+            ss=[s for s in point_map[p] if s.length()>segmentation_config.reference_line_min_length  and (isinstance(s.ref, DLine) or isinstance(s.ref,DLwpolyline)) and s!=line and angleOfTwoSegmentsWithCommonStarter(p,s,line)>segmentation_config.reference_min_angle and angleOfTwoSegmentsWithCommonStarter(p,s,line)<segmentation_config.reference_max_angle]
+            flag=checkReferenceLine(p,ns,ss,segmentation_config)
+            if flag:
+                refs=[]
+                for j,s in enumerate(ss):
+                    refs.append(sr[j])
+                    start_point=p
+                    current_point=s.start_point if s.start_point!=start_point else s.end_point
+                    current_line=s
+                    total_length=current_line.length()
+                    k=0
+                    while True:
+                        k+=1
+                        if k>10:
+                            flag=False
+                            break
+                        if len(point_map[current_point])<=1:
+                            break
+                        current_nedge=[sss for sss in point_map[current_point] if sss!=current_line and is_parallel(current_line,sss,segmentation_config.is_parallel_tolerance)]
+                        if len(current_nedge)==0:
+                            break
+                        current_line=current_nedge[0]
+                        total_length+=current_line.length()
+                        current_point=current_line.start_point if current_line.start_point!=current_point else current_line.end_point
+                    # print(total_length)
+                    if total_length<100 or total_length>2000:
+                        flag=False
+                    if flag and current_point not in text_pos_map2:
+                        text_pos_map2[current_point]=set()
+                        text_pos_map2[current_point].add(h2e[i])
+                        if h2e[i] not in text_set2:
+                            text_set2.add(h2e[i])
+                        h2e[i].textpos=True
+                    elif flag:
+                        text_pos_map2[current_point].add(h2e[i])
+                        if h2e[i] not in text_set2:
+                            text_set2.add(h2e[i])
+                        h2e[i].textpos=True
+                    if flag==False:
+                        break
+                if flag:
+                    reference_lines.extend(refs)
+                    reference_lines.append(line.ref)
         else:
             p=line.start_point
-        ns=[s for s in point_map[p] if s!=line and s.length()>segmentation_config.reference_line_min_length] 
-        sr=[s.ref for s in point_map[p] if s.length()>segmentation_config.reference_line_min_length  and (isinstance(s.ref, DLine) or isinstance(s.ref,DLwpolyline)) and s!=line and angleOfTwoSegmentsWithCommonStarter(p,s,line)>segmentation_config.reference_min_angle and angleOfTwoSegmentsWithCommonStarter(p,s,line)<segmentation_config.reference_max_angle]
-        ss=[s for s in point_map[p] if s.length()>segmentation_config.reference_line_min_length  and (isinstance(s.ref, DLine) or isinstance(s.ref,DLwpolyline)) and s!=line and angleOfTwoSegmentsWithCommonStarter(p,s,line)>segmentation_config.reference_min_angle and angleOfTwoSegmentsWithCommonStarter(p,s,line)<segmentation_config.reference_max_angle]
-        flag=checkReferenceLine(p,ns,ss,segmentation_config)
-        if flag:
-            refs=[]
-            for j,s in enumerate(ss):
-                refs.append(sr[j])
-                start_point=p
-                current_point=s.start_point if s.start_point!=start_point else s.end_point
-                current_line=s
-                total_length=current_line.length()
-                k=0
-                while True:
-                    k+=1
-                    if k>10:
-                        flag=False
-                        break
-                    if len(point_map[current_point])<=1:
-                        break
-                    current_nedge=[sss for sss in point_map[current_point] if sss!=current_line and is_parallel(current_line,sss,segmentation_config.is_parallel_tolerance)]
-                    if len(current_nedge)==0:
-                        break
-                    current_line=current_nedge[0]
-                    total_length+=current_line.length()
-                    current_point=current_line.start_point if current_line.start_point!=current_point else current_line.end_point
-                # print(total_length)
-                if total_length<100 or total_length>2000:
-                    flag=False
-                if flag and current_point not in text_pos_map2:
-                    text_pos_map2[current_point]=set()
-                    text_pos_map2[current_point].add(h2e[i])
-                    if h2e[i] not in text_set2:
-                        text_set2.add(h2e[i])
-                    h2e[i].textpos=True
-                elif flag:
-                    text_pos_map2[current_point].add(h2e[i])
-                    if h2e[i] not in text_set2:
-                        text_set2.add(h2e[i])
-                    h2e[i].textpos=True
-                if flag==False:
-                    break
+            ns=[s for s in point_map[p] if s!=line and s.length()>segmentation_config.reference_line_min_length] 
+            sr=[s.ref for s in point_map[p] if s.length()>segmentation_config.reference_line_min_length  and (isinstance(s.ref, DLine) or isinstance(s.ref,DLwpolyline)) and s!=line and angleOfTwoSegmentsWithCommonStarter(p,s,line)>segmentation_config.reference_min_angle and angleOfTwoSegmentsWithCommonStarter(p,s,line)<segmentation_config.reference_max_angle]
+            ss=[s for s in point_map[p] if s.length()>segmentation_config.reference_line_min_length  and (isinstance(s.ref, DLine) or isinstance(s.ref,DLwpolyline)) and s!=line and angleOfTwoSegmentsWithCommonStarter(p,s,line)>segmentation_config.reference_min_angle and angleOfTwoSegmentsWithCommonStarter(p,s,line)<segmentation_config.reference_max_angle]
+            flag=checkReferenceLine(p,ns,ss,segmentation_config)
             if flag:
-                reference_lines.extend(refs)
-                reference_lines.append(line.ref)
+                refs=[]
+                for j,s in enumerate(ss):
+                    refs.append(sr[j])
+                    start_point=p
+                    current_point=s.start_point if s.start_point!=start_point else s.end_point
+                    current_line=s
+                    total_length=current_line.length()
+                    k=0
+                    while True:
+                        k+=1
+                        if k>5:
+                            flag=False
+                            break
+                        if len(point_map[current_point])<=1:
+                            break
+                        current_nedge=[sss for sss in point_map[current_point] if sss!=current_line and is_parallel(current_line,sss,segmentation_config.is_parallel_tolerance)]
+                        if len(current_nedge)==0:
+                            break
+                        current_line=current_nedge[0]
+                        total_length+=current_line.length()
+                        current_point=current_line.start_point if current_line.start_point!=current_point else current_line.end_point
+                    # print(total_length)
+                    if total_length<100 or total_length>2000:
+                        flag=False
+                    if flag and current_point not in text_pos_map2:
+                        text_pos_map2[current_point]=set()
+                        text_pos_map2[current_point].add(h2e[i])
+                        if h2e[i] not in text_set2:
+                            text_set2.add(h2e[i])
+                        h2e[i].textpos=True
+                    elif flag:
+                        text_pos_map2[current_point].add(h2e[i])
+                        if h2e[i] not in text_set2:
+                            text_set2.add(h2e[i])
+                        h2e[i].textpos=True
+                    if flag==False:
+                        break
+                if flag:
+                    reference_lines.extend(refs)
+                    reference_lines.append(line.ref)
+
+            p=line.end_point
+            ns=[s for s in point_map[p] if s!=line and s.length()>segmentation_config.reference_line_min_length] 
+            sr=[s.ref for s in point_map[p] if s.length()>segmentation_config.reference_line_min_length  and (isinstance(s.ref, DLine) or isinstance(s.ref,DLwpolyline)) and s!=line and angleOfTwoSegmentsWithCommonStarter(p,s,line)>segmentation_config.reference_min_angle and angleOfTwoSegmentsWithCommonStarter(p,s,line)<segmentation_config.reference_max_angle]
+            ss=[s for s in point_map[p] if s.length()>segmentation_config.reference_line_min_length  and (isinstance(s.ref, DLine) or isinstance(s.ref,DLwpolyline)) and s!=line and angleOfTwoSegmentsWithCommonStarter(p,s,line)>segmentation_config.reference_min_angle and angleOfTwoSegmentsWithCommonStarter(p,s,line)<segmentation_config.reference_max_angle]
+            flag=checkReferenceLine(p,ns,ss,segmentation_config)
+            if flag:
+                refs=[]
+                for j,s in enumerate(ss):
+                    refs.append(sr[j])
+                    start_point=p
+                    current_point=s.start_point if s.start_point!=start_point else s.end_point
+                    current_line=s
+                    total_length=current_line.length()
+                    k=0
+                    while True:
+                        k+=1
+                        if k>5:
+                            flag=False
+                            break
+                        if len(point_map[current_point])<=1:
+                            break
+                        current_nedge=[sss for sss in point_map[current_point] if sss!=current_line and is_parallel(current_line,sss,segmentation_config.is_parallel_tolerance)]
+                        if len(current_nedge)==0:
+                            break
+                        current_line=current_nedge[0]
+                        total_length+=current_line.length()
+                        current_point=current_line.start_point if current_line.start_point!=current_point else current_line.end_point
+                    # print(total_length)
+                    if total_length<100 or total_length>2000:
+                        flag=False
+                    if flag and current_point not in text_pos_map2:
+                        text_pos_map2[current_point]=set()
+                        text_pos_map2[current_point].add(h2e[i])
+                        if h2e[i] not in text_set2:
+                            text_set2.add(h2e[i])
+                        h2e[i].textpos=True
+                    elif flag:
+                        text_pos_map2[current_point].add(h2e[i])
+                        if h2e[i] not in text_set2:
+                            text_set2.add(h2e[i])
+                        h2e[i].textpos=True
+                    if flag==False:
+                        break
+                if flag:
+                    reference_lines.extend(refs)
+                    reference_lines.append(line.ref)
     print(len(reference_lines)*len(initial_segments))
     new_segments=[]
     removed_segments=[]
