@@ -42,7 +42,7 @@
     "no_free_code":[[], [], ["long_anno"], [], []]
   },
   "DPK(R)":{
-    "free_edges": ["toe", "arc", "line", "arc", "line"],
+    "free_edges": ["toe", "arc", "line", "arc", "toe","KS_corner"],
     "non_free_edges": [{
       "type": "constraint",
       "edges": ["line"]
@@ -60,7 +60,7 @@
       "edges": ["line"]
       }],
   
-    "free_code": [[], ["no_tangent", "is_ontoe"], ["toe_angle", "cons_vert", "is_para", "short_anno"], ["no_tangent"], ["is_para"]],
+    "free_code": [[], ["no_tangent","is_ontoe"], ["is_para","toe_angle","cons_vert","short_anno"], ["no_tangent" ,"is_ontoe"], ["D"],[]],
     "no_free_code":[[], [], [], [], []]
   },
   "DPK(R-KS)":{

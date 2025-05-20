@@ -2218,6 +2218,7 @@ def calculate_poly_features(poly, segments, segmentation_config, point_map, inde
             has_B_anno=True
             break
     has_B_hint=False
+    has_fb=False
     for t_t in tis:
         content=t_t[0].content.strip()
         if t_t[2]["Type"]=="BK":
@@ -2232,8 +2233,11 @@ def calculate_poly_features(poly, segments, segmentation_config, point_map, inde
                 thickness=bracket_parameter["Thickness"]
         if t_t[2]["Type"]=="FB" or t_t[2]["Type"]=="FL":
             strengthen_parameter=t_t[2]
+            has_fb=True
 
     if has_B_hint==True and has_B_anno==False:
+        is_standard_elbow=False
+    if has_B_hint==False and has_fb==True:
         is_standard_elbow=False
     for t_t in tis:
         content=t_t[0].content.strip()

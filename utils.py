@@ -2177,7 +2177,7 @@ def process_intersections(chunck,segments,point_map,segmentation_config):
                         s=seg2
         if s is not None:
             text_pos=seg1.start_point
-            if (text_pos.y-y_max)<=segmentation_config.reference_text_max_distance and (s.ref.color==7 or s.ref.color==1) and (len(point_map[s.start_point])==1 or len(point_map[s.end_point])==1):
+            if (text_pos.y-y_max)<=segmentation_config.reference_text_max_distance and (s.ref.color==7 or s.ref.color==1) and ((len(point_map[s.start_point])==1 and  len(point_map[s.end_point])>1) or (len(point_map[s.start_point])>1 and  len(point_map[s.end_point])==1)):
                 horizontal_line.append(s)
                 h1e.append(v1e[i])
             elif (text_pos.y-y_max)<=segmentation_config.reference_text_max_distance and (s.ref.color==7 or s.ref.color==1) and (len(point_map[s.start_point])>1 and  len(point_map[s.end_point])>1) and math.fabs(s.start_point.y-s.end_point.y)<5:
@@ -2212,7 +2212,7 @@ def process_intersections2(chunck,segments,point_map,segmentation_config):
                         s=seg2
         if s is not None:
             text_pos=seg1.start_point
-            if (y_min-text_pos.y)<=segmentation_config.reference_text_max_distance and (s.ref.color==7 or s.ref.color==1) and (len(point_map[s.start_point])==1 or len(point_map[s.end_point])==1):
+            if (y_min-text_pos.y)<=segmentation_config.reference_text_max_distance and (s.ref.color==7 or s.ref.color==1) and ((len(point_map[s.start_point])==1 and  len(point_map[s.end_point])>1) or (len(point_map[s.start_point])>1 and  len(point_map[s.end_point])==1)):
                 hl2.append(s)
                 h2e.append(v2e[i])
             elif (y_min-text_pos.y)<=segmentation_config.reference_text_max_distance and (s.ref.color==7 or s.ref.color==1) and (len(point_map[s.start_point])>1 and len(point_map[s.end_point])>1) and math.fabs(s.start_point.y-s.end_point.y)<5:
@@ -2234,7 +2234,7 @@ def checkReferenceLine(p,ns,ss,segmentation_config):
 def removeReferenceLines(elements,texts,initial_segments,all_segments,point_map,segmentation_config):
 
 
-    #TODO:U型引线的去除
+ 
 
 
     vertical_lines=[]
@@ -2312,7 +2312,7 @@ def removeReferenceLines(elements,texts,initial_segments,all_segments,point_map,
     text_pos_map2={}
     text_set2=set()
     for i,line in enumerate(horizontal_line):
-        if len(point_map[line.start_point])==1 or len(point_map[line.end_point])==1:
+        if (len(point_map[line.start_point])==1 and  len(point_map[line.end_point])>1) or (len(point_map[line.start_point])>1 and  len(point_map[line.end_point])==1):
             if len(point_map[line.start_point])==1:
                 p=line.end_point
             else:
@@ -2339,8 +2339,9 @@ def removeReferenceLines(elements,texts,initial_segments,all_segments,point_map,
                             break
                         if len(point_map[current_point])<=1:
                             break
-                        current_nedge=[sss for sss in point_map[current_point] if sss!=current_line and is_parallel(current_line,sss,segmentation_config.is_parallel_tolerance)]
+                        current_nedge=[sss for sss in point_map[current_point] if sss!=current_line and is_parallel(current_line,sss,segmentation_config.is_parallel_tolerance) and sss.length()>20]
                         if len(current_nedge)==0:
+                            flag=False
                             break
                         current_line=current_nedge[0]
                         total_length+=current_line.length()
@@ -2371,11 +2372,13 @@ def removeReferenceLines(elements,texts,initial_segments,all_segments,point_map,
             ns=[s for s in point_map[p] if s!=line and s.length()>segmentation_config.reference_line_min_length] 
             sr=[s.ref for s in point_map[p] if s.length()>segmentation_config.reference_line_min_length  and (isinstance(s.ref, DLine) or isinstance(s.ref,DLwpolyline)) and s!=line and angleOfTwoSegmentsWithCommonStarter(p,s,line)>segmentation_config.reference_min_angle and angleOfTwoSegmentsWithCommonStarter(p,s,line)<segmentation_config.reference_max_angle]
             ss=[s for s in point_map[p] if s.length()>segmentation_config.reference_line_min_length  and (isinstance(s.ref, DLine) or isinstance(s.ref,DLwpolyline)) and s!=line and angleOfTwoSegmentsWithCommonStarter(p,s,line)>segmentation_config.reference_min_angle and angleOfTwoSegmentsWithCommonStarter(p,s,line)<segmentation_config.reference_max_angle]
-            flag=checkReferenceLine(p,ns,ss,segmentation_config)
-            if flag:
-                refs=[]
+            flag1=checkReferenceLine(p,ns,ss,segmentation_config)
+            cp1=[]
+            refs1=[]
+            if flag1:
+                
                 for j,s in enumerate(ss):
-                    refs.append(sr[j])
+                    refs1.append(sr[j])
                     start_point=p
                     current_point=s.start_point if s.start_point!=start_point else s.end_point
                     current_line=s
@@ -2385,35 +2388,38 @@ def removeReferenceLines(elements,texts,initial_segments,all_segments,point_map,
                         # print(k)
                         k+=1
                         if k>5:
-                            flag=False
+                            flag1=False
                             break
                         if len(point_map[current_point])<=1:
                             break
-                        current_nedge=[sss for sss in point_map[current_point] if sss!=current_line and is_parallel(current_line,sss,segmentation_config.is_parallel_tolerance)]
+                        current_nedge=[sss for sss in point_map[current_point] if sss!=current_line and is_parallel(current_line,sss,segmentation_config.is_parallel_tolerance) and sss.length()>20]
                         if len(current_nedge)==0:
+                            flag1=False
                             break
                         current_line=current_nedge[0]
                         total_length+=current_line.length()
                         current_point=current_line.start_point if current_line.start_point!=current_point else current_line.end_point
                     # print(total_length)
                     if total_length<100 or total_length>2000:
-                        flag=False
-                    if flag and current_point not in text_pos_map:
-                        text_pos_map[current_point]=set()
-                        text_pos_map[current_point].add(h1e[i])
-                        if h1e[i] not in text_set:
-                            text_set.add(h1e[i])
-                        h1e[i].textpos=True
-                    elif flag:
-                        text_pos_map[current_point].add(h1e[i])
-                        if h1e[i] not in text_set:
-                            text_set.add(h1e[i])
-                        h1e[i].textpos=True
-                    if flag==False:
+                        flag1=False
+                    if flag1:
+                        cp1.append(current_point)
+                    # if flag and current_point not in text_pos_map:
+                    #     text_pos_map[current_point]=set()
+                    #     text_pos_map[current_point].add(h1e[i])
+                    #     if h1e[i] not in text_set:
+                    #         text_set.add(h1e[i])
+                    #     h1e[i].textpos=True
+                    # elif flag:
+                    #     text_pos_map[current_point].add(h1e[i])
+                    #     if h1e[i] not in text_set:
+                    #         text_set.add(h1e[i])
+                    #     h1e[i].textpos=True
+                    if flag1==False:
                         break
-                if flag:
-                    reference_lines.extend(refs)
-                    reference_lines.append(line.ref)
+                # if flag:
+                #     reference_lines.extend(refs)
+                #     reference_lines.append(line.ref)
 
 
             p=line.end_point
@@ -2421,11 +2427,14 @@ def removeReferenceLines(elements,texts,initial_segments,all_segments,point_map,
             ns=[s for s in point_map[p] if s!=line and s.length()>segmentation_config.reference_line_min_length] 
             sr=[s.ref for s in point_map[p] if s.length()>segmentation_config.reference_line_min_length  and (isinstance(s.ref, DLine) or isinstance(s.ref,DLwpolyline)) and s!=line and angleOfTwoSegmentsWithCommonStarter(p,s,line)>segmentation_config.reference_min_angle and angleOfTwoSegmentsWithCommonStarter(p,s,line)<segmentation_config.reference_max_angle]
             ss=[s for s in point_map[p] if s.length()>segmentation_config.reference_line_min_length  and (isinstance(s.ref, DLine) or isinstance(s.ref,DLwpolyline)) and s!=line and angleOfTwoSegmentsWithCommonStarter(p,s,line)>segmentation_config.reference_min_angle and angleOfTwoSegmentsWithCommonStarter(p,s,line)<segmentation_config.reference_max_angle]
-            flag=checkReferenceLine(p,ns,ss,segmentation_config)
-            if flag:
-                refs=[]
+            flag2=checkReferenceLine(p,ns,ss,segmentation_config)
+            cp2=[]
+            cn2=[]
+            refs2=[]
+            if flag2:
+                
                 for j,s in enumerate(ss):
-                    refs.append(sr[j])
+                    refs2.append(sr[j])
                     start_point=p
                     current_point=s.start_point if s.start_point!=start_point else s.end_point
                     current_line=s
@@ -2435,37 +2444,57 @@ def removeReferenceLines(elements,texts,initial_segments,all_segments,point_map,
                         # print(k)
                         k+=1
                         if k>5:
-                            flag=False
+                            flag2=False
                             break
                         if len(point_map[current_point])<=1:
                             break
-                        current_nedge=[sss for sss in point_map[current_point] if sss!=current_line and is_parallel(current_line,sss,segmentation_config.is_parallel_tolerance)]
+                        current_nedge=[sss for sss in point_map[current_point] if sss!=current_line and is_parallel(current_line,sss,segmentation_config.is_parallel_tolerance) and sss.length()>20]
                         if len(current_nedge)==0:
+                            flag2=False
                             break
                         current_line=current_nedge[0]
                         total_length+=current_line.length()
                         current_point=current_line.start_point if current_line.start_point!=current_point else current_line.end_point
                     # print(total_length)
                     if total_length<100 or total_length>2000:
-                        flag=False
-                    if flag and current_point not in text_pos_map:
+                        flag2=False
+                    if flag2:
+                        cp2.append(current_point)
+                        cn2.append(current_line)
+                    # if flag and current_point not in text_pos_map:
+                    #     text_pos_map[current_point]=set()
+                    #     text_pos_map[current_point].add(h1e[i])
+                    #     if h1e[i] not in text_set:
+                    #         text_set.add(h1e[i])
+                    #     h1e[i].textpos=True
+                    # elif flag:
+                    #     text_pos_map[current_point].add(h1e[i])
+                    #     if h1e[i] not in text_set:
+                    #         text_set.add(h1e[i])
+                    #     h1e[i].textpos=True
+                    if flag2==False:
+                        break
+                # if flag:
+                #     reference_lines.extend(refs)
+                #     reference_lines.append(line.ref)
+            flag=flag1 and flag2
+            if flag:
+                for current_point in cp1+cp2:
+                    if current_point not in text_pos_map:
                         text_pos_map[current_point]=set()
                         text_pos_map[current_point].add(h1e[i])
                         if h1e[i] not in text_set:
                             text_set.add(h1e[i])
                         h1e[i].textpos=True
-                    elif flag:
+                    else :
                         text_pos_map[current_point].add(h1e[i])
                         if h1e[i] not in text_set:
                             text_set.add(h1e[i])
                         h1e[i].textpos=True
-                    if flag==False:
-                        break
-                if flag:
-                    reference_lines.extend(refs)
-                    reference_lines.append(line.ref)
+                reference_lines.extend(refs1+refs2)
+                reference_lines.append(line.ref)
     for i,line in enumerate(hl2):
-        if len(point_map[line.start_point])==1 or len(point_map[line.end_point])==1:
+        if (len(point_map[line.start_point])==1 and  len(point_map[line.end_point])>1) or (len(point_map[line.start_point])>1 and  len(point_map[line.end_point])==1):
             if len(point_map[line.start_point])==1:
                 p=line.end_point
             else:
@@ -2490,8 +2519,9 @@ def removeReferenceLines(elements,texts,initial_segments,all_segments,point_map,
                             break
                         if len(point_map[current_point])<=1:
                             break
-                        current_nedge=[sss for sss in point_map[current_point] if sss!=current_line and is_parallel(current_line,sss,segmentation_config.is_parallel_tolerance)]
+                        current_nedge=[sss for sss in point_map[current_point] if sss!=current_line and is_parallel(current_line,sss,segmentation_config.is_parallel_tolerance) and sss.length()>20]
                         if len(current_nedge)==0:
+                            flag=False
                             break
                         current_line=current_nedge[0]
                         total_length+=current_line.length()
@@ -2520,11 +2550,12 @@ def removeReferenceLines(elements,texts,initial_segments,all_segments,point_map,
             ns=[s for s in point_map[p] if s!=line and s.length()>segmentation_config.reference_line_min_length] 
             sr=[s.ref for s in point_map[p] if s.length()>segmentation_config.reference_line_min_length  and (isinstance(s.ref, DLine) or isinstance(s.ref,DLwpolyline)) and s!=line and angleOfTwoSegmentsWithCommonStarter(p,s,line)>segmentation_config.reference_min_angle and angleOfTwoSegmentsWithCommonStarter(p,s,line)<segmentation_config.reference_max_angle]
             ss=[s for s in point_map[p] if s.length()>segmentation_config.reference_line_min_length  and (isinstance(s.ref, DLine) or isinstance(s.ref,DLwpolyline)) and s!=line and angleOfTwoSegmentsWithCommonStarter(p,s,line)>segmentation_config.reference_min_angle and angleOfTwoSegmentsWithCommonStarter(p,s,line)<segmentation_config.reference_max_angle]
-            flag=checkReferenceLine(p,ns,ss,segmentation_config)
-            if flag:
-                refs=[]
+            flag1=checkReferenceLine(p,ns,ss,segmentation_config)
+            cp1=[]
+            refs1=[]
+            if flag1:
                 for j,s in enumerate(ss):
-                    refs.append(sr[j])
+                    refs1.append(sr[j])
                     start_point=p
                     current_point=s.start_point if s.start_point!=start_point else s.end_point
                     current_line=s
@@ -2533,45 +2564,50 @@ def removeReferenceLines(elements,texts,initial_segments,all_segments,point_map,
                     while True:
                         k+=1
                         if k>5:
-                            flag=False
+                            flag1=False
                             break
                         if len(point_map[current_point])<=1:
                             break
-                        current_nedge=[sss for sss in point_map[current_point] if sss!=current_line and is_parallel(current_line,sss,segmentation_config.is_parallel_tolerance)]
+                        current_nedge=[sss for sss in point_map[current_point] if sss!=current_line and is_parallel(current_line,sss,segmentation_config.is_parallel_tolerance) and sss.length()>20]
                         if len(current_nedge)==0:
+                            flag1=False
                             break
                         current_line=current_nedge[0]
                         total_length+=current_line.length()
                         current_point=current_line.start_point if current_line.start_point!=current_point else current_line.end_point
                     # print(total_length)
                     if total_length<100 or total_length>2000:
-                        flag=False
-                    if flag and current_point not in text_pos_map2:
-                        text_pos_map2[current_point]=set()
-                        text_pos_map2[current_point].add(h2e[i])
-                        if h2e[i] not in text_set2:
-                            text_set2.add(h2e[i])
-                        h2e[i].textpos=True
-                    elif flag:
-                        text_pos_map2[current_point].add(h2e[i])
-                        if h2e[i] not in text_set2:
-                            text_set2.add(h2e[i])
-                        h2e[i].textpos=True
-                    if flag==False:
+                        flag1=False
+                    if flag1:
+                        cp1.append(current_point)
+                    # if flag and current_point not in text_pos_map2:
+                    #     text_pos_map2[current_point]=set()
+                    #     text_pos_map2[current_point].add(h2e[i])
+                    #     if h2e[i] not in text_set2:
+                    #         text_set2.add(h2e[i])
+                    #     h2e[i].textpos=True
+                    # elif flag:
+                    #     text_pos_map2[current_point].add(h2e[i])
+                    #     if h2e[i] not in text_set2:
+                    #         text_set2.add(h2e[i])
+                    #     h2e[i].textpos=True
+                    if flag1==False:
                         break
-                if flag:
-                    reference_lines.extend(refs)
-                    reference_lines.append(line.ref)
+                # if flag:
+                #     reference_lines.extend(refs)
+                #     reference_lines.append(line.ref)
 
             p=line.end_point
             ns=[s for s in point_map[p] if s!=line and s.length()>segmentation_config.reference_line_min_length] 
             sr=[s.ref for s in point_map[p] if s.length()>segmentation_config.reference_line_min_length  and (isinstance(s.ref, DLine) or isinstance(s.ref,DLwpolyline)) and s!=line and angleOfTwoSegmentsWithCommonStarter(p,s,line)>segmentation_config.reference_min_angle and angleOfTwoSegmentsWithCommonStarter(p,s,line)<segmentation_config.reference_max_angle]
             ss=[s for s in point_map[p] if s.length()>segmentation_config.reference_line_min_length  and (isinstance(s.ref, DLine) or isinstance(s.ref,DLwpolyline)) and s!=line and angleOfTwoSegmentsWithCommonStarter(p,s,line)>segmentation_config.reference_min_angle and angleOfTwoSegmentsWithCommonStarter(p,s,line)<segmentation_config.reference_max_angle]
-            flag=checkReferenceLine(p,ns,ss,segmentation_config)
-            if flag:
-                refs=[]
+            flag2=checkReferenceLine(p,ns,ss,segmentation_config)
+            cp2=[]
+            refs2=[]
+            if flag2:
+                # refs=[]
                 for j,s in enumerate(ss):
-                    refs.append(sr[j])
+                    refs2.append(sr[j])
                     start_point=p
                     current_point=s.start_point if s.start_point!=start_point else s.end_point
                     current_line=s
@@ -2580,38 +2616,58 @@ def removeReferenceLines(elements,texts,initial_segments,all_segments,point_map,
                     while True:
                         k+=1
                         if k>5:
-                            flag=False
+                            flag2=False
                             break
                         if len(point_map[current_point])<=1:
                             break
-                        current_nedge=[sss for sss in point_map[current_point] if sss!=current_line and is_parallel(current_line,sss,segmentation_config.is_parallel_tolerance)]
+                        current_nedge=[sss for sss in point_map[current_point] if sss!=current_line and is_parallel(current_line,sss,segmentation_config.is_parallel_tolerance) and sss.length()>20]
                         if len(current_nedge)==0:
+                            flag2=False
                             break
                         current_line=current_nedge[0]
                         total_length+=current_line.length()
                         current_point=current_line.start_point if current_line.start_point!=current_point else current_line.end_point
                     # print(total_length)
                     if total_length<100 or total_length>2000:
-                        flag=False
-                    if flag and current_point not in text_pos_map2:
+                        flag2=False
+                    # if flag and current_point not in text_pos_map2:
+                    #     text_pos_map2[current_point]=set()
+                    #     text_pos_map2[current_point].add(h2e[i])
+                    #     if h2e[i] not in text_set2:
+                    #         text_set2.add(h2e[i])
+                    #     h2e[i].textpos=True
+                    # elif flag:
+                    #     text_pos_map2[current_point].add(h2e[i])
+                    #     if h2e[i] not in text_set2:
+                    #         text_set2.add(h2e[i])
+                    #     h2e[i].textpos=True
+                    if flag2:
+                        cp2.append(current_point)
+                    if flag2==False:
+                        break
+                # if flag:
+                #     reference_lines.extend(refs)
+                #     reference_lines.append(line.ref)
+            flag=flag1 and flag2
+            if flag:
+                for current_point in cp1+cp2:
+                    if  current_point not in text_pos_map2:
                         text_pos_map2[current_point]=set()
                         text_pos_map2[current_point].add(h2e[i])
                         if h2e[i] not in text_set2:
                             text_set2.add(h2e[i])
                         h2e[i].textpos=True
-                    elif flag:
+                    else:
                         text_pos_map2[current_point].add(h2e[i])
                         if h2e[i] not in text_set2:
                             text_set2.add(h2e[i])
                         h2e[i].textpos=True
-                    if flag==False:
-                        break
-                if flag:
-                    reference_lines.extend(refs)
-                    reference_lines.append(line.ref)
+                reference_lines.extend(refs1+refs2)
+                reference_lines.append(line.ref)
     print(len(reference_lines)*len(initial_segments))
     new_segments=[]
     removed_segments=[]
+    removed_handles=[]
     for s in initial_segments:
         
         if s.ref not in reference_lines:
@@ -2619,9 +2675,10 @@ def removeReferenceLines(elements,texts,initial_segments,all_segments,point_map,
             #print(s.ref)
         else:
             removed_segments.append(s)
+            removed_handles.append(s.ref.handle)
     print("==============")
     print(len(removed_segments))
-    return new_segments,reference_lines,text_pos_map,text_set,text_pos_map2,text_set2,removed_segments
+    return new_segments,reference_lines,text_pos_map,text_set,text_pos_map2,text_set2,removed_segments,removed_handles
     
 # def convert_ref_to_tuple(ref):
 #     """
@@ -3541,7 +3598,7 @@ def findClosedPolys_via_BFS(elements,texts,dimensions,segments,sign_handles,segm
     
     
     #remove rfernce lines
-    initial_segments,reference_lines,text_pos_map1,text_set1,text_pos_map2,text_set2,removed_segments=removeReferenceLines(elements,texts,segments,new_segments,point_map,segmentation_config)
+    initial_segments,reference_lines,text_pos_map1,text_set1,text_pos_map2,text_set2,removed_segments,removed_handles=removeReferenceLines(elements,texts,segments,new_segments,point_map,segmentation_config)
     text_set3=set()
     text_pos_map3={}
     for t in texts:
@@ -3784,7 +3841,7 @@ def findClosedPolys_via_BFS(elements,texts,dimensions,segments,sign_handles,segm
     if segmentation_config.draw_line_image and segmentation_config.mode=="dev":
         outputLines(segmentation_config,segments,filtered_point_map,closed_polys,cornor_holes,star_pos ,texts,text_map,dimensions,replines,segmentation_config.line_image_path,segmentation_config.draw_intersections,segmentation_config.draw_segments,segmentation_config.line_image_drawPolys,)
     
-    return polys, new_segments, point_map,star_pos_map,cornor_holes,text_map
+    return polys, new_segments, point_map,star_pos_map,cornor_holes,text_map,removed_handles
 
 
  
