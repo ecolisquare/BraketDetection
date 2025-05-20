@@ -114,7 +114,7 @@ def process_json_data(json_path, output_path, training_data_output_folder, train
     
 
     #找出所有包含角隅孔圆弧的基本环
-    polys, new_segments, point_map,star_pos_map,cornor_holes,text_map=findClosedPolys_via_BFS(elements,texts,dimensions,segments,sign_handles,segmentation_config)
+    polys, new_segments, point_map,star_pos_map,cornor_holes,text_map,removed_handles=findClosedPolys_via_BFS(elements,texts,dimensions,segments,sign_handles,segmentation_config)
 
     # #预训练的几何分类模型筛选肘板
     # model_path = "/home/user4/BraketDetection/DGCNN/cpkt/geometry_classifier.pth"
@@ -202,7 +202,7 @@ def process_json_data(json_path, output_path, training_data_output_folder, train
     
     dxf_path = os.path.splitext(segmentation_config.json_path)[0] + '.dxf'
     dxf_output_folder = segmentation_config.dxf_output_folder
-    draw_rectangle_in_dxf(dxf_path, dxf_output_folder, bboxs, classi_res,indices,free_edge_handles,non_free_edge_handles,all_handles,not_all_handles)
+    draw_rectangle_in_dxf(dxf_path, dxf_output_folder, bboxs, classi_res,indices,free_edge_handles,non_free_edge_handles,all_handles,not_all_handles,removed_handles)
 
 if __name__ == '__main__':
     folder_path = "./data/new"
