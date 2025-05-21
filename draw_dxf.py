@@ -52,7 +52,7 @@ import json
 
 
 
-def draw_rectangle_in_dxf(file_path, folder, bbox_list, classi_res,idxs, free_edge_handles,non_free_edge_handles,all_handles,not_all_handles):
+def draw_rectangle_in_dxf(file_path, folder, bbox_list, classi_res,idxs, free_edge_handles,non_free_edge_handles,all_handles,not_all_handles,removed_handles):
     folder = os.path.normpath(os.path.abspath(folder))
     os.makedirs(folder, exist_ok=True)
 
@@ -110,6 +110,13 @@ def draw_rectangle_in_dxf(file_path, folder, bbox_list, classi_res,idxs, free_ed
             e.dxf.layer = all_non_free_layer
         if e.dxf.handle in non_free_edge_handles and e.dxf.handle in not_all_handles:
             e.dxf.layer = not_all_non_free_layer
+    ref_line_layer="引线"
+    if ref_line_layer not in doc.layers:
+        doc.layers.add(ref_line_layer,color=7)
+    
+    for e in msp:
+        if e.dxf.handle in removed_handles:
+            e.dxf.layer=ref_line_layer
 
 
     file_name = os.path.basename(file_path)[:-4]

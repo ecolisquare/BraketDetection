@@ -10,6 +10,9 @@ from bracket_parameter_extraction import parse_elbow_plate
 import json
 import re
 import numpy as np
+import csv
+import codecs
+import sys
 def is_point_in_polygon(point, polygon_edges):
     
     polygon_points = set()  # Concave polygon example
@@ -432,7 +435,34 @@ def textsInPoly(text_map,poly,segmentation_config,is_fb,polygon):
             elif x_min <= pos.x and pos.x <=x_max and y_min <=pos.y and y_max>=pos.y:
                 result=t[1]
                 ts.append([t[0],pos,result,t[2]])#element,position,result,anotation
-    return ts
+
+
+    #filter text
+    text_set=set()
+    new_ts=[]
+    for t_t in ts:
+        t=t_t[0]
+        if (t.handle,t.content) not in text_set:
+            new_ts.append(t_t)
+            text_set.add((t.handle,t.content))
+    ts=new_ts
+    new_ts=[]
+    b_count=0
+    fb_count=0
+
+    for t_t in ts:
+        content=t_t[0].content.strip()
+        if "FB" in content or "FL" in content:
+            result=parse_elbow_plate(content, "bottom",is_fb)
+            new_ts.append([t_t[0],t_t[1],result,t_t[3]])
+            fb_count+=1
+        elif t_t[2]["Type"]=="B":
+            new_ts.append(t_t)
+            b_count+=1
+        else:
+            new_ts.append(t_t)
+    
+    return new_ts
 
 def braketTextInPoly(braket_texts,braket_pos,poly,segmentation_config):
     x_min,x_max,y_min,y_max=computeBoundingBox(poly)
@@ -1858,6 +1888,13 @@ def calculate_poly_features(poly, segments, segmentation_config, point_map, inde
     
     tis=textsInPoly(text_map,poly,segmentation_config,is_fb,polygon)
     ds=dimensionsInPoly(dimensions,poly,segmentation_config)
+
+
+
+    #TODO:对于tis的后处理
+
+
+
     # print(free_edges)
     # print(cornor_holes[0].segments)
     # for s in poly_refs:
@@ -1991,7 +2028,7 @@ def calculate_poly_features(poly, segments, segmentation_config, point_map, inde
             elif not (seg.isConstraint or seg.isCornerhole):
                 all_edge_poly.append(seg.start_point)
                 all_edge_poly.append(seg.end_point)
-    if not is_near_convex(all_edge_poly, index,segmentation_config.near_convex_tolerance):
+    if  is_near_convex(all_edge_poly, index,segmentation_config.near_convex_tolerance):
         print(f"回路{index}整体轮廓不是凸多边形")
         return None
     
@@ -2181,6 +2218,7 @@ def calculate_poly_features(poly, segments, segmentation_config, point_map, inde
             has_B_anno=True
             break
     has_B_hint=False
+    has_fb=False
     for t_t in tis:
         content=t_t[0].content.strip()
         if t_t[2]["Type"]=="BK":
@@ -2195,8 +2233,11 @@ def calculate_poly_features(poly, segments, segmentation_config, point_map, inde
                 thickness=bracket_parameter["Thickness"]
         if t_t[2]["Type"]=="FB" or t_t[2]["Type"]=="FL":
             strengthen_parameter=t_t[2]
+            has_fb=True
 
     if has_B_hint==True and has_B_anno==False:
+        is_standard_elbow=False
+    if has_B_hint==False and has_fb==True:
         is_standard_elbow=False
     for t_t in tis:
         content=t_t[0].content.strip()
@@ -2869,6 +2910,8 @@ def plot_info_poly_std(constraint_edges,ori_edge_map,template_map,path):
             continue
         seg=template_map[f'free{free_idx}'][0]
         draw_segment(seg,ax)
+        mid=seg.mid_point()
+        ax.text(mid.x, mid.y, free_idx,rotation=0,color="#0000FF", fontsize=25)
         free_idx+=1
         for ty,ds in ori_edge_map[seg].items():
             if isinstance(ds,list):
@@ -2885,14 +2928,14 @@ def plot_info_poly_std(constraint_edges,ori_edge_map,template_map,path):
                                 ax.plot(v2.x,v2.y,'g.')
                                 q=DSegment(v1,v2).mid_point()
                                 s=DSegment(v1,v2)
-                                ax.text(q.x, q.y, d.text,rotation=0,color="#EEC933", fontsize=15)
+                                ax.text(q.x, q.y, f"{d.text}({free_idx-1})",rotation=0,color="#0000FF", fontsize=15)
                                 ax.plot([s.start_point.x,s.end_point.x], [s.start_point.y,s.end_point.y], color="#FF0000", lw=2,linestyle='--')
                             elif len(ps)==3:
                                 p1,p2,inter=ps
                                 ax.plot(p1.x,p1.y,'g.')
                                 ax.plot(p2.x,p2.y,'g.')
                                 ax.plot(inter.x,inter.y,'g.')
-                                ax.text(inter.x, inter.y, d.text,rotation=0,color="#EEC933", fontsize=15)
+                                ax.text(inter.x, inter.y, f"{d.text}({free_idx-1})",rotation=0,color="#0000FF", fontsize=15)
                                 s=DSegment(p1,inter)
                                 ax.plot([s.start_point.x,s.end_point.x], [s.start_point.y,s.end_point.y], color="#FF0000", lw=2,linestyle='--')
                                 s=DSegment(p2,inter)
@@ -2913,20 +2956,20 @@ def plot_info_poly_std(constraint_edges,ori_edge_map,template_map,path):
                                 s=DSegment(v1,v2)
                                 ax.plot(v1.x,v1.y,'g.')
                                 ax.plot(v2.x,v2.y,'g.')
-                                ax.text(q.x, q.y, d.text,rotation=0,color="#EEC933", fontsize=15)
+                                ax.text(q.x, q.y, f"{d.text}({free_idx-1})",rotation=0,color="#0000FF", fontsize=15)
                                 ax.plot([s.start_point.x,s.end_point.x], [s.start_point.y,s.end_point.y], color="#FF0000", lw=2,linestyle='--')
                             elif len(ps)==3:
                                 p1,p2,inter=ps
                                 ax.plot(p1.x,p1.y,'g.')
                                 ax.plot(p2.x,p2.y,'g.')
                                 ax.plot(inter.x,inter.y,'g.')
-                                ax.text(inter.x, inter.y, d.text,rotation=0,color="#EEC933", fontsize=15)
+                                ax.text(inter.x, inter.y, f"{d.text}({free_idx-1})",rotation=0,color="#0000FF", fontsize=15)
                                 s=DSegment(p1,inter)
                                 ax.plot([s.start_point.x,s.end_point.x], [s.start_point.y,s.end_point.y], color="#FF0000", lw=2,linestyle='--')
                                 s=DSegment(p2,inter)
                                 ax.plot([s.start_point.x,s.end_point.x], [s.start_point.y,s.end_point.y], color="#FF0000", lw=2,linestyle='--')
                     elif isinstance(d,DText):
-                        ax.text(d.insert.x, d.insert.y, d.content,rotation=0,color="#EEC933", fontsize=15)
+                        ax.text(d.insert.x, d.insert.y,f"{d.content}({free_idx-1})",rotation=0,color="#0000FF", fontsize=15)
     
     constarint_idx=1
     cornerhole_idx=1
@@ -2956,12 +2999,16 @@ def plot_info_poly_std(constraint_edges,ori_edge_map,template_map,path):
             k+=1
             corner_hole_start_edge=edge[0]
             cornerhole_idx+=1
+            mid=edge[0].mid_point()
+            ax.text(mid.x, mid.y, cornerhole_idx,rotation=0,color="#FF0000", fontsize=25)
             for seg in edge:
                 draw_segment(seg,ax)
         else:
           
             k+=1
             constarint_idx+=1
+            mid=edge[0].mid_point()
+            ax.text(mid.x, mid.y, constarint_idx,rotation=0,color="#00FF00", fontsize=25)
             next_cons_edge=[]
             last_cons_edge=[]
             index=i+1
@@ -3020,14 +3067,14 @@ def plot_info_poly_std(constraint_edges,ori_edge_map,template_map,path):
                                         ax.plot(v2.x,v2.y,'g.')
                                         q=DSegment(v1,v2).mid_point()
                                         s=DSegment(v1,v2)
-                                        ax.text(q.x, q.y, d.text,rotation=0,color="#EEC933", fontsize=15)
+                                        ax.text(q.x, q.y, f"{d.text}({constarint_idx})",rotation=0,color="#00FF00", fontsize=15)
                                         ax.plot([s.start_point.x,s.end_point.x], [s.start_point.y,s.end_point.y], color="#FF0000", lw=2,linestyle='--')
                                     elif len(ps)==3:
                                         p1,p2,inter=ps
                                         ax.plot(p1.x,p1.y,'g.')
                                         ax.plot(p2.x,p2.y,'g.')
                                         ax.plot(inter.x,inter.y,'g.')
-                                        ax.text(inter.x, inter.y, d.text,rotation=0,color="#EEC933", fontsize=15)
+                                        ax.text(inter.x, inter.y, f"{d.text}({constarint_idx})",rotation=0,color="#00FF00", fontsize=15)
                                         s=DSegment(p1,inter)
                                         ax.plot([s.start_point.x,s.end_point.x], [s.start_point.y,s.end_point.y], color="#FF0000", lw=2,linestyle='--')
                                         s=DSegment(p2,inter)
@@ -3048,14 +3095,14 @@ def plot_info_poly_std(constraint_edges,ori_edge_map,template_map,path):
                                         s=DSegment(v1,v2)
                                         ax.plot(v1.x,v1.y,'g.')
                                         ax.plot(v2.x,v2.y,'g.')
-                                        ax.text(q.x, q.y, d.text,rotation=0,color="#EEC933", fontsize=15)
+                                        ax.text(q.x, q.y, f"{d.text}({constarint_idx})",rotation=0,color="#00FF00", fontsize=15)
                                         ax.plot([s.start_point.x,s.end_point.x], [s.start_point.y,s.end_point.y], color="#FF0000", lw=2,linestyle='--')
                                     elif len(ps)==3:
                                         p1,p2,inter=ps
                                         ax.plot(p1.x,p1.y,'g.')
                                         ax.plot(p2.x,p2.y,'g.')
                                         ax.plot(inter.x,inter.y,'g.')
-                                        ax.text(inter.x, inter.y, d.text,rotation=0,color="#EEC933", fontsize=15)
+                                        ax.text(inter.x, inter.y, f"{d.text}({constarint_idx})",rotation=0,color="#00FF00", fontsize=15)
                                         s=DSegment(p1,inter)
                                         ax.plot([s.start_point.x,s.end_point.x], [s.start_point.y,s.end_point.y], color="#FF0000", lw=2,linestyle='--')
                                         s=DSegment(p2,inter)
@@ -3063,7 +3110,7 @@ def plot_info_poly_std(constraint_edges,ori_edge_map,template_map,path):
 
 
                             elif isinstance(d,DText):
-                                ax.text(d.insert.x, d.insert.y, d.content,rotation=0,color="#EEC933", fontsize=15)
+                                ax.text(d.insert.x, d.insert.y, f"{d.content}({constarint_idx})",rotation=0,color="#00FF00", fontsize=15)
 
 
 
@@ -3211,10 +3258,40 @@ def plot_info_poly_std(constraint_edges,ori_edge_map,template_map,path):
     plt.savefig(path)
     plt.close('all')
     plt.close()
-def outputInfo(index,edges_info,poly_centroid,hint_info,meta_info,segmentation_config):
+def check_one_class(classification_res,template_map,free_edges,constraint_edges,edges,poly_refs,poly,all_edge_map):
+    polygon=computePolygon(poly)
+    if "DPK(" in classification_res or "DPV(" in classification_res:
+        if "free2" not in template_map or len(template_map["free2"])==0 or (not isinstance(template_map["free2"][0].ref,DArc)):
+            return False
+        center=template_map["free2"][0].ref.center 
+        center=Point(center.x,center.y)
+        if polygon.contains(center):
+            return False
+
+    #TODO: 判断可能角隅孔是否被分到约束边
+
+
+
+
+
+    #TODO：DPKN-2 标准肘板没有角度标注   角度标注在all_edge_map中可以查找
+
+
+
+
+
+
+    return True
+
+
+def outputInfo(index,edges_info,poly_centroid,hint_info,meta_info,segmentation_config,poly):
     is_standard_elbow,bracket_parameter,strengthen_parameter,has_hint,is_fb,is_diff=meta_info
     free_edges,constraint_edges,edges,poly_refs,ref_map=edges_info
     all_edge_map,edge_types,features,feature_map,constraint_edge_no,free_edge_no,all_anno,tis,ds=hint_info
+    #handle center classification type edge  value AorB  is_diff
+    size_hints=[]
+    #handle center classification info is_diff
+    meta_hints=[]
     if is_standard_elbow==False:
         template_cons_edges=[]
         for i,edge in enumerate(edges):
@@ -3430,7 +3507,7 @@ def outputInfo(index,edges_info,poly_centroid,hint_info,meta_info,segmentation_c
         log_to_file(file_path, f"肘板加强类别为:{s_info}")
         log_to_file(file_path, f"非标准肘板")
         
-        return poly_refs, "Unstandard"
+        return poly_refs, "Unstandard",meta_hints,size_hints
 
 
     cornerhole_num=0
@@ -3447,6 +3524,9 @@ def outputInfo(index,edges_info,poly_centroid,hint_info,meta_info,segmentation_c
                                          segmentation_config.standard_type_path, segmentation_config.json_output_path, 
                                          f"{os.path.splitext(os.path.basename(segmentation_config.json_path))[0]}_infopoly{index}",
                                          is_output_json=True)
+    if classification_res is None:
+        classification_res="Unclassified"
+        output_template=None
     free_order=True
     # cons_order=True
     if output_template is not None:
@@ -3456,6 +3536,8 @@ def outputInfo(index,edges_info,poly_centroid,hint_info,meta_info,segmentation_c
         else:
             ignore_types=["line"]
         template_map=match_template(edges,free_edges,output_template,edge_types,thickness)
+        if check_one_class(classification_res,template_map,free_edges,constraint_edges,edges,poly_refs,poly,all_edge_map)==False:
+            return poly_refs,"Unclassified",[],[]
         # print(output_template)
         free_edge_template_no={}
         free_idx=1
@@ -3467,6 +3549,7 @@ def outputInfo(index,edges_info,poly_centroid,hint_info,meta_info,segmentation_c
             free_edge_template_no[seg]=free_idx
             free_idx+=1
         constranit_edge_template_no={}
+        cornerhole_edge_template_no={}
         constarint_idx=1
         cornerhole_idx=1
         while True:
@@ -3480,6 +3563,9 @@ def outputInfo(index,edges_info,poly_centroid,hint_info,meta_info,segmentation_c
             else:
                 break
             if f'cornerhole{cornerhole_idx}' in template_map:  
+                for edge in template_map[f'cornerhole{cornerhole_idx}']:
+    
+                    cornerhole_edge_template_no[edge]=cornerhole_idx
                 cornerhole_idx+=1
 
 
@@ -3538,7 +3624,6 @@ def outputInfo(index,edges_info,poly_centroid,hint_info,meta_info,segmentation_c
         
 
 
-        
         new_all_edge_map={}
         for s,dic in all_edge_map.items():
             new_dic={}
@@ -3553,11 +3638,21 @@ def outputInfo(index,edges_info,poly_centroid,hint_info,meta_info,segmentation_c
                                 des+=str(constraint_edge_no[seg])
                             else:
                                 des+=str(free_edge_no[seg])
+                            order_ty=""
                             if (seg,p1) in order_set:
                                 des+="，1号边"
+                                order_ty="A"
                             else:
                                 des+="，2号边"
+                                order_ty="B"
                             new_ds.append([d,des])
+                            edge_no=""
+                            if s in free_edge_template_no:
+                                edge_no=f"自由边{free_edge_template_no[s]}"
+                            elif s in constranit_edge_template_no:
+                                edge_no=f"约束边{constranit_edge_template_no[s]}"
+
+                            size_hints.append([d.handle,poly_centroid,classification_res,ty,edge_no,d.text,order_ty,is_diff])
                         elif len(d_t)==3:
                             d,des,seg=d_t 
                             if seg in constranit_edge_template_no:
@@ -3565,8 +3660,34 @@ def outputInfo(index,edges_info,poly_centroid,hint_info,meta_info,segmentation_c
                             else:
                                 des+=str(free_edge_template_no[seg])
                             new_ds.append([d,des])
+                            if d.dimtype!=0:
+                                edge_no=""
+                                if s in free_edge_template_no:
+                                    edge_no=f"自由边{free_edge_template_no[s]}"
+                                elif s in constranit_edge_template_no:
+                                    edge_no=f"约束边{constranit_edge_template_no[s]}"
+                                size_hints.append([d.handle,poly_centroid,classification_res,ty,edge_no,d.text,"无",is_diff])
                         else:
                             new_ds.append(d_t)
+                            if len(d_t)==2:
+                                d=d_t[0]
+                                if isinstance(d_t[0],DDimension):
+                                    if d.dimtype!=0:
+                                        edge_no=""
+                                        if s in free_edge_template_no:
+                                            edge_no=f"自由边{free_edge_template_no[s]}"
+                                        elif s in constranit_edge_template_no:
+                                            edge_no=f"约束边{constranit_edge_template_no[s]}"
+                                        size_hints.append([d.handle,poly_centroid,classification_res,ty,edge_no,d.text,"无",is_diff])
+                                else:
+                                    edge_no=""
+                                    if s in free_edge_template_no:
+                                        edge_no=f"自由边{free_edge_template_no[s]}"
+                                    elif s in constranit_edge_template_no:
+                                        edge_no=f"约束边{constranit_edge_template_no[s]}"
+                                    else:
+                                        edge_no=f"角隅孔{cornerhole_edge_template_no[s]}"
+                                    size_hints.append([d.handle,poly_centroid,classification_res,ty,edge_no,d.content,"无",is_diff])
                     new_dic[ty]=new_ds
                 else:
                     new_dic[ty]=ds
@@ -3574,6 +3695,11 @@ def outputInfo(index,edges_info,poly_centroid,hint_info,meta_info,segmentation_c
         ori_edge_map=all_edge_map
         all_edge_map=new_all_edge_map
 
+
+        for t_t in tis:
+            content=t_t[0].content.strip()
+            if t_t[2]["Type"]=="B" or t_t[2]["Type"]=="FB" or t_t[2]["Type"]=="FL":
+                meta_hints.append([t_t[0].handle,poly_centroid,classification_res,content,False])
 
 
 
@@ -3938,7 +4064,7 @@ def outputInfo(index,edges_info,poly_centroid,hint_info,meta_info,segmentation_c
             plot_info_poly_std(constraint_edges,ori_edge_map,template_map,os.path.join(segmentation_config.poly_info_dir, f'标准肘板详细信息参考图/std_infopoly{index}.png'))
         if classification_res == "Unclassified":
             # log_to_file("./output/Unclassified.txt", f"{os.path.splitext(os.path.basename(segmentation_config.json_path))[0]}_infopoly{index}")
-            return poly_refs, classification_res
+            return poly_refs, classification_res,[],[]
         # else:
         #     if len(classification_res.split(","))>1:
         #         log_to_file("./output/duplicate_class.txt",f"{os.path.splitext(os.path.basename(segmentation_config.json_path))[0]}_infopoly{index}")
@@ -4183,21 +4309,42 @@ def outputInfo(index,edges_info,poly_centroid,hint_info,meta_info,segmentation_c
         log_to_file(file_path, f"   free_codes：{str(free_codes)}")
         log_to_file(file_path, f"   non_free_codes：{str(non_free_codes)}")
         log_to_file(file_path, f"标准肘板")
-        return poly_refs, classification_res
+        return poly_refs, classification_res,[],[]
 
-    return poly_refs, classification_res
+    return poly_refs, classification_res,meta_hints,size_hints
 
 
-def classificationAndOutputStep(indices,edges_infos,poly_centroids,hint_infos,meta_infos,segmentation_config):
+def   outputHints(meta_hints,size_hints,path="./标注.csv"):
+    # for meta_hint in meta_hints:
+    #     print(meta_hint)
+    # for size_hint in size_hints:
+    #     print(size_hint)
+    # pass
+    columns1=["标注句柄","肘板几何中心点坐标","肘板类别","板厚材质信息","是否为扩散值"]
+    columns2=["标注句柄","肘板几何中心点坐标","肘板类别","标注属性","标注边","标注值","顺时针A或B","是否为扩散值"]
+    with open(os.path.join(path,"板厚材质信息.csv"),"w",newline="",encoding="utf-8-sig") as csvfile:
+        writer=csv.writer(csvfile)
+        writer.writerow(columns1)
+        writer.writerows(meta_hints)
+    with open(os.path.join(path,"尺寸标注信息.csv"),"w",newline="",encoding="utf-8-sig") as csvfile:
+        writer=csv.writer(csvfile)
+        writer.writerow(columns2)
+        writer.writerows(size_hints)
+
+def classificationAndOutputStep(indices,edges_infos,poly_centroids,hint_infos,meta_infos,segmentation_config,polys):
     classification_table = load_classification_table(segmentation_config.standard_type_path)
     poly_infos=[]
     types=[]
     flags=[]
+    meta_hints=[]
+    size_hints=[]
     for i in range(len(indices)):
         index,edges_info,poly_centroid,hint_info,meta_info=indices[i],edges_infos[i],poly_centroids[i],hint_infos[i],meta_infos[i]
-        poly_refs, classification_res=outputInfo(index,edges_info,poly_centroid,hint_info,meta_info,segmentation_config)
+        poly_refs, classification_res,meta_hint,size_hint=outputInfo(index,edges_info,poly_centroid,hint_info,meta_info,segmentation_config,polys[index])
         poly_infos.append(poly_refs)
         types.append(classification_res)
+        meta_hints.extend(meta_hint)
+        size_hints.extend(size_hint)
         if classification_res=="Unstandard" or classification_res=="Unclassified" or len(classification_res.split(","))>1:
             flags.append(False)
         else:
@@ -4261,5 +4408,5 @@ def classificationAndOutputStep(indices,edges_infos,poly_centroids,hint_infos,me
                 flag=False
             flags.append(flag)
 
-
+    outputHints(meta_hints,size_hints,segmentation_config.dxf_output_folder)
     return poly_infos,types,flags

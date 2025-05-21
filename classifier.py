@@ -856,6 +856,9 @@ def eva_c_f(codes, features, p_feature = ["no_tangent", "is_para", "is_ver", "is
 
 def eva_c_f_new(codes, features):
     strict_features = ["new", "is_para"]
+    #TODO:平行特征应该与new特征一样是充要的
+
+    
     # codes中的所有特征都要包含在features中
     for c in codes:
         if c in strict_features and c not in features:
@@ -929,6 +932,7 @@ def is_new_feature_pass(matched_type, classification_table,edges, poly_free_edge
 
     # 自由边特征比对
     free_idx = 1
+    f_score=0
     while f'free{free_idx}' in template_map:
         if len(template_map[f'free{free_idx}'])==0:
             free_idx += 1

@@ -94,7 +94,7 @@ if __name__ == '__main__':
             poly.append([seg.start_point.x, seg.start_point.y])
         bb_polys.append(poly)
     #文件中线段元素的读取和根据颜色过滤
-    elements,segments,ori_segments,stiffeners=readJson_inbbpolys(json_path,segmentation_config, bb_polys)
+    elements,segments,ori_segments,stiffeners,sign_handles=readJson_inbbpolys(json_path,segmentation_config, bb_polys)
    
     ori_block=build_initial_block(ori_segments,segmentation_config)
     # grid,meta=segments_in_blocks(ori_segments,segmentation_config)
@@ -116,7 +116,7 @@ if __name__ == '__main__':
     
 
     #找出所有包含角隅孔圆弧的基本环
-    polys, new_segments, point_map,star_pos_map,cornor_holes,text_map=findClosedPolys_via_BFS(elements,texts,dimensions,segments,segmentation_config)
+    polys, new_segments, point_map,star_pos_map,cornor_holes,text_map,removed_handles=findClosedPolys_via_BFS(elements,texts,dimensions,segments,sign_handles,segmentation_config)
 
     # #预训练的几何分类模型筛选肘板
     # model_path = "/home/user4/BraketDetection/DGCNN/cpkt/geometry_classifier.pth"
@@ -164,7 +164,7 @@ if __name__ == '__main__':
   
     edges_infos,poly_centroids,hint_infos,meta_infos=diffusion_step(edges_infos,poly_centroids,hint_infos,meta_infos)
 
-    polys_info,classi_res,flags=classificationAndOutputStep(indices,edges_infos,poly_centroids,hint_infos,meta_infos,segmentation_config)
+    polys_info,classi_res,flags=classificationAndOutputStep(indices,edges_infos,poly_centroids,hint_infos,meta_infos,segmentation_config,polys)
     free_edge_handles = []
     all_handles=[]
     not_all_handles=[]
@@ -206,4 +206,4 @@ if __name__ == '__main__':
     
     dxf_path = os.path.splitext(segmentation_config.json_path)[0] + '.dxf'
     dxf_output_folder = segmentation_config.dxf_output_folder
-    draw_rectangle_in_dxf(dxf_path, dxf_output_folder, bboxs, classi_res,indices, free_edge_handles,non_free_edge_handles,all_handles,not_all_handles)
+    draw_rectangle_in_dxf(dxf_path, dxf_output_folder, bboxs, classi_res,indices, free_edge_handles,non_free_edge_handles,all_handles,not_all_handles,removed_handles)
