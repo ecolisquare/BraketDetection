@@ -855,13 +855,14 @@ def eva_c_f(codes, features, p_feature = ["no_tangent", "is_para", "is_ver", "is
     return True
 
 def eva_c_f_new(codes, features):
+    strict_features = ["new", "is_para"]
     # codes中的所有特征都要包含在features中
     for c in codes:
-        if c == "new" and c not in features:
+        if c in strict_features and c not in features:
             return False
     # features中的所有标注特征都要包含在codes中
     for f in features:
-        if f == "new" and f not in codes:
+        if f in strict_features and f not in codes:
             return False
     return True
 
