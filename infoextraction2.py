@@ -3269,13 +3269,22 @@ def check_one_class(classification_res,template_map,free_edges,constraint_edges,
             return False
 
     #TODO: 判断可能角隅孔是否被分到约束边
-
+    if "BR(KS)" in classification_res:
+        for c_edge in constraint_edges:
+            for seg in c_edge:
+                if not seg.isCornerhole and isinstance(seg.ref, DArc):
+                    return False
 
 
 
 
     #TODO：DPKN-2 标准肘板没有角度标注   角度标注在all_edge_map中可以查找
-
+    if "DPKN-2" in classification_res:
+        for edge in edges:
+            for seg in edge:
+                feature = all_edge_map[seg]
+                if "angl" in feature:
+                    return False
 
 
 
