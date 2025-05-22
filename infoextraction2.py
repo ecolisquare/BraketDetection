@@ -3651,8 +3651,12 @@ def outputInfo(index,edges_info,poly_centroid,hint_info,meta_info,segmentation_c
                                 edge_no=f"自由边{free_edge_template_no[s]}"
                             elif s in constranit_edge_template_no:
                                 edge_no=f"约束边{constranit_edge_template_no[s]}"
-
-                            size_hints.append([d.handle,poly_centroid,classification_res,ty,edge_no,d.text,order_ty,is_diff])
+                            ref_no="无"
+                            if seg in free_edge_template_no:
+                                ref_no=f"自由边{free_edge_template_no[seg]}"
+                            elif seg in constranit_edge_template_no:
+                                ref_no=f"约束边{constranit_edge_template_no[seg]}"
+                            size_hints.append([index,d.handle,poly_centroid,classification_res,ty,edge_no,ref_no,d.text,order_ty,is_diff])
                         elif len(d_t)==3:
                             d,des,seg=d_t 
                             if seg in constranit_edge_template_no:
@@ -3666,7 +3670,12 @@ def outputInfo(index,edges_info,poly_centroid,hint_info,meta_info,segmentation_c
                                     edge_no=f"自由边{free_edge_template_no[s]}"
                                 elif s in constranit_edge_template_no:
                                     edge_no=f"约束边{constranit_edge_template_no[s]}"
-                                size_hints.append([d.handle,poly_centroid,classification_res,ty,edge_no,d.text,"无",is_diff])
+                                ref_no="无"
+                                if seg in free_edge_template_no:
+                                    ref_no=f"自由边{free_edge_template_no[seg]}"
+                                elif seg in constranit_edge_template_no:
+                                    ref_no=f"约束边{constranit_edge_template_no[seg]}"
+                                size_hints.append([index,d.handle,poly_centroid,classification_res,ty,edge_no,ref_no,d.text,"无",is_diff])
                         else:
                             new_ds.append(d_t)
                             if len(d_t)==2:
@@ -3678,7 +3687,7 @@ def outputInfo(index,edges_info,poly_centroid,hint_info,meta_info,segmentation_c
                                             edge_no=f"自由边{free_edge_template_no[s]}"
                                         elif s in constranit_edge_template_no:
                                             edge_no=f"约束边{constranit_edge_template_no[s]}"
-                                        size_hints.append([d.handle,poly_centroid,classification_res,ty,edge_no,d.text,"无",is_diff])
+                                        size_hints.append([index,d.handle,poly_centroid,classification_res,ty,edge_no,"无",d.text,"无",is_diff])
                                 else:
                                     edge_no=""
                                     if s in free_edge_template_no:
@@ -3687,7 +3696,7 @@ def outputInfo(index,edges_info,poly_centroid,hint_info,meta_info,segmentation_c
                                         edge_no=f"约束边{constranit_edge_template_no[s]}"
                                     else:
                                         edge_no=f"角隅孔{cornerhole_edge_template_no[s]}"
-                                    size_hints.append([d.handle,poly_centroid,classification_res,ty,edge_no,d.content,"无",is_diff])
+                                    size_hints.append([index,d.handle,poly_centroid,classification_res,ty,edge_no,"无",d.content,"无",is_diff])
                     new_dic[ty]=new_ds
                 else:
                     new_dic[ty]=ds
@@ -3699,7 +3708,7 @@ def outputInfo(index,edges_info,poly_centroid,hint_info,meta_info,segmentation_c
         for t_t in tis:
             content=t_t[0].content.strip()
             if t_t[2]["Type"]=="B" or t_t[2]["Type"]=="FB" or t_t[2]["Type"]=="FL":
-                meta_hints.append([t_t[0].handle,poly_centroid,classification_res,content,False])
+                meta_hints.append([index,t_t[0].handle,poly_centroid,classification_res,content,False])
 
 
 
@@ -4320,8 +4329,8 @@ def   outputHints(meta_hints,size_hints,path="./标注.csv"):
     # for size_hint in size_hints:
     #     print(size_hint)
     # pass
-    columns1=["标注句柄","肘板几何中心点坐标","肘板类别","板厚材质信息","是否为扩散值"]
-    columns2=["标注句柄","肘板几何中心点坐标","肘板类别","标注属性","标注边","标注值","顺时针A或B","是否为扩散值"]
+    columns1=["poly_id","标注句柄","肘板几何中心点坐标","肘板类别","板厚材质信息","是否为扩散值"]
+    columns2=["poly_id","标注句柄","肘板几何中心点坐标","肘板类别","标注属性","标注边","参考边","标注值","顺时针A或B","是否为扩散值"]
     with open(os.path.join(path,"板厚材质信息.csv"),"w",newline="",encoding="utf-8-sig") as csvfile:
         writer=csv.writer(csvfile)
         writer.writerow(columns1)
