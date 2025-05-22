@@ -351,8 +351,8 @@ if __name__ == '__main__':
     print(standard_detect_count , standard_total_num, (detect_count - standard_detect_count), (len(gt_polys) - standard_total_num))
 
     test_classifiatcion_precison = ((test_corrcet_count + wrong_GT_num) / test_total_with_lables) if ((test_corrcet_count + wrong_GT_num) / test_total_with_lables) < 1 else 1
-    print(f"检出肘板总正确率：{(test_detect_count / len(test_polys)):.2f}, {test_detect_count}, {len(test_polys)}")
-    print(f"检出标准肘板分类正确率: {test_classifiatcion_precison:.2f}, {test_corrcet_count + wrong_GT_num}, {test_total_with_lables}")
+    # print(f"检出肘板总正确率：{(test_detect_count / len(test_polys)):.2f}, {test_detect_count}, {len(test_polys)}")
+    # print(f"检出标准肘板分类正确率: {test_classifiatcion_precison:.2f}, {test_corrcet_count + wrong_GT_num}, {test_total_with_lables}")
     print(len(test_incorrect_polys))
     print(test_standard_incorrect_num)
     print(f"分类正确肘板中精确匹配:{acc},模糊匹配{n_acc}")
