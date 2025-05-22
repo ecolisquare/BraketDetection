@@ -856,8 +856,6 @@ def eva_c_f(codes, features, p_feature = ["no_tangent", "is_para", "is_ver", "is
 
 def eva_c_f_new(codes, features):
     strict_features = ["new", "is_para"]
-    #TODO:平行特征应该与new特征一样是充要的
-
     
     # codes中的所有特征都要包含在features中
     for c in codes:
