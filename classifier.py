@@ -972,3 +972,103 @@ def is_new_feature_pass(matched_type, classification_table,edges, poly_free_edge
                 is_match_flag = False
             cornerhole_idx+=1
     return is_match_flag
+
+# 非标肘板判断逻辑，只进行轮廓匹配
+def is_unstandard_bracket(poly_free_edges, edges, unstandard_classification_file_path):
+    classification_table = load_classification_table(unstandard_classification_file_path)
+
+    # 获取自由边轮廓
+    free_edges_sequence = []
+    max_free_edge_length=float("-inf")
+    for seg in poly_free_edges[0]:
+        max_free_edge_length=max(max_free_edge_length,seg.length())
+    constraint_edges=[]
+    for edge in edges:
+        if edge[0].isConstraint and (not edge[0].isCornerhole):
+            constraint_edges.extend(edge)
+    for i, seg in enumerate(poly_free_edges[0]):
+        if isinstance(seg.ref, DLine) or isinstance(seg.ref, DLwpolyline):
+            if (i == 0 or i == len(poly_free_edges[0]) - 1):
+                if i==0:
+                    last_free_edge=poly_free_edges[0][1]
+                else:
+                    last_free_edge=poly_free_edges[0][-2]
+                cons_edge=find_cons_edge(constraint_edges,seg)
+                # print(cons_edge)
+                if is_toe(seg,last_free_edge,cons_edge,max_free_edge_length):
+                    free_edges_sequence.append("toe")
+                elif is_ks_corner(seg,last_free_edge,cons_edge,max_free_edge_length):
+                    free_edges_sequence.append("KS_corner")
+                else:
+                    free_edges_sequence.append("line")
+            else:
+                free_edges_sequence.append("line")
+        elif isinstance(seg.ref, DArc):
+            free_edges_sequence.append("arc")
+    reversed_free_edges_sequence = free_edges_sequence[::-1]  # Reverse free edges
+
+    # 以自由边为分界，获取固定边和角隅孔组成的顺序轮廓
+    cycle_edges = edges + edges
+    al_edges = []
+    start = False
+    for edge in cycle_edges:
+        # 如果遇到第一个非 Cornerhole 和非 Constraint 边，开始收集
+        if not start and edge[0].isCornerhole == False and edge[0].isConstraint == False:
+            start = True
+        
+        # 如果已经开始收集，且当前边是 Cornerhole 或 Constraint，加入 al_edges
+        elif start and (edge[0].isCornerhole or edge[0].isConstraint):
+            al_edges.append(edge)
+        
+        # 如果已经开始收集，且当前边不再是 Cornerhole 或 Constraint，停止收集
+        elif start and edge[0].isCornerhole == False and edge[0].isConstraint == False:
+            start = False
+
+    # 构建 edges_sequence 和 reversed_edges_sequence
+    edges_sequence = []
+    reversed_edges_sequence = []
+    for edge in al_edges:
+        if edge[0].isCornerhole:
+            type = "cornerhole"
+        elif edge[0].isConstraint:
+            type = "constraint"
+        else:
+            type = None
+        
+        if type is not None:
+            seq = []
+            for seg in edge:
+                if isinstance(seg.ref, DLine) or isinstance(seg.ref, DLwpolyline):
+                    seq.append("line")
+                elif isinstance(seg.ref, DArc):
+                    seq.append("arc")
+            edges_sequence.append([type, seq])
+            reversed_edges_sequence.insert(0, [type, list(reversed(seq))])
+    
+    # step5: 固定边轮廓严格匹配+角隅孔非严格匹配（直线角隅孔可能不画）
+    matched_type_list = conerhole_free_classifier(classification_table, 0, free_edges_sequence, reversed_free_edges_sequence, edges_sequence, reversed_edges_sequence)
+    
+    # step6: 自由边的筛选
+    matched_type = free_edges_sequence_classifier(classification_table, free_edges_sequence,reversed_free_edges_sequence, matched_type_list)
+
+    if matched_type=="Unclassified":
+        return False
+    
+    matched_type=","+matched_type+','
+
+    matched_type=tidy_matched_type(matched_type)
+
+    free_edges_sequence = [item for item in free_edges_sequence if item != "KS_corner"]
+    reversed_free_edges_sequence = [item for item in reversed_free_edges_sequence if item != "KS_corner"]
+    edges_sequence.insert(0,["free", free_edges_sequence])
+    reversed_edges_sequence.insert(0, ["free", reversed_free_edges_sequence])
+    mixed_types = matched_type.split(',')
+    matched_type = refine_poly_classifier(classification_table, mixed_types, edges_sequence, reversed_edges_sequence)
+
+    # 混淆类分类
+    matched_type = tidy_matched_type(matched_type)
+    
+    if len(matched_type) == 0:
+        return False
+
+    return True
