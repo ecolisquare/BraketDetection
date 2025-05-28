@@ -287,14 +287,18 @@ def free_edges_sequence_classifier(classification_table, free_edges_sequence, re
     return matched_type if matched_type is not None else "Unclassified"
 
 # 固定边和角隅孔约束匹配
-def conerhole_free_classifier(classification_table, conerhole_num, free_edges_sequence, reversed_free_edges_sequence, edges_sequence, reversed_edges_sequence):
+def conerhole_free_classifier(classification_table, conerhole_num, free_edges_sequence, reversed_free_edges_sequence, edges_sequence, reversed_edges_sequence,is_ustd=False):
     matched_type = []
     non_conerhole_edges = []
     reversed_non_conerhole_edges = []
     conerhole_count = {}
     unrestricted_cornerhole_count = {}
     # unrestricted_cornerhole_type = [["line"], ["arc"]]
-    unrestricted_cornerhole_type = []
+    if is_ustd:
+        unrestricted_cornerhole_type = [["line"], ["arc"]]
+    else:
+
+        unrestricted_cornerhole_type = []
     unrestricted_cornerhole_num = 0
     # 去掉非自由边轮廓中的角隅孔，只保留固定边，对角隅孔进行统计
     for i in range(len(edges_sequence)):
@@ -994,7 +998,7 @@ def is_unstandard_bracket(poly_free_edges, edges, unstandard_classification_file
                 else:
                     last_free_edge=poly_free_edges[0][-2]
                 cons_edge=find_cons_edge(constraint_edges,seg)
-                print(cons_edge)
+                # print(cons_edge)
                 if is_toe(seg,last_free_edge,cons_edge,max_free_edge_length):
                     free_edges_sequence.append("toe")
                 elif is_ks_corner(seg,last_free_edge,cons_edge,max_free_edge_length):
@@ -1046,8 +1050,8 @@ def is_unstandard_bracket(poly_free_edges, edges, unstandard_classification_file
             reversed_edges_sequence.insert(0, [type, list(reversed(seq))])
     
     # step5: 固定边轮廓严格匹配+角隅孔非严格匹配（直线角隅孔可能不画）
-    matched_type_list = conerhole_free_classifier(classification_table, 0, free_edges_sequence, reversed_free_edges_sequence, edges_sequence, reversed_edges_sequence)
-    
+    matched_type_list = conerhole_free_classifier(classification_table, 0, free_edges_sequence, reversed_free_edges_sequence, edges_sequence, reversed_edges_sequence,is_ustd=True)
+    # print(matched_type_list)
     # step6: 自由边的筛选
     matched_type = free_edges_sequence_classifier(classification_table, free_edges_sequence,reversed_free_edges_sequence, matched_type_list)
 
@@ -1057,14 +1061,14 @@ def is_unstandard_bracket(poly_free_edges, edges, unstandard_classification_file
     matched_type=","+matched_type+','
 
     matched_type=tidy_matched_type(matched_type)
-
+    # print(matched_type)
     free_edges_sequence = [item for item in free_edges_sequence if item != "KS_corner"]
     reversed_free_edges_sequence = [item for item in reversed_free_edges_sequence if item != "KS_corner"]
     edges_sequence.insert(0,["free", free_edges_sequence])
     reversed_edges_sequence.insert(0, ["free", reversed_free_edges_sequence])
     mixed_types = matched_type.split(',')
     matched_type = refine_poly_classifier(classification_table, mixed_types, edges_sequence, reversed_edges_sequence)
-
+    # print(matched_type)
     # 混淆类分类
     matched_type = tidy_matched_type(matched_type)
     
