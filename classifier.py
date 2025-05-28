@@ -994,14 +994,13 @@ def is_unstandard_bracket(poly_free_edges, edges, unstandard_classification_file
                 else:
                     last_free_edge=poly_free_edges[0][-2]
                 cons_edge=find_cons_edge(constraint_edges,seg)
-                # print(cons_edge)
-                # if is_toe(seg,last_free_edge,cons_edge,max_free_edge_length):
-                #     free_edges_sequence.append("toe")
-                # elif is_ks_corner(seg,last_free_edge,cons_edge,max_free_edge_length):
-                #     free_edges_sequence.append("KS_corner")
-                # else:
-                #     free_edges_sequence.append("line")
-                free_edges_sequence.append("line")
+                print(cons_edge)
+                if is_toe(seg,last_free_edge,cons_edge,max_free_edge_length):
+                    free_edges_sequence.append("toe")
+                elif is_ks_corner(seg,last_free_edge,cons_edge,max_free_edge_length):
+                    free_edges_sequence.append("KS_corner")
+                else:
+                    free_edges_sequence.append("line")
             else:
                 free_edges_sequence.append("line")
         elif isinstance(seg.ref, DArc):
