@@ -2,7 +2,7 @@ from  element import *
 from plot_geo import plot_geometry,plot_polys, plot_info_poly,p_minus,p_add,p_mul
 import os
 from utils import segment_intersection_line,segment_intersection,computeBoundingBox,is_parallel,conpute_angle_of_two_segments,point_segment_position,shrinkFixedLength,check_points_against_segments,check_points_against_free_segments,check_parallel_anno,check_vertical_anno,check_non_parallel_anno
-from classifier import poly_classifier,match_template,load_classification_table,eva_c_f
+from classifier import poly_classifier,match_template,load_classification_table,eva_c_f,is_unstandard_bracket
 from scipy.spatial import ConvexHull
 import matplotlib.pyplot as plt
 from shapely.geometry import Point, Polygon
@@ -2015,19 +2015,19 @@ def calculate_poly_features(poly, segments, segmentation_config, point_map, inde
         return None
     
     # 如果整体轮廓不是凸多边形则不进行输出
-    all_edge_poly = []
+    # all_edge_poly = []
 
-    for edge in edges:
-        for seg in edge:
-            if seg.isConstraint and not seg.isCornerhole and not (isinstance(seg.ref, DArc) and seg.ref.radius<200):
-                all_edge_poly.append(seg.start_point)
-                all_edge_poly.append(seg.end_point)
-            elif not (seg.isConstraint or seg.isCornerhole):
-                all_edge_poly.append(seg.start_point)
-                all_edge_poly.append(seg.end_point)
-    if  is_near_convex(all_edge_poly, index,segmentation_config.near_convex_tolerance):
-        print(f"回路{index}整体轮廓不是凸多边形")
-        return None
+    # for edge in edges:
+    #     for seg in edge:
+    #         if seg.isConstraint and not seg.isCornerhole and not (isinstance(seg.ref, DArc) and seg.ref.radius<200):
+    #             all_edge_poly.append(seg.start_point)
+    #             all_edge_poly.append(seg.end_point)
+    #         elif not (seg.isConstraint or seg.isCornerhole):
+    #             all_edge_poly.append(seg.start_point)
+    #             all_edge_poly.append(seg.end_point)
+    # if  is_near_convex(all_edge_poly, index,segmentation_config.near_convex_tolerance):
+    #     print(f"回路{index}整体轮廓不是凸多边形")
+    #     return None
     
     
     # 如果自由边轮廓中出现了夹角小于45°的折线则不进行输出
@@ -3300,6 +3300,9 @@ def outputInfo(index,edges_info,poly_centroid,hint_info,meta_info,segmentation_c
     #handle center classification info is_diff
     meta_hints=[]
     if is_standard_elbow==False:
+        if is_unstandard_bracket(free_edges, edges, segmentation_config.unstandard_type_path)==False:
+            return poly_refs,"Unclassified",[],[]
+
         template_cons_edges=[]
         for i,edge in enumerate(edges):
     

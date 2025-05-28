@@ -54,7 +54,7 @@ class SegmentationConfig:
 
         self.type_path = "./type.json"
         self.standard_type_path = "./standard_type.json"
-
+        self.unstandard_type_path = "./unstandard_type.json"
         self.dxf_output_folder = "./output/"
 
         self.json_output_path = "./output/bracket.json"   #输出解析后的肘板轮廓，便于调整匹配算法
@@ -84,7 +84,7 @@ class SegmentationConfig:
         self.reference_line_min_length=30
         self.reference_min_angle=30
         self.reference_max_angle=170
-        self.reference_text_max_distance=500
+        self.reference_text_max_distance=400
 
         #dfs
         self.dfs_optional=False

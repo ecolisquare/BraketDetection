@@ -1110,9 +1110,13 @@ def readJson(path,segmentation_config):
                 if len(vs)==3 and len(vs_type)==3 and vs_type==["line","line","line"] and len(vs_width)==4 and vs_width[1]==[0,0] and vs_width[3]==[0,0] and vs_width[0][0]==0 and vs_width[0][1]>0 and vs_width[2][0]>0 and vs_width[2][1]==0:
                     start=DPoint(vs[0][0],vs[0][1])
                     end=DPoint(vs[-1][2],vs[-1][3])
-                    if DSegment(start,end).length()>100 and DSegment(start,end).length() <500:
+                    if DSegment(start,end).length()>100 and DSegment(start,end).length() <1000:
                         sign_handles.append(ele["handle"])
-        
+                elif len(vs)==5 and len(vs_type)==5 and vs_type==["line","line","line","line","line"] and len(vs_width)==6 and vs_width[0]==[0,0] and vs_width[2]==[0,0] and vs_width[4]==[0,0] and vs_width[5]==[0,0] and vs_width[3][0]==0 and vs_width[3][1]>0 and vs_width[1][0]>0 and vs_width[1][1]==0:
+                    start=DPoint(vs[0][0],vs[0][1])
+                    end=DPoint(vs[-1][2],vs[-1][3])
+                    if DSegment(start,end).length()>100 and DSegment(start,end).length() <1000:
+                        sign_handles.append(ele["handle"])
         
        
        
