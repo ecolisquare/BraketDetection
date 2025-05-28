@@ -146,6 +146,7 @@ def main():
     draw_rectangle_in_dxf(dxf_path, dxf_output_folder, bboxs, classi_res,indices, free_edge_handles,non_free_edge_handles,all_handles,not_all_handles,removed_handles)
 
 if __name__ == "__main__":
+    print("肘板检测工具启动！")
     from multiprocessing import freeze_support
     freeze_support()
     main()

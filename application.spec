@@ -3,9 +3,17 @@
 
 a = Analysis(
     ['application.py'],
-    pathex=[],
+    pathex=['./'],
     binaries=[],
-    datas=[],
+    datas=[
+    ('element.py', '.'),
+    ('utils.py', '.'),
+    ('infoextraction2.py', '.'),
+    ('plot_geo.py', '.'),
+    ('config.py', '.'),
+    ('classifier.py', '.'),
+    ('draw_dxf.py', '.'),
+    ],
     hiddenimports=['sklearn.utils._typedefs',
     'sklearn.utils._heap',
     'sklearn.tree._utils',
