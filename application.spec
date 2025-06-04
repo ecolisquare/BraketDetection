@@ -13,6 +13,7 @@ a = Analysis(
     ('config.py', '.'),
     ('classifier.py', '.'),
     ('draw_dxf.py', '.'),
+    ('load.py', '.'),
     ],
     hiddenimports=['sklearn.utils._typedefs',
     'sklearn.utils._heap',
