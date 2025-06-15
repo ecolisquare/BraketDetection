@@ -11,14 +11,19 @@ from tqdm import tqdm
 from classifier import *
 from draw_dxf import *
 import argparse
+from load import dxf2json
 
 def main():
     segmentation_config=SegmentationConfig()
     verbose=segmentation_config.verbose
     parser = argparse.ArgumentParser(description="肘板检测工具")
-    parser.add_argument("-i", "--input", required=True, help="JSON 文件夹路径")
+    parser.add_argument("-i", "--input", required=True, help="DXF 文件夹路径")
     args = parser.parse_args()
-    json_path = args.input
+    dxf_path = args.input
+    print("loading...")
+    dxf2json(os.path.dirname(dxf_path),os.path.basename(dxf_path),os.path.dirname(dxf_path))
+    json_path = os.path.join(os.path.dirname(dxf_path), (os.path.basename(dxf_path).split('.')[0] + ".json"))
+    print("complete loading!")
     segmentation_config.json_path = json_path
     create_folder_safe(f"{segmentation_config.poly_info_dir}")
     create_folder_safe(f"{segmentation_config.poly_info_dir}/标准肘板详细信息参考图")
