@@ -14,7 +14,7 @@ import time
 from functools import partial
 from itertools import combinations
 from bracket_parameter_extraction import *
-from shapely.geometry import Polygon
+from shapely.geometry import Polygon,Point
 import shutil
 from datetime import datetime
 
@@ -1102,6 +1102,7 @@ def readJson(path,segmentation_config):
         segments=expandFixedLength(segments,segmentation_config.line_expand_length)
         arc_splits=expandFixedLength(arc_splits,segmentation_config.arc_expand_length)
         sign_handles=[]
+        polyline_handles=[]
         for ele in data_list[0]:
             if ele["type"]=="lwpolyline":
                 vs=ele["vertices"]
@@ -1117,10 +1118,11 @@ def readJson(path,segmentation_config):
                     end=DPoint(vs[-1][2],vs[-1][3])
                     if DSegment(start,end).length()>100 and DSegment(start,end).length() <1000:
                         sign_handles.append(ele["handle"])
-        
+            elif ele["type"]=="polyline":
+                polyline_handles.append(ele["handle"])
        
        
-        return elements,segments+arc_splits,ori_segments,stiffeners,sign_handles
+        return elements,segments+arc_splits,ori_segments,stiffeners,sign_handles,polyline_handles
     except FileNotFoundError:  
         print("The file does not exist.")
     except json.JSONDecodeError:  
@@ -2235,6 +2237,21 @@ def checkReferenceLine(p,ns,ss,segmentation_config):
     if len(ss)!=len(ns):
         return False
     return True
+def check_in_arc(sss,point_map):
+    vs,ve=sss.start_point,sss.end_point
+    if len(point_map[vs])<2 or len(point_map[ve])<2:
+        return False
+
+    ns,ne=point_map[vs],point_map[ve]
+    ns=[s for s in ns if isinstance(s.ref,DArc)]
+    ne=[s for s in ne if isinstance(s.ref,DArc)]
+    if len(ns)==0 or len(ne)==0:
+        return False
+    if ns[0].ref==ne[0].ref:
+        return True
+    else:
+        return False
+
 def removeReferenceLines(elements,texts,initial_segments,all_segments,point_map,segmentation_config):
 
 
@@ -3372,7 +3389,7 @@ def process_text_map(text_map,removed_segments,segmentation_config):
             if t[3] is None:
                 text_wo_d.append(t)
             else:
-                if t[1]["Type"]=="R" or t[1]["Type"]=="BK" or t[1]["Type"]=="B_anno":
+                if t[1]["Type"]=="R" or t[1]["Type"]=="BK" or t[1]["Type"]=="B_anno" or t[1]["Type"]=="s_star" or t[1]["Type"]=="m_star":
                     text_wo_d.append(t)
                 else:
                     content=t[0].content.strip()
@@ -3912,6 +3929,26 @@ def processDimensions(dimensions):
             dim_pos=DPoint((d.defpoints[0].x+d.defpoints[3].x)/2,(d.defpoints[0].y+d.defpoints[3].y)/2)
             ds.append([d,dim_pos]) 
     return ds
+def computePolygon_(poly,tolerance = 0.1):
+    polygon_points = list()  # Concave polygon example
+    for edge in poly:
+        vs,ve=edge.start_point,edge.end_point
+        polygon_points.append((vs.x,vs.y))
+        polygon_points.append((ve.x,ve.y))
+    polygon = Polygon(polygon_points)
+    
+    # polygon_with_tolerance = polygon.buffer(tolerance)
+
+    # return polygon_with_tolerance
+    return polygon
+def  check_intersects(bound, bb_poly):
+    polygon=computePolygon_(bb_poly)
+    for p in bound:
+        x,y=p[0],p[1]
+        point=Point(x,y)
+        if not polygon.contains(point):
+            return False
+    return True
 
 def readJson_inbbpolys(path,segmentation_config, bb_polys):
     # elements=[]
@@ -3940,7 +3977,7 @@ def readJson_inbbpolys(path,segmentation_config, bb_polys):
             ]
             # 检查与每个bb_poly是否相交
             for bb_poly in bb_polys:
-                if intersects(bound, bb_poly):
+                if check_intersects(bound, bb_poly):
                     data_list_filtered.append(ele)
                     break
         print("===================")
@@ -3967,6 +4004,7 @@ def readJson_inbbpolys(path,segmentation_config, bb_polys):
         arc_splits=expandFixedLength(arc_splits,segmentation_config.arc_expand_length)
         
         sign_handles=[]
+        polyline_handles=[]
         for ele in data_list_filtered[0]:
             if ele["type"]=="lwpolyline":
                 vs=ele["vertices"]
@@ -3982,8 +4020,10 @@ def readJson_inbbpolys(path,segmentation_config, bb_polys):
                     end=DPoint(vs[-1][2],vs[-1][3])
                     if DSegment(start,end).length()>100 and DSegment(start,end).length() <500:
                         sign_handles.append(ele["handle"])
-        
-        return elements,segments+arc_splits,ori_segments,stiffeners,sign_handles
+            elif ele["type"]=="polyline":
+                polyline_handles.append(ele["handle"])
+                
+        return elements,segments+arc_splits,ori_segments,stiffeners,sign_handles,polyline_handles
     except FileNotFoundError:  
         print("The file does not exist.")
     except json.JSONDecodeError:  

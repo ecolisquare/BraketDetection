@@ -846,6 +846,8 @@ def poly_classifier(features,all_anno,poly_refs, texts,dimensions,conerhole_num,
             matched_type = type_name if matched_type is None else f'{matched_type},{type_name}'
     return matched_type, output_template
 
+def poly_classifier_ustd():
+    return "Unstandard"
 def eva_c_f(codes, features, p_feature = ["no_tangent", "is_para", "is_ver", "is_ontoe"]):
     # codes中的所有特征都要包含在features中
     for c in codes:

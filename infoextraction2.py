@@ -2,7 +2,7 @@ from  element import *
 from plot_geo import plot_geometry,plot_polys, plot_info_poly,p_minus,p_add,p_mul
 import os
 from utils import segment_intersection_line,segment_intersection,computeBoundingBox,is_parallel,conpute_angle_of_two_segments,point_segment_position,shrinkFixedLength,check_points_against_segments,check_points_against_free_segments,check_parallel_anno,check_vertical_anno,check_non_parallel_anno
-from classifier import poly_classifier,match_template,load_classification_table,eva_c_f,is_unstandard_bracket
+from classifier import poly_classifier,match_template,load_classification_table,eva_c_f,is_unstandard_bracket,poly_classifier_ustd
 from scipy.spatial import ConvexHull
 import matplotlib.pyplot as plt
 from shapely.geometry import Point, Polygon
@@ -459,9 +459,30 @@ def textsInPoly(text_map,poly,segmentation_config,is_fb,polygon):
         elif t_t[2]["Type"]=="B":
             new_ts.append(t_t)
             b_count+=1
+        elif t_t[2]["Type"]=="FB" or t_t[2]["Type"]=="FL":
+            new_ts.append(t_t)
+            fb_count+=1
         else:
             new_ts.append(t_t)
-    
+    ts=new_ts
+    new_ts=[]
+    for t_t in ts:
+        if t_t[2]["Type"]=="None" and (b_count==0 or fb_count==0):
+            content=t_t[0].content.strip()
+            if (content[0]=="$" or content[0]=="~" or content[0]=="&" or content[0]=="%") and len(content)>1:
+                if b_count==0:
+                    result=parse_elbow_plate(content, "top",is_fb)
+                    new_ts.append([t_t[0],t_t[1],result,t_t[3]])
+                    b_count+=1
+                elif fb_count==0:
+                    result=parse_elbow_plate(content, "bottom",is_fb)
+                    new_ts.append([t_t[0],t_t[1],result,t_t[3]])
+                    fb_count+=1
+            else:
+                new_ts.append(t_t)
+        else:
+            new_ts.append(t_t)
+
     return new_ts
 
 def braketTextInPoly(braket_texts,braket_pos,poly,segmentation_config):
@@ -1353,6 +1374,7 @@ def calculate_poly_features(poly, segments, segmentation_config, point_map, inde
     # step1: 计算几何中心坐标
     poly_centroid = calculate_poly_centroid(poly)
     poly_map={}
+    polygon=computePolygon(poly)
     # step2: 合并边界线
     poly_refs,ref_map= calculate_poly_refs(poly,segmentation_config)
     
@@ -1384,47 +1406,108 @@ def calculate_poly_features(poly, segments, segmentation_config, point_map, inde
 
     
     #  根据星形角隅孔的位置，将角隅孔的坐标标记到相邻segment的StarCornerhole属性中，同时将该边标记为固定边
-    star_set=set()
-    for s in poly:
-        if s in star_pos_map:
-            for ss in star_pos_map[s]:
-                star_set.add(ss)
-    stars_pos=list(star_set)
-    # for p in stars_pos:
-    #     x,y=p.x,p.y
-    #     lines=[]
-    #     lines.append(DSegment(DPoint(x,y),DPoint(x-5000,y)))
-    #     lines.append(DSegment(DPoint(x,y),DPoint(x+5000,y)))
-    #     lines.append(DSegment(DPoint(x,y),DPoint(x,y+5000)))
-    #     lines.append(DSegment(DPoint(x,y),DPoint(x,y-5000)))
-    #     cornor=[]
-    #     for i, seg1 in enumerate(lines):
-    #         dist=None
-    #         s=None
-    #         for j, seg2 in enumerate(poly_refs):
-    #             p1, p2 = seg1.start_point, seg1.end_point
-    #             q1, q2 = seg2.start_point, seg2.end_point
-    #             intersection = segment_intersection(p1, p2, q1, q2)
-    #             if intersection:
-    #                 if dist is None:
-    #                     dist=(intersection[0]-p1.x)*(intersection[0]-p1.x)+(intersection[1]-p1.y)*(intersection[1]-p1.y)
-    #                     s=seg2
-    #                 else:
-    #                     if dist>(intersection[0]-p1.x)*(intersection[0]-p1.x)+(intersection[1]-p1.y)*(intersection[1]-p1.y):
-    #                         dist=(intersection[0]-p1.x)*(intersection[0]-p1.x)+(intersection[1]-p1.y)*(intersection[1]-p1.y)
-    #                         s=seg2
-    #         if s is not None:
-    #            cornor.append((dist,s,p))
-    #     cornor=sorted(cornor,key=lambda p:p[0])
-    #     if len(cornor)>=2:
-    #         cornor[0][1].isConstraint=True
-    #         cornor[0][1].isCornerhole=False
-    #         cornor[0][1].StarCornerhole=cornor[0][2]
-    #         cornor[1][1].isConstraint=True
-    #         cornor[1][1].isCornerhole=False
-    #         cornor[1][1].StarCornerhole=cornor[1][2]
+    # star_set=set()
+    # for s in poly:
+    #     if s in star_pos_map:
+    #         for ss in star_pos_map[s]:
+    #             star_set.add(ss)
+    # stars_pos=list(star_set)
     
-
+    s_stars_set=set()
+    m_starts_set=set()
+    for pos,texts in text_map.items():
+        point=Point(pos.x,pos.y)
+        if not polygon.contains(point):
+            continue
+        for t in texts:
+            if t[1]["Type"]=="s_star":
+                s_stars_set.add(pos)
+            elif t[1]["Type"]=="m_star":
+                m_starts_set.add(pos)
+    star_pos=list(s_stars_set)
+    for p in star_pos:
+        x,y=p.x,p.y
+        lines=[]
+        lines.append(DSegment(DPoint(x,y),DPoint(x-5000,y)))
+        lines.append(DSegment(DPoint(x,y),DPoint(x+5000,y)))
+        lines.append(DSegment(DPoint(x,y),DPoint(x,y+5000)))
+        lines.append(DSegment(DPoint(x,y),DPoint(x,y-5000)))
+        cornor=[]
+        for i, seg1 in enumerate(lines):
+            dist=None
+            s=None
+            for j, seg2 in enumerate(poly_refs):
+                p1, p2 = seg1.start_point, seg1.end_point
+                q1, q2 = seg2.start_point, seg2.end_point
+                intersection = segment_intersection(p1, p2, q1, q2)
+                if intersection:
+                    if dist is None:
+                        dist=(intersection[0]-p1.x)*(intersection[0]-p1.x)+(intersection[1]-p1.y)*(intersection[1]-p1.y)
+                        s=seg2
+                    else:
+                        if dist>(intersection[0]-p1.x)*(intersection[0]-p1.x)+(intersection[1]-p1.y)*(intersection[1]-p1.y):
+                            dist=(intersection[0]-p1.x)*(intersection[0]-p1.x)+(intersection[1]-p1.y)*(intersection[1]-p1.y)
+                            s=seg2
+            if s is not None and s is not None and dist is not None and isinstance(s.ref,DLine) and dist<1000 and s.length()>50:
+               cornor.append((dist,s,p))
+        cornor=sorted(cornor,key=lambda p:p[0])
+        if len(cornor)>=2:
+            cornor[0][1].isConstraint=True
+            cornor[0][1].isCornerhole=False
+            # cornor[0][1].StarCornerhole=cornor[0][2]
+            cornor[1][1].isConstraint=True
+            cornor[1][1].isCornerhole=False
+            # cornor[1][1].StarCornerhole=cornor[1][2]
+        elif len(cornor)==1:
+            cornor[0][1].isConstraint=True
+            cornor[0][1].isCornerhole=False 
+    
+    star_pos=list(m_starts_set)
+    for p in star_pos:
+        x,y=p.x,p.y
+        lines=[]
+        lines.append(DSegment(DPoint(x,y),DPoint(x-5000,y)))
+        lines.append(DSegment(DPoint(x,y),DPoint(x+5000,y)))
+        lines.append(DSegment(DPoint(x,y),DPoint(x,y+5000)))
+        lines.append(DSegment(DPoint(x,y),DPoint(x,y-5000)))
+        cornor=[]
+        for i, seg1 in enumerate(lines):
+            dist=None
+            s=None
+            for j, seg2 in enumerate(poly_refs):
+                p1, p2 = seg1.start_point, seg1.end_point
+                q1, q2 = seg2.start_point, seg2.end_point
+                intersection = segment_intersection(p1, p2, q1, q2)
+                if intersection:
+                    if dist is None:
+                        dist=(intersection[0]-p1.x)*(intersection[0]-p1.x)+(intersection[1]-p1.y)*(intersection[1]-p1.y)
+                        s=seg2
+                    else:
+                        if dist>(intersection[0]-p1.x)*(intersection[0]-p1.x)+(intersection[1]-p1.y)*(intersection[1]-p1.y):
+                            dist=(intersection[0]-p1.x)*(intersection[0]-p1.x)+(intersection[1]-p1.y)*(intersection[1]-p1.y)
+                            s=seg2
+            if s is not None and s is not None and dist is not None and isinstance(s.ref,DLine) and dist<1000 and s.length()>50:
+               cornor.append((dist,s,p))
+        cornor=sorted(cornor,key=lambda p:p[0])
+        if len(cornor)>=3:
+            cornor[0][1].isConstraint=True
+            cornor[0][1].isCornerhole=False
+            # cornor[0][1].StarCornerhole=cornor[0][2]
+            cornor[1][1].isConstraint=True
+            cornor[1][1].isCornerhole=False
+            # cornor[1][1].StarCornerhole=cornor[1][2]
+            cornor[2][1].isConstraint=True
+            cornor[2][1].isCornerhole=False
+        elif len(cornor)==2:
+            cornor[0][1].isConstraint=True
+            cornor[0][1].isCornerhole=False
+            # cornor[0][1].StarCornerhole=cornor[0][2]
+            cornor[1][1].isConstraint=True
+            cornor[1][1].isCornerhole=False
+            # cornor[1][1].StarCornerhole=cornor[1][2]
+        elif len(cornor)==1:
+            cornor[0][1].isConstraint=True
+            cornor[0][1].isCornerhole=False 
    
     # step4: 标记固定边
     for i, segment in enumerate(poly_refs):
@@ -1514,7 +1597,7 @@ def calculate_poly_features(poly, segments, segmentation_config, point_map, inde
     st_segments=set()
     fb_segments=set()
     fl_segments=set()
-    polygon=computePolygon(poly)
+
     
 
     other_refs=[]
@@ -3291,7 +3374,13 @@ def check_one_class(classification_res,template_map,free_edges,constraint_edges,
     return True
 
 
-def outputInfo(index,edges_info,poly_centroid,hint_info,meta_info,segmentation_config,poly):
+def check_one_class_ustd(polyline_handles,classification_res,free_edges,constraint_edges,edges,poly_refs,poly,all_edge_map):
+    #二维多段线 
+    for s in free_edges[0]:
+        if s.ref is not None and s.ref.handle is not None and s.ref.handle in polyline_handles:
+            return False
+    return True 
+def outputInfo(index,edges_info,poly_centroid,hint_info,meta_info,segmentation_config,poly,polyline_handles):
     is_standard_elbow,bracket_parameter,strengthen_parameter,has_hint,is_fb,is_diff=meta_info
     free_edges,constraint_edges,edges,poly_refs,ref_map=edges_info
     all_edge_map,edge_types,features,feature_map,constraint_edge_no,free_edge_no,all_anno,tis,ds=hint_info
@@ -3300,9 +3389,12 @@ def outputInfo(index,edges_info,poly_centroid,hint_info,meta_info,segmentation_c
     #handle center classification info is_diff
     meta_hints=[]
     if is_standard_elbow==False:
-        if is_unstandard_bracket(free_edges, edges, segmentation_config.unstandard_type_path)==False:
+        classification_res=poly_classifier_ustd()
+        if classification_res is None or classification_res=="Unclassified":
             return poly_refs,"Unclassified",[],[]
 
+        if check_one_class_ustd(polyline_handles,classification_res,free_edges,constraint_edges,edges,poly_refs,poly,all_edge_map)==False:
+            return poly_refs,"Unclassified",[],[]
         template_cons_edges=[]
         for i,edge in enumerate(edges):
     
@@ -4350,16 +4442,17 @@ def   outputHints(meta_hints,size_hints,path="./标注.csv"):
         writer.writerow(columns2)
         writer.writerows(size_hints)
 
-def classificationAndOutputStep(indices,edges_infos,poly_centroids,hint_infos,meta_infos,segmentation_config,polys):
+def classificationAndOutputStep(indices,edges_infos,poly_centroids,hint_infos,meta_infos,segmentation_config,polys,polyline_handles):
     classification_table = load_classification_table(segmentation_config.standard_type_path)
     poly_infos=[]
     types=[]
     flags=[]
     meta_hints=[]
     size_hints=[]
+    class_count={}
     for i in range(len(indices)):
         index,edges_info,poly_centroid,hint_info,meta_info=indices[i],edges_infos[i],poly_centroids[i],hint_infos[i],meta_infos[i]
-        poly_refs, classification_res,meta_hint,size_hint=outputInfo(index,edges_info,poly_centroid,hint_info,meta_info,segmentation_config,polys[index])
+        poly_refs, classification_res,meta_hint,size_hint=outputInfo(index,edges_info,poly_centroid,hint_info,meta_info,segmentation_config,polys[index],polyline_handles)
         poly_infos.append(poly_refs)
         types.append(classification_res)
         meta_hints.extend(meta_hint)
@@ -4367,6 +4460,9 @@ def classificationAndOutputStep(indices,edges_infos,poly_centroids,hint_infos,me
         if classification_res=="Unstandard" or classification_res=="Unclassified" or len(classification_res.split(","))>1:
             flags.append(False)
         else:
+            if classification_res not in class_count:
+                class_count[classification_res]=0
+            class_count[classification_res]+=1
             thickness=0
             if meta_info[1] is not None and meta_info[1]["Thickness"] is not None:
                 thickness=meta_info[1]["Thickness"]
@@ -4427,5 +4523,16 @@ def classificationAndOutputStep(indices,edges_infos,poly_centroids,hint_infos,me
                 flag=False
             flags.append(flag)
 
+    names=[]
+    for name,value in classification_table.items():
+        names.append(name)
+    class_unincluded=[]
+    for name in names:
+        if name not in class_count:
+            class_unincluded.append(name)
+    for name in class_unincluded:
+        log_to_file("./output/class_not_included.txt",name)
+    for name ,count in class_count.items():
+        log_to_file("./output/class_included.txt",name+"  "+str(count))
     outputHints(meta_hints,size_hints,segmentation_config.dxf_output_folder)
     return poly_infos,types,flags

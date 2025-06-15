@@ -21,7 +21,8 @@ def is_useful_text(content=""):
     pattern_r = r"R(?P<radius>\d+([.]\d+)?)"
     pattern_digit = r"(?P<value>\d+([.]\d+)?)"
     pattern_hole=r"(?P<content>\d+(?:\.\d+)?(?:\s*[Xx]\s*\d+(?:\.\d+)?)+)"
-    patterns=[pattern_b, pattern_b_op, pattern_fb, pattern_fb_op, pattern_fl, pattern_fl_op, pattern_bk, pattern_r, pattern_digit,pattern_hole]
+    star_pattern=r"[*]+"
+    patterns=[pattern_b, pattern_b_op, pattern_fb, pattern_fb_op, pattern_fl, pattern_fl_op, pattern_bk, pattern_r, pattern_digit,pattern_hole,star_pattern]
     flag=False
     for pattern in patterns:
         if re.fullmatch(pattern, label):
@@ -57,6 +58,16 @@ def parse_elbow_plate(label="", annotation_position="other", is_fb=False):
     pattern_r = r"R(?P<radius>\d+([.]\d+)?)"
     pattern_digit = r"(?P<value>\d+([.]\d+)?)"
     pattern_hole=r"(?P<content>\d+(?:\.\d+)?(?:\s*[Xx]\s*\d+(?:\.\d+)?)+)"
+    star_pattern=r"[*]+"
+    if match := re.fullmatch(star_pattern, label):
+        if label=="*":
+            return {
+                "Type": "s_star"
+            } 
+        else:
+            return {
+                "Type": "m_star"
+            }          
     if label =="B":
         return {
             "Type": "B_anno"

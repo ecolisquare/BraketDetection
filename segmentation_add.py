@@ -92,9 +92,8 @@ if __name__ == '__main__':
         poly = []
         for seg in poly_seg:
             poly.append([seg.start_point.x, seg.start_point.y])
-        bb_polys.append(poly)
     #文件中线段元素的读取和根据颜色过滤
-    elements,segments,ori_segments,stiffeners,sign_handles=readJson_inbbpolys(json_path,segmentation_config, bb_polys)
+    elements,segments,ori_segments,stiffeners,sign_handles,polyline_handles=readJson_inbbpolys(json_path,segmentation_config, bb_polys_seg)
    
     ori_block=build_initial_block(ori_segments,segmentation_config)
     # grid,meta=segments_in_blocks(ori_segments,segmentation_config)
@@ -164,7 +163,7 @@ if __name__ == '__main__':
   
     edges_infos,poly_centroids,hint_infos,meta_infos=diffusion_step(edges_infos,poly_centroids,hint_infos,meta_infos)
 
-    polys_info,classi_res,flags=classificationAndOutputStep(indices,edges_infos,poly_centroids,hint_infos,meta_infos,segmentation_config,polys)
+    polys_info,classi_res,flags=classificationAndOutputStep(indices,edges_infos,poly_centroids,hint_infos,meta_infos,segmentation_config,polys,polyline_handles)
     free_edge_handles = []
     all_handles=[]
     not_all_handles=[]
