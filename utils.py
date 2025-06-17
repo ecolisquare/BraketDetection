@@ -1103,6 +1103,7 @@ def readJson(path,segmentation_config):
         arc_splits=expandFixedLength(arc_splits,segmentation_config.arc_expand_length)
         sign_handles=[]
         polyline_handles=[]
+        hatch_polys = []
         for ele in data_list[0]:
             if ele["type"]=="lwpolyline":
                 vs=ele["vertices"]
@@ -1120,9 +1121,18 @@ def readJson(path,segmentation_config):
                         sign_handles.append(ele["handle"])
             elif ele["type"]=="polyline":
                 polyline_handles.append(ele["handle"])
+            elif ele["type"]=="hatch":
+                hatch_edges = ele["edges"]
+                hatch_poly = []
+                for hatch_edge in hatch_edges:
+                    if hatch_edge["edge_type"] == "line":
+                        point = [[hatch_edge["coords"][0], hatch_edge["coords"][1]], [hatch_edge["coords"][2], hatch_edge["coords"][3]]]
+                        hatch_poly.append(point)
+                    elif hatch_edge["edge_type"] == "polyline":
+                        hatch_poly.extend(hatch_edge["coords"])
+                hatch_polys.append(hatch_poly)
        
-       
-        return elements,segments+arc_splits,ori_segments,stiffeners,sign_handles,polyline_handles
+        return elements,segments+arc_splits,ori_segments,stiffeners,sign_handles,polyline_handles,hatch_polys
     except FileNotFoundError:  
         print("The file does not exist.")
     except json.JSONDecodeError:  
@@ -4005,7 +4015,7 @@ def readJson_inbbpolys(path,segmentation_config, bb_polys):
         
         sign_handles=[]
         polyline_handles=[]
-        for ele in data_list_filtered[0]:
+        for ele in data_list_filtered:
             if ele["type"]=="lwpolyline":
                 vs=ele["vertices"]
                 vs_type=ele["verticesType"]

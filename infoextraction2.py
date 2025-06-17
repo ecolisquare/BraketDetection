@@ -2,10 +2,10 @@ from  element import *
 from plot_geo import plot_geometry,plot_polys, plot_info_poly,p_minus,p_add,p_mul
 import os
 from utils import segment_intersection_line,segment_intersection,computeBoundingBox,is_parallel,conpute_angle_of_two_segments,point_segment_position,shrinkFixedLength,check_points_against_segments,check_points_against_free_segments,check_parallel_anno,check_vertical_anno,check_non_parallel_anno
-from classifier import poly_classifier,match_template,load_classification_table,eva_c_f,is_unstandard_bracket,poly_classifier_ustd
+from classifier import poly_classifier,match_template,load_classification_table,eva_c_f,poly_classifier_ustd
 from scipy.spatial import ConvexHull
 import matplotlib.pyplot as plt
-from shapely.geometry import Point, Polygon
+from shapely.geometry import Point, Polygon, LineString
 from bracket_parameter_extraction import parse_elbow_plate
 import json
 import re
@@ -135,6 +135,47 @@ def calculate_angle(point1, point2, point3):
 
     angle = math.acos(cos_theta) * (180 / math.pi)  # 弧度转角度
     return angle
+
+# 计算是否位于阴影区域
+def is_intersect_hatch(poly, hatch_polys):
+    # 提取poly的所有端点坐标
+    poly_points = []
+    for segment in poly:
+        poly_points.append((segment.start_point.x, segment.start_point.y))
+        poly_points.append((segment.end_point.x, segment.end_point.y))
+
+    # 去重并保持顺序
+    seen = set()
+    unique_points = []
+    for pt in poly_points:
+        if pt not in seen:
+            unique_points.append(pt)
+            seen.add(pt)
+
+    # 尝试构建封闭图形
+    if len(unique_points) < 3:
+        poly_geom = LineString(unique_points)
+    else:
+        if unique_points[0] != unique_points[-1]:
+            unique_points.append(unique_points[0])  # 确保闭合
+        poly_geom = Polygon(unique_points)
+
+    # 遍历所有 hatch 区域，判断是否相交
+    for hatch in hatch_polys:
+        hatch_points = [tuple(p) for p in hatch]
+        if len(hatch_points) < 3:
+            continue  # 不能构成面
+        if hatch_points[0] != hatch_points[-1]:
+            hatch_points.append(hatch_points[0])  # 确保闭合
+
+        hatch_geom = Polygon(hatch_points)
+
+        if poly_geom.intersects(hatch_geom) or poly_geom.within(hatch_geom):
+            return True
+
+    return False
+
+    
 
 # 计算几何中心坐标
 def calculate_poly_centroid(poly,):
@@ -1370,9 +1411,13 @@ def get_free_edge_des(edge,edge_types):
         des+=edge_types[s]+","
     return des[:-1]
 
-def calculate_poly_features(poly, segments, segmentation_config, point_map, index,star_pos_map,cornor_holes,texts,dimensions,text_map,stiffeners):
+def calculate_poly_features(poly, segments, segmentation_config, point_map, index,star_pos_map,cornor_holes,texts,dimensions,text_map,stiffeners, hatch_polys):
     # step1: 计算几何中心坐标
     poly_centroid = calculate_poly_centroid(poly)
+    # 特判：判断几何是否在阴影中
+    if is_intersect_hatch(poly, hatch_polys):
+        print(f"回路{index}位于阴影区域")
+        return None
     poly_map={}
     polygon=computePolygon(poly)
     # step2: 合并边界线
@@ -3338,7 +3383,8 @@ def plot_info_poly_std(constraint_edges,ori_edge_map,template_map,path):
     plt.savefig(path)
     plt.close('all')
     plt.close()
-def check_one_class(classification_res,template_map,free_edges,constraint_edges,edges,poly_refs,poly,all_edge_map):
+
+def check_one_class(classification_res,template_map,free_edges,constraint_edges,edges,poly_refs,poly,all_edge_map, ref_map):
     polygon=computePolygon(poly)
     if "DPK(" in classification_res or "DPV(" in classification_res:
         if "free2" not in template_map or len(template_map["free2"])==0 or (not isinstance(template_map["free2"][0].ref,DArc)):
@@ -3349,11 +3395,17 @@ def check_one_class(classification_res,template_map,free_edges,constraint_edges,
             return False
 
     #TODO: 判断可能角隅孔是否被分到约束边
-    # if "BR(" in classification_res:
-    #     for c_edge in constraint_edges:
-    #         for seg in c_edge:
-    #             if not seg.isCornerhole and isinstance(seg.ref, DArc):
-    #                 return False
+    if "BR(" in classification_res:
+        for c_edge in constraint_edges:
+            for seg in c_edge:
+                actual_segs = []
+                if seg in ref_map:
+                    actual_segs.extend(ref_map[seg])
+                else:
+                    actual_segs.append(seg)
+                for se in actual_segs:
+                    if not se.isCornerhole and isinstance(se.ref, DArc):
+                        return False
 
 
 
@@ -3389,7 +3441,7 @@ def outputInfo(index,edges_info,poly_centroid,hint_info,meta_info,segmentation_c
     #handle center classification info is_diff
     meta_hints=[]
     if is_standard_elbow==False:
-        classification_res=poly_classifier_ustd()
+        classification_res=poly_classifier_ustd(free_edges, edges, segmentation_config.unstandard_type_path, edge_types, thickness, feature_map)
         if classification_res is None or classification_res=="Unclassified":
             return poly_refs,"Unclassified",[],[]
 
@@ -3638,7 +3690,7 @@ def outputInfo(index,edges_info,poly_centroid,hint_info,meta_info,segmentation_c
         else:
             ignore_types=["line"]
         template_map=match_template(edges,free_edges,output_template,edge_types,thickness)
-        if check_one_class(classification_res,template_map,free_edges,constraint_edges,edges,poly_refs,poly,all_edge_map)==False:
+        if check_one_class(classification_res,template_map,free_edges,constraint_edges,edges,poly_refs,poly,all_edge_map, ref_map)==False:
             return poly_refs,"Unclassified",[],[]
         # print(output_template)
         free_edge_template_no={}

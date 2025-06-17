@@ -980,7 +980,7 @@ def is_new_feature_pass(matched_type, classification_table,edges, poly_free_edge
     return is_match_flag
 
 # 非标肘板判断逻辑，只进行轮廓匹配
-def is_unstandard_bracket(poly_free_edges, edges, unstandard_classification_file_path):
+def poly_classifier_ustd(poly_free_edges, edges, unstandard_classification_file_path, edge_types, thickness, feature_map):
     classification_table = load_classification_table(unstandard_classification_file_path)
 
     # 获取自由边轮廓
@@ -1058,7 +1058,7 @@ def is_unstandard_bracket(poly_free_edges, edges, unstandard_classification_file
     matched_type = free_edges_sequence_classifier(classification_table, free_edges_sequence,reversed_free_edges_sequence, matched_type_list)
 
     if matched_type=="Unclassified":
-        return False
+        return "Unclassified"
     
     matched_type=","+matched_type+','
 
@@ -1074,7 +1074,150 @@ def is_unstandard_bracket(poly_free_edges, edges, unstandard_classification_file
     # 混淆类分类
     matched_type = tidy_matched_type(matched_type)
     
-    if len(matched_type) == 0:
-        return False
+    if matched_type == "Unclassified":
+        return "Unclassified"
 
-    return True
+    # # 非标肘板特征匹配
+    # max_feature_num = -1
+    # res_matched_type = "Unclassified"
+    # best_matched_type = None
+    # for type_name in matched_type.split(','):
+    #     best_match_flag = True
+    #     f_score = 0
+    #     if type_name.strip()=="":
+    #         continue
+    #     free_code = classification_table[type_name]["free_code"]
+    #     no_free_code = classification_table[type_name]["no_free_code"]
+    #     template_map=match_template(edges,poly_free_edges,classification_table[type_name],edge_types,thickness=thickness)
+
+    #     # 自由边特征比对
+    #     free_idx = 1
+    #     while f'free{free_idx}' in template_map:
+    #         if len(template_map[f'free{free_idx}'])==0:
+    #             free_idx += 1
+    #             continue
+    #         seg=template_map[f'free{free_idx}'][0]
+    #         f = feature_map[seg]
+    #         c = free_code[free_idx - 1]
+    #         if eva_c_f(c, f):
+    #             f_score += 1
+    #         else:
+    #             best_match_flag = False
+    #         free_idx += 1
+        
+    #     # 非自由边特征对比
+    #     constarint_idx=1
+    #     cornerhole_idx=1
+    #     while True:
+    #         if f'constraint{constarint_idx}' in template_map:
+    #             seg = template_map[f'constraint{constarint_idx}'][0]
+    #             f = feature_map[seg]
+    #             c = no_free_code[constarint_idx + cornerhole_idx - 2]
+    #             if eva_c_f(c, f):
+    #                 f_score += 1
+    #             else:
+    #                 best_match_flag = False
+    #             constarint_idx+=1
+    #         else:
+    #             break
+    #         if f'cornerhole{cornerhole_idx}' in template_map:
+    #             if len(template_map[f'cornerhole{cornerhole_idx}'])==0:
+    #                 cornerhole_idx+=1
+    #                 break
+    #             seg = template_map[f'cornerhole{cornerhole_idx}'][0]
+    #             f = feature_map[seg]
+    #             c = no_free_code[constarint_idx + cornerhole_idx - 2]
+    #             if eva_c_f(c, f):
+    #                 f_score += 1
+    #             else:
+    #                 best_match_flag = False
+    #             cornerhole_idx+=1
+    #     # print(type_name,best_match_flag,f_score)
+    #     # 如果完全匹配成功，直接作为最终结果；否则则进行分数比较
+    #     if best_match_flag:
+    #         best_matched_type = type_name if best_matched_type is None else f'{best_matched_type},{type_name}'
+    #     elif f_score > max_feature_num:
+    #         max_feature_num = f_score
+    #         res_matched_type = type_name
+    #     elif f_score == max_feature_num:
+    #         res_matched_type = f'{res_matched_type},{type_name}'
+
+
+    # # 如果成功匹配到标准肘板类别，则返回该类别；否则，则仅返回其中一类别模板
+    # if best_matched_type is not None:
+    #     res_matched_type = best_matched_type
+    
+    # res_matched_type_="Unclassified"
+    # if len(res_matched_type.split(","))>1:
+    #     max_feature_num = -1
+    #     for type_name in res_matched_type.split(','):
+    #         f_score = 0
+    #         if type_name.strip()=="":
+    #             continue
+    #         free_code = classification_table[type_name]["free_code"]
+    #         no_free_code = classification_table[type_name]["no_free_code"]
+    #         template_map=match_template(edges,poly_free_edges,classification_table[type_name],edge_types,thickness=thickness)
+
+    #         # 自由边特征比对
+    #         free_idx = 1
+    #         while f'free{free_idx}' in template_map:
+    #             if len(template_map[f'free{free_idx}'])==0:
+    #                 free_idx += 1
+    #                 continue
+    #             seg=template_map[f'free{free_idx}'][0]
+    #             f = feature_map[seg]
+    #             c = free_code[free_idx - 1]
+    #             if eva_c_f(f, c):
+    #                 f_score += 1
+    #             free_idx += 1
+            
+    #         # 非自由边特征对比
+    #         constarint_idx=1
+    #         cornerhole_idx=1
+    #         while True:
+    #             if f'constraint{constarint_idx}' in template_map:
+    #                 seg = template_map[f'constraint{constarint_idx}'][0]
+    #                 f = feature_map[seg]
+    #                 c = no_free_code[constarint_idx + cornerhole_idx - 2]
+    #                 if eva_c_f(f, c):
+    #                     f_score += 1
+
+    #                 constarint_idx+=1
+    #             else:
+    #                 break
+    #             if f'cornerhole{cornerhole_idx}' in template_map:
+    #                 if len(template_map[f'cornerhole{cornerhole_idx}'])==0:
+    #                     cornerhole_idx+=1
+    #                     break
+    #                 seg = template_map[f'cornerhole{cornerhole_idx}'][0]
+    #                 f = feature_map[seg]
+    #                 c = no_free_code[constarint_idx + cornerhole_idx - 2]
+    #                 if eva_c_f(f, c):
+    #                     f_score += 1
+
+    #                 cornerhole_idx+=1
+    #         # print(type_name,best_match_flag,f_score)
+    #         # 如果完全匹配成功，直接作为最终结果；否则则进行分数比较
+    #         if f_score > max_feature_num:
+    #             max_feature_num = f_score
+    #             res_matched_type_ = type_name
+    #         elif f_score == max_feature_num:
+    #             res_matched_type_ = f'{res_matched_type_},{type_name}'
+
+    # else:
+    #     res_matched_type_=res_matched_type
+
+    # if res_matched_type_ == "Unclassified":
+    #     matched_type = res_matched_type_
+    #     output_template = None
+    # else:
+    #     matched_type = res_matched_type_
+    #     output_template = classification_table[res_matched_type_.split(',')[0]]
+
+    # # 添加new特征的判断
+    # matched_type_list = matched_type.split(',')
+    # matched_type = None
+    # for type_name in matched_type_list:
+    #     if is_new_feature_pass(type_name, classification_table, edges, poly_free_edges, edge_types, thickness, feature_map):
+    #         matched_type = type_name if matched_type is None else f'{matched_type},{type_name}'
+    return matched_type
