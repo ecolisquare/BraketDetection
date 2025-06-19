@@ -139,26 +139,7 @@ def calculate_angle(point1, point2, point3):
 # 计算是否位于阴影区域
 def is_intersect_hatch(poly, hatch_polys):
     # 提取poly的所有端点坐标
-    poly_points = []
-    for segment in poly:
-        poly_points.append((segment.start_point.x, segment.start_point.y))
-        poly_points.append((segment.end_point.x, segment.end_point.y))
-
-    # 去重并保持顺序
-    seen = set()
-    unique_points = []
-    for pt in poly_points:
-        if pt not in seen:
-            unique_points.append(pt)
-            seen.add(pt)
-
-    # 尝试构建封闭图形
-    if len(unique_points) < 3:
-        poly_geom = LineString(unique_points)
-    else:
-        if unique_points[0] != unique_points[-1]:
-            unique_points.append(unique_points[0])  # 确保闭合
-        poly_geom = Polygon(unique_points)
+    poly_geom = computePolygon(poly)
 
     # 遍历所有 hatch 区域，判断是否相交
     for hatch in hatch_polys:
@@ -170,7 +151,9 @@ def is_intersect_hatch(poly, hatch_polys):
 
         hatch_geom = Polygon(hatch_points)
 
-        if poly_geom.intersects(hatch_geom) or poly_geom.within(hatch_geom):
+        intersection = poly_geom.intersection(hatch_geom)
+
+        if intersection.area / poly_geom.area > 0.5:
             return True
 
     return False

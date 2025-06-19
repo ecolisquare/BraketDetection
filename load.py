@@ -803,77 +803,78 @@ def convertHatch(entity:ezdxf.entities.Hatch):
     s = math.fabs((x2 - x1) * (y2 - y1))
 
 
-    edges = entity.paths.paths[0]
-    mid["edges"]=[]
+    mid["paths"]=[]
 
+    for edges in entity.paths.paths:
+        p = []
 
-    if isinstance(edges, ezdxf.entities.boundary_paths.EdgePath):
-        edges = edges.edges
-        for edge in edges:
-            
-            if isinstance(edge, ezdxf.entities.boundary_paths.LineEdge):
-                res = {}
-                res["edge_type"] = "line"
-                res["coords"] = [
-                    edge.start[0], 
-                    edge.start[1], 
-                    edge.end[0], 
-                    edge.end[1]
-                ]
-                mid['edges'].append(res)
+        if isinstance(edges, ezdxf.entities.boundary_paths.EdgePath):
+            edges = edges.edges
+            for edge in edges:
+                
+                if isinstance(edge, ezdxf.entities.boundary_paths.LineEdge):
+                    res = {}
+                    res["edge_type"] = "line"
+                    res["coords"] = [
+                        edge.start[0], 
+                        edge.start[1], 
+                        edge.end[0], 
+                        edge.end[1]
+                    ]
+                    p.append(res)
+                    
+
+                elif isinstance(edge, ezdxf.entities.boundary_paths.EllipseEdge):
+
+                    res = {}
+                    res["edge_type"] = "ellipse"
+                    
+                    res['center'] = [edge.center[0],edge.center[1]]
+                    res['major_axis'] =[edge.major_axis[0],edge.major_axis[1]]
+                    res['ratio'] = edge.ratio
+
+                    res['start_param'] = edge.start_param
+                    res['end_param'] = edge.end_param
+                    # 下面自行计算起始角度和终止角度 start_theta end_theat
+                    start_theta = edge.start_param
+                    end_theta = edge.end_param
+
+                    # 如果主轴方向指向负半轴 角度 += pi 
+                    major_axis_rotation = vector_to_angle(res['major_axis'])
+                    start_theta = (start_theta + major_axis_rotation) % (PI_CIRCLE)
+                    end_theta = (end_theta + major_axis_rotation) % (PI_CIRCLE)
+                    if (start_theta > end_theta ):
+                        if approximate_equal(end_theta,0,1e-2):
+                            end_theta = 6.282
+                        if approximate_equal(start_theta,6.282,1e-2):
+                            start_theta =0
+                    res['calc_start_theta'] = start_theta
+                    res['calc_end_theta'] = end_theta
+
+                    p.append(res)
+
+                elif isinstance(edge, ezdxf.entities.boundary_paths.ArcEdge):
+                    res = {}
+                    res["edge_type"] = "arc"
+
+                    res["center"] = [edge.center[0], edge.center[1]]
+                    res['radius'] = edge.radius
+                    res['start_angle'] = edge.start_angle
+                    res['end_angle'] = edge.end_angle
+
+                    p.append(res)
                 
 
-            elif isinstance(edge, ezdxf.entities.boundary_paths.EllipseEdge):
-
-                res = {}
-                res["edge_type"] = "ellipse"
-                
-                res['center'] = [edge.center[0],edge.center[1]]
-                res['major_axis'] =[edge.major_axis[0],edge.major_axis[1]]
-                res['ratio'] = edge.ratio
-
-                res['start_param'] = edge.start_param
-                res['end_param'] = edge.end_param
-                # 下面自行计算起始角度和终止角度 start_theta end_theat
-                start_theta = edge.start_param
-                end_theta = edge.end_param
-
-                # 如果主轴方向指向负半轴 角度 += pi 
-                major_axis_rotation = vector_to_angle(res['major_axis'])
-                start_theta = (start_theta + major_axis_rotation) % (PI_CIRCLE)
-                end_theta = (end_theta + major_axis_rotation) % (PI_CIRCLE)
-                if (start_theta > end_theta ):
-                    if approximate_equal(end_theta,0,1e-2):
-                        end_theta = 6.282
-                    if approximate_equal(start_theta,6.282,1e-2):
-                        start_theta =0
-                res['calc_start_theta'] = start_theta
-                res['calc_end_theta'] = end_theta
-
-                mid["edges"].append(res)
-
-            elif isinstance(edge, ezdxf.entities.boundary_paths.ArcEdge):
-                res = {}
-                res["edge_type"] = "arc"
-
-                res["center"] = [edge.center[0], edge.center[1]]
-                res['radius'] = edge.radius
-                res['start_angle'] = edge.start_angle
-                res['end_angle'] = edge.end_angle
-
-                mid['edges'].append(res)
             
+        elif isinstance(edges, ezdxf.entities.boundary_paths.PolylinePath):
 
-        
-    elif isinstance(edges, ezdxf.entities.boundary_paths.PolylinePath):
+            res = {}
+            res['edge_type'] = "polyline"
+            res["coords"] = []
+            for v in edges.vertices:
+                res["coords"].append([v[0], v[1]])
 
-        res = {}
-        res['edge_type'] = "polyline"
-        res["coords"] = []
-        for v in edges.vertices:
-            res["coords"].append([v[0], v[1]])
-
-        mid['edges'].append(res)
+            p.append(res)
     # print(type())
 
 
