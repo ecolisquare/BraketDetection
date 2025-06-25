@@ -256,7 +256,7 @@ class DArc(DElement):
   
 
 class DText(DElement):  
-    def __init__(self,bound,insert=[0,0],color=7,content="",height=100,handle="",meta=None,is_mtext=False):  
+    def __init__(self,bound,insert=[0,0],color=7,content="",height=100,handle="",rotation=0,meta=None,is_mtext=False):  
         super().__init__()
         self.bound=bound
         self.insert=DPoint(insert[0],insert[1])
@@ -268,6 +268,7 @@ class DText(DElement):
         self.textpos=False
         self.meta=meta
         self.is_mtext=is_mtext
+        self.rotation=rotation
         if is_mtext:
             new_bound={"x1":self.insert.x,"x2":self.insert.x,"y1":self.insert.y,"y2":self.insert.y}
             self.bound=new_bound

@@ -11,8 +11,8 @@ class SegmentationConfig:
       
 
 
-        self.line_expand_length=14.5
-        self.arc_expand_length=8
+        self.line_expand_length=7.5
+        self.arc_expand_length=5
         self.line_image_path="./output/line.png"
         self.draw_intersections=False
 
@@ -71,10 +71,10 @@ class SegmentationConfig:
         #repline邻域边最小长度
         self.check_valid_min_length=20
         #is_repline
-        self.arc_repline_min_length=20
+        self.arc_repline_min_length=12
         self.arc_repline_max_length=200
-        self.line_repline_min_length=12
-        self.line_repline_max_length=80
+        self.line_repline_min_length=9
+        self.line_repline_max_length=130
 
         #filter cornor_hole
         self.cornor_hole_total_length=10
@@ -142,6 +142,7 @@ class SegmentationConfig:
         self.N=2
         self.x_padding=100
         self.y_padding=100
+
 
         #开孔所在图层
         self.hole_layer = "开孔标注"

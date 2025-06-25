@@ -168,7 +168,6 @@ def is_intersect_hole(poly, hole_polys):
             return True
         
     return False
-    
 
 # 计算几何中心坐标
 def calculate_poly_centroid(poly,):
@@ -646,7 +645,7 @@ def is_vertical_(point1,point2,segment,epsilon=0.05):
         return False
     v1=DPoint(point1.x-point2.x,point1.y-point2.y)
     v2=DPoint(segment.start_point.x-segment.end_point.x,segment.start_point.y-segment.end_point.y)
-    cross_product=(v1.x*v2.x+v1.y+v2.y)/(DSegment(point1,point2).length()*segment.length())
+    cross_product=(v1.x*v2.x+v1.y*v2.y)/(DSegment(point1,point2).length()*segment.length())
     if  abs(cross_product) <epsilon:
         return True
     return False 
@@ -654,11 +653,11 @@ def is_vertical_(point1,point2,segment,epsilon=0.05):
 def is_toe(free_edge,last_free_edge,cons_edge,max_free_edge_length):
     # if last_free_edge is not None and isinstance(last_free_edge.ref,DArc) and is_tangent_(free_edge,last_free_edge):
     #     return False
-    if (free_edge.length()<56 or free_edge.length()<=0.105*max_free_edge_length) and is_vertical_(free_edge.start_point,free_edge.end_point,cons_edge,epsilon=0.35):
+    if (free_edge.length()<56 or free_edge.length()<=0.105*max_free_edge_length) and is_vertical_(free_edge.start_point,free_edge.end_point,cons_edge,epsilon=0.1):
         return True
     return False
 def is_ks_corner(free_edge,last_free_edge,cons_edge,max_free_edge_length):
-    if (not is_toe(free_edge,last_free_edge,cons_edge,max_free_edge_length)) and (not is_vertical_(free_edge.start_point,free_edge.end_point,cons_edge,epsilon=0.35)) and isinstance(last_free_edge.ref,DLine) and free_edge.length() <= 100:
+    if (not is_toe(free_edge,last_free_edge,cons_edge,max_free_edge_length)) and (not is_vertical_(free_edge.start_point,free_edge.end_point,cons_edge,epsilon=0.1)) and isinstance(last_free_edge.ref,DLine) and free_edge.length() <= 100:
         return True
     return False
 
@@ -891,9 +890,9 @@ def is_tangent_(line,arc):
     s1,s2=DSegment(arc.ref.center,arc.ref.start_point),DSegment(arc.ref.center,arc.ref.end_point)
     v1,v2=line.start_point,line.end_point
     if v1==arc.ref.start_point or v2==arc.ref.start_point:
-        return is_vertical_(v1,v2,s1,0.35)
+        return is_vertical_(v1,v2,s1,0.1)
     if v1==arc.ref.end_point or v2==arc.ref.end_point:
-        return is_vertical_(v1,v2,s2,0.35)
+        return is_vertical_(v1,v2,s2,0.1)
     return True
 def is_vu(edge):
     if len(edge)!=2:
@@ -1404,10 +1403,9 @@ def get_free_edge_des(edge,edge_types):
         des+=edge_types[s]+","
     return des[:-1]
 
-def calculate_poly_features(poly, segments, segmentation_config, point_map, index,star_pos_map,cornor_holes,texts,dimensions,text_map,stiffeners, hatch_polys, hole_polys):
+def calculate_poly_features(poly, segments, segmentation_config, point_map, index,star_pos_map,cornor_holes,texts,dimensions,text_map,stiffeners, hatch_polys,hole_polys):
     # step1: 计算几何中心坐标
     poly_centroid = calculate_poly_centroid(poly)
-
     # 特判：判断几何是否在阴影中
     if is_intersect_hatch(poly, hatch_polys):
         print(f"回路{index}位于阴影区域")
@@ -1417,7 +1415,6 @@ def calculate_poly_features(poly, segments, segmentation_config, point_map, inde
     if is_intersect_hole(poly, hole_polys):
         print(f"回路{index}中包含开孔")
         return None
-
     poly_map={}
     polygon=computePolygon(poly)
     # step2: 合并边界线
@@ -1460,6 +1457,9 @@ def calculate_poly_features(poly, segments, segmentation_config, point_map, inde
     
     s_stars_set=set()
     m_starts_set=set()
+    s_stars_r_map={}
+    m_stars_r_map={}
+
     for pos,texts in text_map.items():
         point=Point(pos.x,pos.y)
         if not polygon.contains(point):
@@ -1467,8 +1467,14 @@ def calculate_poly_features(poly, segments, segmentation_config, point_map, inde
         for t in texts:
             if t[1]["Type"]=="s_star":
                 s_stars_set.add(pos)
+                if pos not in s_stars_r_map:
+                    s_stars_r_map[pos]=[]
+                s_stars_r_map[pos].append(t[0])
             elif t[1]["Type"]=="m_star":
                 m_starts_set.add(pos)
+                if pos not in m_stars_r_map:
+                    m_stars_r_map[pos]=[]
+                m_stars_r_map[pos].append(t[0])
     star_pos=list(s_stars_set)
     for p in star_pos:
         x,y=p.x,p.y
@@ -1493,7 +1499,7 @@ def calculate_poly_features(poly, segments, segmentation_config, point_map, inde
                         if dist>(intersection[0]-p1.x)*(intersection[0]-p1.x)+(intersection[1]-p1.y)*(intersection[1]-p1.y):
                             dist=(intersection[0]-p1.x)*(intersection[0]-p1.x)+(intersection[1]-p1.y)*(intersection[1]-p1.y)
                             s=seg2
-            if s is not None and s is not None and dist is not None and isinstance(s.ref,DLine) and dist<1000 and s.length()>50:
+            if s is not None and s is not None and dist is not None and isinstance(s.ref,DLine) and dist<1000000 and s.length()>50:
                cornor.append((dist,s,p))
         cornor=sorted(cornor,key=lambda p:p[0])
         if len(cornor)>=2:
@@ -1511,10 +1517,15 @@ def calculate_poly_features(poly, segments, segmentation_config, point_map, inde
     for p in star_pos:
         x,y=p.x,p.y
         lines=[]
-        lines.append(DSegment(DPoint(x,y),DPoint(x-5000,y)))
-        lines.append(DSegment(DPoint(x,y),DPoint(x+5000,y)))
-        lines.append(DSegment(DPoint(x,y),DPoint(x,y+5000)))
-        lines.append(DSegment(DPoint(x,y),DPoint(x,y-5000)))
+        if p in m_stars_r_map and len(m_stars_r_map[p])>0:
+            r=m_stars_r_map[p][0].rotation
+        else:
+            r=0
+        vx,vy=math.cos(r/180*math.pi)*5000,math.sin(r/180*math.pi)*5000
+        lines.append(DSegment(DPoint(x,y),DPoint(x+vx,y+vy)))
+        lines.append(DSegment(DPoint(x,y),DPoint(x-vx,y-vy)))
+        # lines.append(DSegment(DPoint(x,y),DPoint(x,y+5000)))
+        # lines.append(DSegment(DPoint(x,y),DPoint(x,y-5000)))
         cornor=[]
         for i, seg1 in enumerate(lines):
             dist=None
@@ -1531,19 +1542,10 @@ def calculate_poly_features(poly, segments, segmentation_config, point_map, inde
                         if dist>(intersection[0]-p1.x)*(intersection[0]-p1.x)+(intersection[1]-p1.y)*(intersection[1]-p1.y):
                             dist=(intersection[0]-p1.x)*(intersection[0]-p1.x)+(intersection[1]-p1.y)*(intersection[1]-p1.y)
                             s=seg2
-            if s is not None and s is not None and dist is not None and isinstance(s.ref,DLine) and dist<1000 and s.length()>50:
+            if s is not None and s is not None and dist is not None and isinstance(s.ref,DLine) and dist<1000000 and s.length()>50:
                cornor.append((dist,s,p))
         cornor=sorted(cornor,key=lambda p:p[0])
-        if len(cornor)>=3:
-            cornor[0][1].isConstraint=True
-            cornor[0][1].isCornerhole=False
-            # cornor[0][1].StarCornerhole=cornor[0][2]
-            cornor[1][1].isConstraint=True
-            cornor[1][1].isCornerhole=False
-            # cornor[1][1].StarCornerhole=cornor[1][2]
-            cornor[2][1].isConstraint=True
-            cornor[2][1].isCornerhole=False
-        elif len(cornor)==2:
+        if len(cornor)==2:
             cornor[0][1].isConstraint=True
             cornor[0][1].isCornerhole=False
             # cornor[0][1].StarCornerhole=cornor[0][2]
@@ -3394,7 +3396,6 @@ def check_one_class(classification_res,template_map,free_edges,constraint_edges,
         if polygon.contains(center):
             return False
 
-    #TODO: 判断可能角隅孔是否被分到约束边
     if "BR(" in classification_res:
         for c_edge in constraint_edges:
             for seg in c_edge:
@@ -3410,7 +3411,7 @@ def check_one_class(classification_res,template_map,free_edges,constraint_edges,
 
 
 
-    #TODO：DPKN-2 标准肘板没有角度标注   角度标注在all_edge_map中可以查找
+
     if "DPKN-2(" in classification_res:
         for edge in edges:
             for seg in edge:
@@ -3418,7 +3419,21 @@ def check_one_class(classification_res,template_map,free_edges,constraint_edges,
                     ds=all_edge_map[seg]["与约束边及其平行线夹角标注"]
                     if len(ds)>0:
                         return False
-
+    
+    if "BR-2(" in classification_res:
+        if "free2" not in template_map or len(template_map["free2"])==0 or (not isinstance(template_map["free2"][0].ref,DArc)):
+            return False
+        mid=DSegment(template_map["free2"][0].ref.start_point,template_map["free2"][0].ref.end_point).mid_point() 
+        mid=Point(mid.x,mid.y)
+        if polygon.contains(mid):
+            return False
+    if "DMA(" in classification_res:
+        if "free3" not in template_map or len(template_map["free3"])==0 or (not isinstance(template_map["free3"][0].ref,DArc)):
+            return False
+        center=template_map["free3"][0].ref.center 
+        center=Point(center.x,center.y)
+        if polygon.contains(center):
+            return False
 
 
 
@@ -3441,10 +3456,13 @@ def outputInfo(index,edges_info,poly_centroid,hint_info,meta_info,segmentation_c
     #handle center classification info is_diff
     meta_hints=[]
     if is_standard_elbow==False:
+        thickness=0
+        if meta_info[1] is not None and meta_info[1]["Thickness"] is not None:
+            thickness=meta_info[1]["Thickness"]
         classification_res=poly_classifier_ustd(free_edges, edges, segmentation_config.unstandard_type_path, edge_types, thickness, feature_map)
         if classification_res is None or classification_res=="Unclassified":
             return poly_refs,"Unclassified",[],[]
-
+        classification_res=f"ustd:{classification_res}"
         if check_one_class_ustd(polyline_handles,classification_res,free_edges,constraint_edges,edges,poly_refs,poly,all_edge_map)==False:
             return poly_refs,"Unclassified",[],[]
         template_cons_edges=[]
@@ -3659,9 +3677,11 @@ def outputInfo(index,edges_info,poly_centroid,hint_info,meta_info,segmentation_c
         
 
         log_to_file(file_path, f"肘板加强类别为:{s_info}")
+        log_to_file(file_path,f"非标准肘板类别:{classification_res}")
         log_to_file(file_path, f"非标准肘板")
+
         
-        return poly_refs, "Unstandard",meta_hints,size_hints
+        return poly_refs, classification_res,meta_hints,size_hints
 
 
     cornerhole_num=0
@@ -4509,7 +4529,7 @@ def classificationAndOutputStep(indices,edges_infos,poly_centroids,hint_infos,me
         types.append(classification_res)
         meta_hints.extend(meta_hint)
         size_hints.extend(size_hint)
-        if classification_res=="Unstandard" or classification_res=="Unclassified" or len(classification_res.split(","))>1:
+        if classification_res=="Unstandard" or "ustd" in classification_res or classification_res=="Unclassified" or len(classification_res.split(","))>1:
             flags.append(False)
         else:
             if classification_res not in class_count:

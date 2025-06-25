@@ -145,7 +145,7 @@ if __name__ == '__main__':
         # except Exception as e:
         #     res=None
         segments_nearby=ori_block.segments_near_poly(poly)
-        res = calculate_poly_features(poly, segments_nearby, segmentation_config, point_map, i, star_pos_map, cornor_holes,texts,dimensions,text_map,stiffeners, hatch_polys, hole_polys)
+        res = calculate_poly_features(poly, segments_nearby, segmentation_config, point_map, i, star_pos_map, cornor_holes,texts,dimensions,text_map,stiffeners,hatch_polys,hole_polys)
         pbar.update()
         if res is not None:
             # print(res)
@@ -169,7 +169,7 @@ if __name__ == '__main__':
     not_all_handles=[]
     non_free_edge_handles = []
     for idx,(poly_refs,cls,flag) in enumerate(zip(polys_info,classi_res,flags)):
-        if cls=='Unclassified' or cls=='Unstandard':
+        if cls=='Unclassified' or cls=='Unstandard'  or ',' in cls  or 'ustd' in cls:
             continue
         else:
             for seg in poly_refs:

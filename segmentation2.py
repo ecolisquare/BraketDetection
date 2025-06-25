@@ -31,7 +31,7 @@ if __name__ == '__main__':
         print("读取json文件")
     #文件中线段元素的读取和根据颜色过滤
     elements,segments,ori_segments,stiffeners,sign_handles,polyline_handles, hatch_polys=readJson(json_path,segmentation_config)
-    #获取开孔标注图层
+
     hole_polys = read_hole_polys(json_path, segmentation_config.hole_layer)
     print(f"图案填充个数：{len(hatch_polys)}")
     # print(sign_handles)
@@ -85,7 +85,7 @@ if __name__ == '__main__':
         # except Exception as e:
         #     res=None
         segments_nearby=ori_block.segments_near_poly(poly)
-        res = calculate_poly_features(poly, segments_nearby, segmentation_config, point_map, i, star_pos_map, cornor_holes,texts,dimensions,text_map,stiffeners, hatch_polys, hole_polys)
+        res = calculate_poly_features(poly, segments_nearby, segmentation_config, point_map, i, star_pos_map, cornor_holes,texts,dimensions,text_map,stiffeners, hatch_polys,hole_polys)
         pbar.update()
         if res is not None:
             # print(res)
@@ -109,7 +109,7 @@ if __name__ == '__main__':
     not_all_handles=[]
     non_free_edge_handles = []
     for idx,(poly_refs,cls,flag) in enumerate(zip(polys_info,classi_res,flags)):
-        if cls=='Unclassified' or cls=='Unstandard':
+        if cls=='Unclassified' or cls=='Unstandard' or ',' in cls  or  'ustd' in cls:
             continue
         else:
             for seg in poly_refs:

@@ -991,10 +991,10 @@ def process_block(T_is_contained,block_datas,blockName,scales,rotation,insert,bl
                 for ct in content.split("/"):
                     if ct.strip()!="":
                         if "R" in ct.strip():
-                            e=DText(ele["bound"],[ele["insert"][0],ele["insert"][1]-5], ele["color"],ct.strip(),ele["height"],ele["handle"],meta=block_meta_data)
+                            e=DText(ele["bound"],[ele["insert"][0],ele["insert"][1]-5], ele["color"],ct.strip(),ele["height"],ele["handle"],ele["rotation"],meta=block_meta_data)
                             elements.append(e)
                         else:
-                            e=DText(ele["bound"],ele["insert"], ele["color"],ct.strip(),ele["height"],ele["handle"],meta=block_meta_data)
+                            e=DText(ele["bound"],ele["insert"], ele["color"],ct.strip(),ele["height"],ele["handle"],ele["rotation"],meta=block_meta_data)
                             elements.append(e)           
         elif  ele["type"]=="mtext":
             if ele.get("layerName") is not None and ele["layerName"] in layname:
@@ -1003,14 +1003,15 @@ def process_block(T_is_contained,block_datas,blockName,scales,rotation,insert,bl
             # if ele.get("linetype") is not None and ele["linetype"] in linetype:
             #     continue
             string = ele["text"].strip()
-            cleaned_string = re.sub(r"^\\A1;", "", string)
+            # cleaned_string = re.sub(r"^\\A1;", "", string)
+            cleaned_string=string
             for ct in cleaned_string.split("/"):
                 if ct.strip()!="":
                     if "R" in ct.strip():
-                        e=DText(ele["bound"],[ele["insert"][0],ele["insert"][1]-5], ele["color"],ct.strip(),ele["width"],ele["handle"],meta=block_meta_data,is_mtext=True)
+                        e=DText(ele["bound"],[ele["insert"][0],ele["insert"][1]-5], ele["color"],ct.strip(),ele["width"],ele["handle"],ele["rotation"],meta=block_meta_data,is_mtext=True)
                         elements.append(e)
                     else:
-                        e=DText(ele["bound"],ele["insert"], ele["color"],ct.strip(),ele["width"],ele["handle"],meta=block_meta_data,is_mtext=True)
+                        e=DText(ele["bound"],ele["insert"], ele["color"],ct.strip(),ele["width"],ele["handle"],ele["rotation"],meta=block_meta_data,is_mtext=True)
                         elements.append(e)
 
         elif ele["type"]=="dimension":
@@ -1133,6 +1134,26 @@ def readJson(path,segmentation_config):
                             hatch_poly.extend(hatch_edge["coords"])
                     hatch_polys.append(hatch_poly)
        
+
+        #inner block 
+        for name,sub_data in  data_list[1].items():
+            for ele in sub_data:
+                if ele["type"]=="lwpolyline":
+                    vs=ele["vertices"]
+                    vs_type=ele["verticesType"]
+                    vs_width=ele["verticesWidth"]
+                    if len(vs)==3 and len(vs_type)==3 and vs_type==["line","line","line"] and len(vs_width)==4 and vs_width[1]==[0,0] and vs_width[3]==[0,0] and vs_width[0][0]==0 and vs_width[0][1]>0 and vs_width[2][0]>0 and vs_width[2][1]==0:
+                        start=DPoint(vs[0][0],vs[0][1])
+                        end=DPoint(vs[-1][2],vs[-1][3])
+                        if DSegment(start,end).length()>100 and DSegment(start,end).length() <1000:
+                            sign_handles.append(ele["handle"])
+                    elif len(vs)==5 and len(vs_type)==5 and vs_type==["line","line","line","line","line"] and len(vs_width)==6 and vs_width[0]==[0,0] and vs_width[2]==[0,0] and vs_width[4]==[0,0] and vs_width[5]==[0,0] and vs_width[3][0]==0 and vs_width[3][1]>0 and vs_width[1][0]>0 and vs_width[1][1]==0:
+                        start=DPoint(vs[0][0],vs[0][1])
+                        end=DPoint(vs[-1][2],vs[-1][3])
+                        if DSegment(start,end).length()>100 and DSegment(start,end).length() <1000:
+                            sign_handles.append(ele["handle"])
+
+
         return elements,segments+arc_splits,ori_segments,stiffeners,sign_handles,polyline_handles,hatch_polys
     except FileNotFoundError:  
         print("The file does not exist.")
@@ -2194,10 +2215,10 @@ def process_intersections(chunck,segments,point_map,segmentation_config):
                         s=seg2
         if s is not None:
             text_pos=seg1.start_point
-            if (text_pos.y-y_max)<=segmentation_config.reference_text_max_distance and (s.ref.color==7 or s.ref.color==1) and ((len(point_map[s.start_point])==1 and  len(point_map[s.end_point])>1) or (len(point_map[s.start_point])>1 and  len(point_map[s.end_point])==1)):
+            if (text_pos.y-y_max)<=segmentation_config.reference_text_max_distance and (isinstance(s.ref, DLine) or isinstance(s.ref,DLwpolyline))  and (s.ref.color==7 or s.ref.color==1) and ((len(point_map[s.start_point])==1 and  len(point_map[s.end_point])>1) or (len(point_map[s.start_point])>1 and  len(point_map[s.end_point])==1)):
                 horizontal_line.append(s)
                 h1e.append(v1e[i])
-            elif (text_pos.y-y_max)<=segmentation_config.reference_text_max_distance and (s.ref.color==7 or s.ref.color==1) and (len(point_map[s.start_point])>1 and  len(point_map[s.end_point])>1) and math.fabs(s.start_point.y-s.end_point.y)<5:
+            elif (text_pos.y-y_max)<=segmentation_config.reference_text_max_distance and (isinstance(s.ref, DLine) or isinstance(s.ref,DLwpolyline))  and (s.ref.color==7 or s.ref.color==1) and (len(point_map[s.start_point])>1 and  len(point_map[s.end_point])>1) and math.fabs(s.start_point.y-s.end_point.y)<5:
                 horizontal_line.append(s)
                 h1e.append(v1e[i])
     pbar.close()
@@ -2229,10 +2250,10 @@ def process_intersections2(chunck,segments,point_map,segmentation_config):
                         s=seg2
         if s is not None:
             text_pos=seg1.start_point
-            if (y_min-text_pos.y)<=segmentation_config.reference_text_max_distance and (s.ref.color==7 or s.ref.color==1) and ((len(point_map[s.start_point])==1 and  len(point_map[s.end_point])>1) or (len(point_map[s.start_point])>1 and  len(point_map[s.end_point])==1)):
+            if (y_min-text_pos.y)<=segmentation_config.reference_text_max_distance and (isinstance(s.ref, DLine) or isinstance(s.ref,DLwpolyline))  and (s.ref.color==7 or s.ref.color==1) and ((len(point_map[s.start_point])==1 and  len(point_map[s.end_point])>1) or (len(point_map[s.start_point])>1 and  len(point_map[s.end_point])==1)):
                 hl2.append(s)
                 h2e.append(v2e[i])
-            elif (y_min-text_pos.y)<=segmentation_config.reference_text_max_distance and (s.ref.color==7 or s.ref.color==1) and (len(point_map[s.start_point])>1 and len(point_map[s.end_point])>1) and math.fabs(s.start_point.y-s.end_point.y)<5:
+            elif (y_min-text_pos.y)<=segmentation_config.reference_text_max_distance and (isinstance(s.ref, DLine) or isinstance(s.ref,DLwpolyline))  and (s.ref.color==7 or s.ref.color==1) and (len(point_map[s.start_point])>1 and len(point_map[s.end_point])>1) and math.fabs(s.start_point.y-s.end_point.y)<5:
                 hl2.append(s)
                 h2e.append(v2e[i])
                 
@@ -2371,7 +2392,7 @@ def removeReferenceLines(elements,texts,initial_segments,all_segments,point_map,
                             break
                         if len(point_map[current_point])<=1:
                             break
-                        current_nedge=[sss for sss in point_map[current_point] if sss!=current_line and is_parallel(current_line,sss,segmentation_config.is_parallel_tolerance) and sss.length()>20]
+                        current_nedge=[sss for sss in point_map[current_point] if sss!=current_line and (isinstance(sss.ref, DLine) or isinstance(sss.ref,DLwpolyline)) and is_parallel(current_line,sss,segmentation_config.is_parallel_tolerance) and (sss.length()>20 or check_in_arc(sss,point_map))]
                         if len(current_nedge)==0:
                             flag=False
                             break
@@ -2424,7 +2445,7 @@ def removeReferenceLines(elements,texts,initial_segments,all_segments,point_map,
                             break
                         if len(point_map[current_point])<=1:
                             break
-                        current_nedge=[sss for sss in point_map[current_point] if sss!=current_line and is_parallel(current_line,sss,segmentation_config.is_parallel_tolerance) and sss.length()>20]
+                        current_nedge=[sss for sss in point_map[current_point] if sss!=current_line and (isinstance(sss.ref, DLine) or isinstance(sss.ref,DLwpolyline))  and is_parallel(current_line,sss,segmentation_config.is_parallel_tolerance) and (sss.length()>20 or check_in_arc(sss,point_map))]
                         if len(current_nedge)==0:
                             flag1=False
                             break
@@ -2480,7 +2501,7 @@ def removeReferenceLines(elements,texts,initial_segments,all_segments,point_map,
                             break
                         if len(point_map[current_point])<=1:
                             break
-                        current_nedge=[sss for sss in point_map[current_point] if sss!=current_line and is_parallel(current_line,sss,segmentation_config.is_parallel_tolerance) and sss.length()>20]
+                        current_nedge=[sss for sss in point_map[current_point] if sss!=current_line and (isinstance(sss.ref, DLine) or isinstance(sss.ref,DLwpolyline))  and is_parallel(current_line,sss,segmentation_config.is_parallel_tolerance) and (sss.length()>20 or check_in_arc(sss,point_map))]
                         if len(current_nedge)==0:
                             flag2=False
                             break
@@ -2551,7 +2572,7 @@ def removeReferenceLines(elements,texts,initial_segments,all_segments,point_map,
                             break
                         if len(point_map[current_point])<=1:
                             break
-                        current_nedge=[sss for sss in point_map[current_point] if sss!=current_line and is_parallel(current_line,sss,segmentation_config.is_parallel_tolerance) and sss.length()>20]
+                        current_nedge=[sss for sss in point_map[current_point] if sss!=current_line and (isinstance(sss.ref, DLine) or isinstance(sss.ref,DLwpolyline))  and is_parallel(current_line,sss,segmentation_config.is_parallel_tolerance) and (sss.length()>20 or check_in_arc(sss,point_map))]
                         if len(current_nedge)==0:
                             flag=False
                             break
@@ -2600,7 +2621,7 @@ def removeReferenceLines(elements,texts,initial_segments,all_segments,point_map,
                             break
                         if len(point_map[current_point])<=1:
                             break
-                        current_nedge=[sss for sss in point_map[current_point] if sss!=current_line and is_parallel(current_line,sss,segmentation_config.is_parallel_tolerance) and sss.length()>20]
+                        current_nedge=[sss for sss in point_map[current_point] if sss!=current_line and (isinstance(sss.ref, DLine) or isinstance(sss.ref,DLwpolyline))  and is_parallel(current_line,sss,segmentation_config.is_parallel_tolerance) and (sss.length()>20 or check_in_arc(sss,point_map))]
                         if len(current_nedge)==0:
                             flag1=False
                             break
@@ -2652,7 +2673,7 @@ def removeReferenceLines(elements,texts,initial_segments,all_segments,point_map,
                             break
                         if len(point_map[current_point])<=1:
                             break
-                        current_nedge=[sss for sss in point_map[current_point] if sss!=current_line and is_parallel(current_line,sss,segmentation_config.is_parallel_tolerance) and sss.length()>20]
+                        current_nedge=[sss for sss in point_map[current_point] if sss!=current_line and (isinstance(sss.ref, DLine) or isinstance(sss.ref,DLwpolyline))  and is_parallel(current_line,sss,segmentation_config.is_parallel_tolerance) and (sss.length()>20 or check_in_arc(sss,point_map))]
                         if len(current_nedge)==0:
                             flag2=False
                             break
@@ -4025,12 +4046,12 @@ def readJson_inbbpolys(path,segmentation_config, bb_polys):
                 if len(vs)==3 and len(vs_type)==3 and vs_type==["line","line","line"] and len(vs_width)==4 and vs_width[1]==[0,0] and vs_width[3]==[0,0] and vs_width[0][0]==0 and vs_width[0][1]>0 and vs_width[2][0]>0 and vs_width[2][1]==0:
                     start=DPoint(vs[0][0],vs[0][1])
                     end=DPoint(vs[-1][2],vs[-1][3])
-                    if DSegment(start,end).length()>100 and DSegment(start,end).length() <500:
+                    if DSegment(start,end).length()>100 and DSegment(start,end).length() <1000:
                         sign_handles.append(ele["handle"])
-                elif len(vs)==5 and len(vs_type)==5 and vs_type==["line","line","line","line","line"] and len(vs_width)==6 and vs_width[0]==[0,0] and vs_width[2]==[0,0] and vs_width[4]==[0,0] and vs_width[5]==[0,0] and vs_width[1][0]>0 and vs_width[1][1]==0 and vs_width[3][0]==0 and vs_width[3][1]>0:
+                elif len(vs)==5 and len(vs_type)==5 and vs_type==["line","line","line","line","line"] and len(vs_width)==6 and vs_width[0]==[0,0] and vs_width[2]==[0,0] and vs_width[4]==[0,0] and vs_width[5]==[0,0] and vs_width[3][0]==0 and vs_width[3][1]>0 and vs_width[1][0]>0 and vs_width[1][1]==0:
                     start=DPoint(vs[0][0],vs[0][1])
                     end=DPoint(vs[-1][2],vs[-1][3])
-                    if DSegment(start,end).length()>100 and DSegment(start,end).length() <500:
+                    if DSegment(start,end).length()>100 and DSegment(start,end).length() <1000:
                         sign_handles.append(ele["handle"])
             elif ele["type"]=="polyline":
                 polyline_handles.append(ele["handle"])
@@ -4045,6 +4066,27 @@ def readJson_inbbpolys(path,segmentation_config, bb_polys):
                         elif hatch_edge["edge_type"] == "polyline":
                             hatch_poly.extend(hatch_edge["coords"])
                     hatch_polys.append(hatch_poly)
+       
+
+        #inner block 
+        for name,sub_data in  data_list[1].items():
+            for ele in sub_data:
+                if ele["type"]=="lwpolyline":
+                    vs=ele["vertices"]
+                    vs_type=ele["verticesType"]
+                    vs_width=ele["verticesWidth"]
+                    if len(vs)==3 and len(vs_type)==3 and vs_type==["line","line","line"] and len(vs_width)==4 and vs_width[1]==[0,0] and vs_width[3]==[0,0] and vs_width[0][0]==0 and vs_width[0][1]>0 and vs_width[2][0]>0 and vs_width[2][1]==0:
+                        start=DPoint(vs[0][0],vs[0][1])
+                        end=DPoint(vs[-1][2],vs[-1][3])
+                        if DSegment(start,end).length()>100 and DSegment(start,end).length() <1000:
+                            sign_handles.append(ele["handle"])
+                    elif len(vs)==5 and len(vs_type)==5 and vs_type==["line","line","line","line","line"] and len(vs_width)==6 and vs_width[0]==[0,0] and vs_width[2]==[0,0] and vs_width[4]==[0,0] and vs_width[5]==[0,0] and vs_width[3][0]==0 and vs_width[3][1]>0 and vs_width[1][0]>0 and vs_width[1][1]==0:
+                        start=DPoint(vs[0][0],vs[0][1])
+                        end=DPoint(vs[-1][2],vs[-1][3])
+                        if DSegment(start,end).length()>100 and DSegment(start,end).length() <1000:
+                            sign_handles.append(ele["handle"])
+
+        
                 
         return elements,segments+arc_splits,ori_segments,stiffeners,sign_handles,polyline_handles,hatch_polys
     except FileNotFoundError:  
@@ -4100,7 +4142,6 @@ def intersects(poly_a, poly_b):
             return False
     # 所有轴上投影均重叠，则多边形相交
     return True
-
 def read_hole_polys(json_path, hole_layer):
     polys=[]
     try:  

@@ -65,7 +65,7 @@ def draw_rectangle_in_dxf(file_path, folder, bbox_list, classi_res,idxs, free_ed
     for idx, (bbox, classification) in enumerate(zip(bbox_list, classi_res)):
         if classification=='Unclassified':
             continue
-        if ',' in classification:
+        if ',' in classification and 'ustd' not in classification:
             continue
         x1 = bbox[0][0] - 20
         y1 = bbox[0][1] - 20

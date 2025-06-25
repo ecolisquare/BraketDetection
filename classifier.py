@@ -7,7 +7,7 @@ import copy
 def is_vertical_(point1,point2,segment,epsilon=0.05):
     v1=DPoint(point1.x-point2.x,point1.y-point2.y)
     v2=DPoint(segment.start_point.x-segment.end_point.x,segment.start_point.y-segment.end_point.y)
-    cross_product=(v1.x*v2.x+v1.y+v2.y)/(DSegment(point1,point2).length()*segment.length())
+    cross_product=(v1.x*v2.x+v1.y*v2.y)/(DSegment(point1,point2).length()*segment.length())
     if  abs(cross_product) <epsilon:
         return True
     return False 
@@ -248,11 +248,11 @@ def is_tangent_(line,arc):
 def is_toe(free_edge,last_free_edge,cons_edge,max_free_edge_length):
     # if last_free_edge is not None and isinstance(last_free_edge.ref,DArc) and is_tangent_(free_edge,last_free_edge):
     #     return False
-    if (free_edge.length()<56 or free_edge.length()<=0.105*max_free_edge_length) and is_vertical_(free_edge.start_point,free_edge.end_point,cons_edge,epsilon=0.35):
+    if (free_edge.length()<56 or free_edge.length()<=0.105*max_free_edge_length) and is_vertical_(free_edge.start_point,free_edge.end_point,cons_edge,epsilon=0.1):
         return True
     return False
 def is_ks_corner(free_edge,last_free_edge,cons_edge,max_free_edge_length):
-    if (not is_toe(free_edge,last_free_edge,cons_edge,max_free_edge_length)) and (not is_vertical_(free_edge.start_point,free_edge.end_point,cons_edge,epsilon=0.35)) and isinstance(last_free_edge.ref,DLine) and free_edge.length() <= 100:
+    if (not is_toe(free_edge,last_free_edge,cons_edge,max_free_edge_length)) and (not is_vertical_(free_edge.start_point,free_edge.end_point,cons_edge,epsilon=0.1)) and isinstance(last_free_edge.ref,DLine) and free_edge.length() <= 100:
         return True
     return False
 
@@ -367,13 +367,26 @@ def find_cons_edge(poly_refs,seg):
 
 def get_score(free_edges_types,non_free_edges,non_free_edges_types,free_edge_seq,non_free_edges_seq,non_free_edges_types_seq,ignore_types):
     new_free_edges_types=[]
+    new_free_edges_types_seq=[]
+    if len(free_edge_seq)>1 and len(free_edges_types)>1 and free_edge_seq[0]=="KS_corner" and free_edges_types[0]=="KS_corner":
+        new_free_edges_types.append("KS_corner")
+        new_free_edges_types_seq.append("KS_corner")
     for t in free_edges_types:
         if t!="KS_corner":
             new_free_edges_types.append(t)
-    new_free_edges_types_seq=[]
+
     for t in free_edge_seq:
         if t!="KS_corner":
             new_free_edges_types_seq.append(t)
+    if len(free_edge_seq)>1 and len(free_edges_types)>1 and free_edge_seq[-1]=="KS_corner" and free_edges_types[-1]=="KS_corner":
+        new_free_edges_types.append("KS_corner")
+        new_free_edges_types_seq.append("KS_corner")
+    if len(free_edge_seq)>1 and len(free_edges_types)>1 and free_edge_seq[0]=="KS_corner"  and free_edge_seq[-1]!="KS_corner"and free_edges_types[-1]=="KS_corner" and free_edges_types[0]!="KS_corner":
+        new_free_edges_types.append("KS_corner")
+        new_free_edges_types_seq=["KS_corner"]+new_free_edges_types_seq
+    if len(free_edge_seq)>1 and len(free_edges_types)>1 and free_edge_seq[0]!="KS_corner"  and free_edge_seq[-1]=="KS_corner"and free_edges_types[-1]!="KS_corner" and free_edges_types[0]=="KS_corner":
+        new_free_edges_types_seq.append("KS_corner")
+        new_free_edges_types=["KS_corner"]+new_free_edges_types
     total=0
     for i in range(len(new_free_edges_types)):
         if new_free_edges_types[i]== new_free_edges_types_seq[i]:

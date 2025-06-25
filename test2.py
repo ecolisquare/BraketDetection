@@ -92,8 +92,8 @@ def process_json_data(json_path, output_path, training_data_output_folder, train
     if segmentation_config.verbose:
         print("读取json文件")
     #文件中线段元素的读取和根据颜色过滤
-    elements,segments,ori_segments,stiffeners,sign_handles,polyline_handles=readJson(json_path,segmentation_config)
-   
+    elements,segments,ori_segments,stiffeners,sign_handles,polyline_handles, hatch_polys=readJson(json_path,segmentation_config)
+    hole_polys = read_hole_polys(json_path, segmentation_config.hole_layer)
     ori_block=build_initial_block(ori_segments,segmentation_config)
     # grid,meta=segments_in_blocks(ori_segments,segmentation_config)
     # for row in grid:
@@ -140,7 +140,7 @@ def process_json_data(json_path, output_path, training_data_output_folder, train
         # print(len(segments_nearby))
         try:
             segments_nearby=ori_block.segments_near_poly(poly)
-            res = calculate_poly_features(poly, segments_nearby, segmentation_config, point_map, i, star_pos_map, cornor_holes,texts,dimensions,text_map,stiffeners)
+            res = calculate_poly_features(poly, segments_nearby, segmentation_config, point_map, i, star_pos_map, cornor_holes,texts,dimensions,text_map,stiffeners,hatch_polys,hole_polys)
         except Exception as e:
             res=None
        
@@ -165,7 +165,7 @@ def process_json_data(json_path, output_path, training_data_output_folder, train
     not_all_handles=[]
     non_free_edge_handles = []
     for idx,(poly_refs,cls,flag) in enumerate(zip(polys_info,classi_res,flags)):
-        if cls=='Unclassified' or cls=='Unstandard' or ',' in cls:
+        if cls=='Unclassified' or cls=='Unstandard' or ',' in cls  or 'ustd' in cls:
             continue
         else:
             for seg in poly_refs:

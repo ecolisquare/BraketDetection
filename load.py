@@ -594,6 +594,7 @@ def convertText(entity: ezdxf.entities.Text):
     mid['insert'] = [entity.dxf.insert[0],entity.dxf.insert[1]]
     mid['content'] = entity.dxf.text
     mid['height'] = entity.dxf.height
+    mid['rotation']=entity.dxf.rotation
     return mid
 
 def convertLine(doc, entity:ezdxf.entities.LineEdge):
@@ -756,6 +757,7 @@ def convertMText(entity:ezdxf.entities.MText):
     mid['insert'] = [entity.dxf.insert[0],entity.dxf.insert[1]]
     mid['width'] = entity.dxf.width
     mid['text'] = entity.dxf.text
+    mid['rotation']=entity.dxf.rotation
     return mid
 
 def convertEllipse(entity:ezdxf.entities.Ellipse):
