@@ -142,4 +142,7 @@ class SegmentationConfig:
         self.N=2
         self.x_padding=100
         self.y_padding=100
+
+        #开孔所在图层
+        self.hole_layer = "开孔标注"
         
