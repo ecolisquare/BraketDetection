@@ -138,6 +138,7 @@ def calculate_angle(point1, point2, point3):
 
 # 计算是否位于阴影区域
 def is_intersect_hatch(poly, hatch_polys):
+    return False
     # 提取poly的所有端点坐标
     poly_points = []
     for segment in poly:

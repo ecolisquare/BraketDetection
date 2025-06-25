@@ -36,7 +36,7 @@ def main():
     if segmentation_config.verbose:
         print("读取json文件")
     #文件中线段元素的读取和根据颜色过滤
-    elements,segments,ori_segments,stiffeners,sign_handles=readJson(json_path,segmentation_config)
+    elements,segments,ori_segments,stiffeners,sign_handles,polyline_handles, hatch_polys=readJson(json_path,segmentation_config)
     # print(sign_handles)
     ori_block=build_initial_block(ori_segments,segmentation_config)
     # grid,meta=segments_in_blocks(ori_segments,segmentation_config)
@@ -88,7 +88,7 @@ def main():
         # except Exception as e:
         #     res=None
         segments_nearby=ori_block.segments_near_poly(poly)
-        res = calculate_poly_features(poly, segments_nearby, segmentation_config, point_map, i, star_pos_map, cornor_holes,texts,dimensions,text_map,stiffeners)
+        res = calculate_poly_features(poly, segments_nearby, segmentation_config, point_map, i, star_pos_map, cornor_holes,texts,dimensions,text_map,stiffeners, hatch_polys)
         pbar.update()
         if res is not None:
             # print(res)
@@ -105,8 +105,7 @@ def main():
     edges_infos,poly_centroids,hint_infos,meta_infos=hint_search_step(edges_infos,poly_centroids,hint_infos,meta_infos,code_map)
   
     edges_infos,poly_centroids,hint_infos,meta_infos=diffusion_step(edges_infos,poly_centroids,hint_infos,meta_infos)
-
-    polys_info,classi_res,flags=classificationAndOutputStep(indices,edges_infos,poly_centroids,hint_infos,meta_infos,segmentation_config,polys)
+    polys_info,classi_res,flags=classificationAndOutputStep(indices,edges_infos,poly_centroids,hint_infos,meta_infos,segmentation_config,polys,polyline_handles)
     free_edge_handles = []
     all_handles=[]
     not_all_handles=[]
