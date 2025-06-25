@@ -93,7 +93,7 @@ if __name__ == '__main__':
         for seg in poly_seg:
             poly.append([seg.start_point.x, seg.start_point.y])
     #文件中线段元素的读取和根据颜色过滤
-    elements,segments,ori_segments,stiffeners,sign_handles,polyline_handles=readJson_inbbpolys(json_path,segmentation_config, bb_polys_seg)
+    elements,segments,ori_segments,stiffeners,sign_handles,polyline_handles,hatch_polys=readJson_inbbpolys(json_path,segmentation_config, bb_polys_seg)
    
     ori_block=build_initial_block(ori_segments,segmentation_config)
     # grid,meta=segments_in_blocks(ori_segments,segmentation_config)
@@ -145,7 +145,7 @@ if __name__ == '__main__':
         # except Exception as e:
         #     res=None
         segments_nearby=ori_block.segments_near_poly(poly)
-        res = calculate_poly_features(poly, segments_nearby, segmentation_config, point_map, i, star_pos_map, cornor_holes,texts,dimensions,text_map,stiffeners)
+        res = calculate_poly_features(poly, segments_nearby, segmentation_config, point_map, i, star_pos_map, cornor_holes,texts,dimensions,text_map,stiffeners, hatch_polys)
         pbar.update()
         if res is not None:
             # print(res)
