@@ -502,7 +502,16 @@ def textsInPoly(text_map,poly,segmentation_config,is_fb,polygon):
     for t_t in ts:
         if t_t[2]["Type"]=="None" and (b_count==0 or fb_count==0):
             content=t_t[0].content.strip()
-            if (content[0]=="$" or content[0]=="~" or content[0]=="&" or content[0]=="%") and len(content)>1:
+            if (content[0]=="$" or content[0]=="~" or content[0]=="&" or content[0]=="%" or content[0]=="#") and len(content)>1:
+                if b_count==0:
+                    result=parse_elbow_plate(content, "top",is_fb)
+                    new_ts.append([t_t[0],t_t[1],result,t_t[3]])
+                    b_count+=1
+                elif fb_count==0:
+                    result=parse_elbow_plate(content, "bottom",is_fb)
+                    new_ts.append([t_t[0],t_t[1],result,t_t[3]])
+                    fb_count+=1
+            elif ("$" in content or "~" in content or "&" in content or "%" in content  or "#" in content) and len(content)>2:
                 if b_count==0:
                     result=parse_elbow_plate(content, "top",is_fb)
                     new_ts.append([t_t[0],t_t[1],result,t_t[3]])
