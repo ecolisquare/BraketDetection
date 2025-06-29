@@ -736,7 +736,7 @@ def match_l_anno(l_anno,poly_refs,constraint_edges,free_edges,segmentation_confi
         key=check_parallel_anno(v1,v2,ori_cons_edges,s_free_edges)
         if key is not None:
             constraint_edge,free_edge=key
-            if  is_parallel_(constraint_edge,free_edge,0.15):
+            if  is_parallel_(constraint_edge,free_edge,0.1):
                 
                 if key not in l_para_map:
                     l_para_map[key]=[]
@@ -1250,7 +1250,7 @@ def match_edge_anno(segments,constraint_edges,free_edges,edges,all_anno,all_map)
             for cons_edge in cons_edges:
                 if flag:
                     break
-                flag=is_parallel_(seg,cons_edge,0.15)
+                flag=is_parallel_(seg,cons_edge,0.1)
                 if flag:
                     para_edge=cons_edge
       
@@ -1311,7 +1311,7 @@ def match_edge_anno(segments,constraint_edges,free_edges,edges,all_anno,all_map)
             short_edge=edge[0] if isinstance(edge[0].ref,DLine) else edge[1] 
             flag=False
             for cons_edge in cons_edges:
-                if is_near(cons_edge,short_edge) and is_parallel_(short_edge,cons_edge,0.15):
+                if is_near(cons_edge,short_edge) and is_parallel_(short_edge,cons_edge,0.1):
                     flag=True
                     break
             all_edge_map[edge[0]]["短边是否平行于相邻边"]=flag

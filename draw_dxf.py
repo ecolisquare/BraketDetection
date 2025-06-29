@@ -124,3 +124,55 @@ def draw_rectangle_in_dxf(file_path, folder, bbox_list, classi_res,idxs, free_ed
 
     print(f"Braket detect result drawn in {file_name}_braket")
     print("Done....")
+
+
+def write_bboxes_with_ids(filename, bboxes,ids,count):
+    """
+    将包围盒数量、ID和坐标写入文件
+    
+    参数:
+        filename: 文件名
+        bboxes: 包围盒列表，每个元素是一个字典，包含id和坐标(x_min, x_max, y_min, y_max)
+    """
+    with open(filename, 'w') as f:
+        # 写入包围盒数量
+        f.write(f"Bounding Box Count: {count}\n")
+        # 写入每个包围盒的坐标
+        for i, bbox in enumerate(bboxes):
+            x_min, x_max, y_min, y_max = bbox
+            f.write(f"ID: {ids[i]}, x_min: {x_min}, x_max: {x_max}, "
+                   f"y_min: {y_min}, y_max: {y_max}\n")
+
+def read_bboxes_with_ids(filename):
+    """
+    从文件中读取包围盒数量、ID和坐标
+    
+    参数:
+        filename: 文件名
+        
+    返回:
+        count: 包围盒数量
+        bboxes: 包围盒列表，每个元素是一个包含ID和坐标的字典
+    """
+    count = 0
+    bboxes = []
+    ids=[]
+    
+    with open(filename, 'r') as f:
+        # 读取第一行获取数量
+        first_line = f.readline().strip()
+        if first_line.startswith("Bounding Box Count:"):
+            count = int(first_line.split(":")[1].strip())
+        
+        # 读取后续行获取每个包围盒的ID和坐标
+        for line in f:
+            if line.startswith("ID:"):
+                parts = line.strip().split(", ")
+                bbox = {}
+                for part in parts:
+                    key, value = part.split(": ")
+                    bbox[key.lower()] = float(value) if key not in ['ID'] else value
+                bboxes.append((bbox['x_min'],bbox['x_max'],bbox['y_min'],bbox['y_max']))
+                ids.append(bbox['id'])
+    
+    return count, bboxes,ids

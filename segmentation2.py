@@ -124,7 +124,9 @@ if __name__ == '__main__':
                 for seg in poly_refs:
                     not_all_handles.append(seg.ref.handle)
     bboxs = []
-    for poly_refs in polys_info:
+    actual_bboxs=[]
+    actual_ids=[]
+    for idx,(poly_refs,cls) in enumerate(zip(polys_info,classi_res)):
         max_x = float('-inf')
         min_x = float('inf')
         max_y = float('-inf')
@@ -142,6 +144,12 @@ if __name__ == '__main__':
 
         bbox = [[min_x, min_y], [max_x, max_y]]
         bboxs.append(bbox)
+    
+        if cls=='Unclassified' or cls=='Unstandard'  or ',' in cls  or 'ustd' in cls:
+            continue
+        actual_bboxs.append((min_x-20,max_x+20,min_y-20,max_y+20))
+        actual_ids.append(indices[idx])
+    write_bboxes_with_ids(os.path.join(segmentation_config.dxf_output_folder, f"polys.txt"),actual_bboxs,actual_ids,len(bboxs))
     
     dxf_path = os.path.splitext(segmentation_config.json_path)[0] + '.dxf'
     dxf_output_folder = segmentation_config.dxf_output_folder

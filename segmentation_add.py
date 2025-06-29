@@ -11,6 +11,61 @@ from tqdm import tqdm
 from classifier import *
 from draw_dxf import *
 
+
+def read_json_(json_path, bracket_layer):
+    bboxs=[]
+
+    try:  
+        with open(json_path, 'r', encoding='utf-8') as file:  
+            data_list = json.load(file)
+        block_elements=data_list[0]
+        for ele in block_elements:
+            if ele["layerName"]!=bracket_layer:
+                continue
+            if ele["type"]=="lwpolyline":
+                vs = ele["vertices"]
+                new_vs=[]
+                poly=[]
+                for i,v in enumerate(vs):
+                    if len(v)==4:
+                        new_vs.append([v[0], v[1]])
+                        new_vs.append([v[2], v[3]])        
+                for i in range(len(new_vs)-1):
+                    s,e=DPoint(new_vs[i][0],new_vs[i][1]),DPoint(new_vs[i+1][0],new_vs[i+1][1])
+                    seg=DSegment(s,e,None)
+                    if seg.length()>0:
+                        poly.append(seg)
+                
+                if ele["isClosed"]:
+                    s,e=DPoint(new_vs[-1][0],new_vs[-1][1]),DPoint(new_vs[0][0],new_vs[0][1])
+                    seg=DSegment(s,e,None)
+                    if seg.length()>0:
+                        poly.append(seg)
+                max_x = float('-inf')
+                min_x = float('inf')
+                max_y = float('-inf')
+                min_y = float('inf')
+                for seg in poly:
+                    # 提取起点和终点的横纵坐标
+                    x_coords = [seg.start_point[0], seg.end_point[0]]
+                    y_coords = [seg.start_point[1], seg.end_point[1]]
+
+                    # 更新最大最小值
+                    max_x = max(max_x, *x_coords)
+                    min_x = min(min_x, *x_coords)
+                    max_y = max(max_y, *y_coords)
+                    min_y = min(min_y, *y_coords)
+                bboxs.append((min_x,max_x,min_y,max_y))
+                
+
+
+        
+    except FileNotFoundError:  
+        print("The file does not exist.")
+    except json.JSONDecodeError:  
+        print("Error decoding JSON.")
+    
+    return bboxs
 # 读取指定图层bbox
 def get_bbox(json_path, bracket_layer):
     texts=[]
@@ -66,6 +121,7 @@ if __name__ == '__main__':
     segmentation_config=SegmentationConfig()
     verbose=segmentation_config.verbose
     json_path = input("请输入路径: ")
+    poly_path=input("请输入poly文件路径: ")
     add_bracket_layer_name = input("请输入补充肘板边界图层名：")
     round=input("请输入轮次:")
     segmentation_config.json_path = json_path
@@ -184,7 +240,9 @@ if __name__ == '__main__':
                 for seg in poly_refs:
                     not_all_handles.append(seg.ref.handle)
     bboxs = []
-    for poly_refs in polys_info:
+    add_bboxs=[]
+    add_ids=[]
+    for idx,(poly_refs,cls) in enumerate(zip(polys_info,classi_res)):
         max_x = float('-inf')
         min_x = float('inf')
         max_y = float('-inf')
@@ -202,6 +260,36 @@ if __name__ == '__main__':
 
         bbox = [[min_x, min_y], [max_x, max_y]]
         bboxs.append(bbox)
+    
+        if cls=='Unclassified' or cls=='Unstandard'  or ',' in cls  or 'ustd' in cls:
+            continue
+        add_bboxs.append((min_x-20,max_x+20,min_y-20,max_y+20))
+        add_ids.append(indices[idx])
+    
+    remain_bboxs=read_json_(json_path,"Braket")
+    count,old_bboxs,old_ids=read_bboxes_with_ids(poly_path)
+    b_set=set()
+    for bbox in remain_bboxs:
+        x_min,x_max,y_min,y_max=bbox
+        b_set.add((int(x_min),int(x_max),int(y_min),int(y_max)))
+    actual_bboxs=[]
+    actual_ids=[]
+    for i,bbox in enumerate(old_bboxs):
+        x_min,x_max,y_min,y_max=bbox
+        if (int(x_min),int(x_max),int(y_min),int(y_max)) not in b_set:
+            #删除包围盒
+
+            id=old_ids[i]
+        else:
+            id=old_ids[i]
+            actual_bboxs.append(bbox)
+            actual_ids.append(id)
+
+    print(len(remain_bboxs),len(old_bboxs),len(add_bboxs))
+    actual_bboxs=actual_bboxs+add_bboxs
+    for id in add_ids:
+        actual_ids.append(id+count)
+    write_bboxes_with_ids(os.path.join(segmentation_config.dxf_output_folder, f"polys.txt"),actual_bboxs,actual_ids,count+len(bboxs))
     
     dxf_path = os.path.splitext(segmentation_config.json_path)[0] + '.dxf'
     dxf_output_folder = segmentation_config.dxf_output_folder
