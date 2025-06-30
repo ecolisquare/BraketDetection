@@ -66,14 +66,14 @@ class SegmentationConfig:
         self.dfs_path_max_length=100
         self.dfs_path_min_length=3
         #compute cornor_hole
-        self.repline_neighbor_min_length=14
+        self.repline_neighbor_min_length=8
 
         #repline邻域边最小长度
         self.check_valid_min_length=20
         #is_repline
-        self.arc_repline_min_length=12
+        self.arc_repline_min_length=10
         self.arc_repline_max_length=200
-        self.line_repline_min_length=9
+        self.line_repline_min_length=10
         self.line_repline_max_length=130
 
         #filter cornor_hole
@@ -109,19 +109,19 @@ class SegmentationConfig:
 
         #is_parallel_tolerance
         #筛选角隅孔时的平行判断
-        self.is_parallel_tolerance_neighobor=0.16
+        self.is_parallel_tolerance_neighobor=0.2
         #固定边平行判断
         self.is_parallel_tolerance=0.15
         #readJson
         self.line_type=["BYLAYER","CONTINUOUS","BYBLOCK"]
-        self.color=[6]
+        self.color=[6,8]
         self.constraint_color=[1,3]
         self.element_type=["line","arc","lwpolyline","polyline","spline"]
 
         self.stiffener_name = ["Stiffener_Invisible","Stiffener_Visible"]
         # self.remove_layername=["Stiffener_Invisible","Stiffener_Visible","Plate_Invisible","Plate_Visible"]
         self.remove_linetype=[]
-        self.remove_layername=["分段总段划分","braket","split","holes","肘板标注"]
+        self.remove_layername=["Seam","100-人孔盖","人孔盖"]
         self.remove_layername.extend(self.stiffener_name)
         #check is bracket
         #偏离凸多边形的程度
