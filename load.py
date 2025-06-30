@@ -877,6 +877,7 @@ def convertHatch(entity:ezdxf.entities.Hatch):
                 res["coords"].append([v[0], v[1]])
 
             p.append(res)
+        mid.append(p)
     # print(type())
 
 
