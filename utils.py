@@ -2400,7 +2400,7 @@ def removeReferenceLines(elements,texts,initial_segments,all_segments,point_map,
                         total_length+=current_line.length()
                         current_point=current_line.start_point if current_line.start_point!=current_point else current_line.end_point
                     # print(total_length)
-                    if total_length<100 or total_length>2000:
+                    if total_length<100 or total_length>3000:
                         flag=False
                     if flag and current_point not in text_pos_map:
                         text_pos_map[current_point]=set()
@@ -2453,7 +2453,7 @@ def removeReferenceLines(elements,texts,initial_segments,all_segments,point_map,
                         total_length+=current_line.length()
                         current_point=current_line.start_point if current_line.start_point!=current_point else current_line.end_point
                     # print(total_length)
-                    if total_length<100 or total_length>2000:
+                    if total_length<100 or total_length>3000:
                         flag1=False
                     if flag1:
                         cp1.append(current_point)
@@ -2509,7 +2509,7 @@ def removeReferenceLines(elements,texts,initial_segments,all_segments,point_map,
                         total_length+=current_line.length()
                         current_point=current_line.start_point if current_line.start_point!=current_point else current_line.end_point
                     # print(total_length)
-                    if total_length<100 or total_length>2000:
+                    if total_length<100 or total_length>3000:
                         flag2=False
                     if flag2:
                         cp2.append(current_point)
@@ -2580,7 +2580,7 @@ def removeReferenceLines(elements,texts,initial_segments,all_segments,point_map,
                         total_length+=current_line.length()
                         current_point=current_line.start_point if current_line.start_point!=current_point else current_line.end_point
                     # print(total_length)
-                    if total_length<100 or total_length>2000:
+                    if total_length<100 or total_length>3000:
                         flag=False
                     if flag and current_point not in text_pos_map2:
                         text_pos_map2[current_point]=set()
@@ -2629,7 +2629,7 @@ def removeReferenceLines(elements,texts,initial_segments,all_segments,point_map,
                         total_length+=current_line.length()
                         current_point=current_line.start_point if current_line.start_point!=current_point else current_line.end_point
                     # print(total_length)
-                    if total_length<100 or total_length>2000:
+                    if total_length<100 or total_length>3000:
                         flag1=False
                     if flag1:
                         cp1.append(current_point)
@@ -2681,7 +2681,7 @@ def removeReferenceLines(elements,texts,initial_segments,all_segments,point_map,
                         total_length+=current_line.length()
                         current_point=current_line.start_point if current_line.start_point!=current_point else current_line.end_point
                     # print(total_length)
-                    if total_length<100 or total_length>2000:
+                    if total_length<100 or total_length>3000:
                         flag2=False
                     # if flag and current_point not in text_pos_map2:
                     #     text_pos_map2[current_point]=set()
