@@ -953,6 +953,8 @@ def process_block(T_is_contained,block_datas,blockName,scales,rotation,insert,bl
         elif ele["type"]=="insert":
                 if ele.get("layerName") is not None and ele["layerName"] in layname:
                     continue
+                if  "color" in ele and ele.get("color") is not None and ele["color"]  in color:
+                    continue
                 # 虚线过滤
                 # if ele.get("linetype") is not None and ele["linetype"] in linetype:
                 #     continue
