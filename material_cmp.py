@@ -87,12 +87,12 @@ def compare_groups(group1, group2):
 
 def main(file1, file2,index_names):
     ids,group1 = compute_ids(file1,encode="gbk",index_names=index_names)
-    id_map,group2 =  match_ids(ids,file2,encode="gbk",index_names=index_names):
+    id_map,group2 =  match_ids(ids,file2,encode="gbk",index_names=index_names)
 
     match_count = compare_groups(group1, group2)
     print(f"\n完全一致的 ID 数量为：{match_count}")
 
 if __name__ == '__main__':
-    gt=r""
-    test=r""
+    gt=r"file.csv"
+    test=r"file.csv"
     main(gt, test,["标注句柄","肘板类别" ,"板厚材质信息"])

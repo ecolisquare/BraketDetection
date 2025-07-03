@@ -629,9 +629,9 @@ def match_r_anno(r_anno,free_edges):
             continue
         if abs(s1.ref.radius-s2.ref.radius)>20:
             continue
-        if s1 in r map and s2 in r map:
+        if s1 in r_map and s2 in r_map:
             continue
-        if s1 not in r map and s2 not in r_map:
+        if s1 not in r_map and s2 not in r_map:
             continue
         if s1 in r_map and s2 not in r_map:
             r_map[s2]=r_map[s1]
