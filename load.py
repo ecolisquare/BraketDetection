@@ -477,6 +477,7 @@ import os
 import math
 import numpy as np
 import math
+from ezdxf.xclip import XClip
 # Entity 
 # (g)type
 # (g)color
@@ -727,7 +728,34 @@ def convertInsert(entity:ezdxf.entities.Insert, block_list):
     mid['scales'] = [entity.dxf.xscale, entity.dxf.yscale]
     mid['rotation'] = entity.dxf.rotation
     
+    clip = XClip(entity)
 
+    if clip.has_clipping_path and clip.is_clipping_enabled:
+
+        # print(entity.dxf.name, entity.dxf.handle, clip.get_wcs_clipping_path().vertices)
+
+        coords = np.array(clip.get_wcs_clipping_path().vertices)
+        # print(coords)
+
+        x1 = np.min(coords[:, 0])
+        x2 = np.max(coords[:, 0])
+        
+        x1 = max(x1, mid["bound"]["x1"])
+        x2 = min(x2, mid["bound"]["x2"])
+
+        y1 = np.min(coords[:, 1])
+        y2 = np.max(coords[:, 1])
+
+        y1 = max(y1, mid["bound"]["y1"])
+        y2 = min(y2, mid["bound"]["y2"])
+
+        mid["bound"]={
+            'x1' : x1,
+            'y1' : y1,
+            'x2' : x2,
+            'y2' : y2
+        }
+    
     attrib_list = []
     for attrib in entity.attribs:
         print(entity.dxf.name, attrib.dxf.handle, attrib.dxf.tag, attrib.dxf.text)
