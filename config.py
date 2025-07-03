@@ -83,8 +83,8 @@ class SegmentationConfig:
         #remove reference line
         self.reference_line_min_length=30
         self.reference_min_angle=30
-        self.reference_max_angle=170
-        self.reference_text_max_distance=400
+        self.reference_max_angle=175
+        self.reference_text_max_distance=350
 
         #dfs
         self.dfs_optional=False

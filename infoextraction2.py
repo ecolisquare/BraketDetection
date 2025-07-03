@@ -457,7 +457,7 @@ def textsInPoly(text_map,poly,segmentation_config,is_fb,polygon):
     ts=[]
     for pos,texts in text_map.items():
         for t in texts:
-            if t[1]["Type"]=="FB" or t[1]["Type"]=="FL" or t[1]["Type"]=="B" or t[1]["Type"]=="BK":
+            if t[1]["Type"]=="FB" or t[1]["Type"]=="FL" or t[1]["Type"]=="B" or t[1]["Type"]=="BK" or (t[1]["Type"]=="R" and t[1]["Ref"]=="ref"):
 
                 if point_is_inside(pos,polygon):
                     if t[1]["Type"]=="FB" or t[1]["Type"]=="FL":
@@ -570,28 +570,73 @@ def dimensionsInPoly(dimensions,poly,segmentation_config):
     return ds
 def match_r_anno(r_anno,free_edges):
     r_map={}
+    d_map={}
     radius_anno=[]
-    s_free_edges=free_edges[0]
+    corner_edges=[]
+    s_free_edges=[]
+    for s in free_edges[0]:
+        if (not s.isConstraint) and (not s.isCornerhole):
+            s_free_edges.append(s)
+        elif (s.isCornerhole) and (not s.isConstraint):
+            corner_edges.append(s)
+    #标注值>160距离在1000以内的自由边半径标注初步分配(最邻近)
     for r_t in r_anno:
         pos,content=r_t
-        min_distance=float("inf")
-        target=None
-        for s in s_free_edges:
-            if isinstance(s.ref,DArc):
-                center=s.ref.center
-                distance=DSegment(center,pos).length()
-                if distance>1000:
-                    continue
-                if target is None:
-                    target=s
-                    min_distance=min(min_distance,distance)
-                else:
-                    if distance<min_distance:
-                        min_distance=distance
+        result=parse_elbow_plate(content.content.strip())
+        if result is not None and result["Type"]=="R" and result["Radius"]>160:
+            min_distance=float("inf")
+            target=None
+            for s in s_free_edges:
+                if isinstance(s.ref,DArc):
+                    center=DSegment(s.ref.start_point,s.ref.end_point).mid_point()
+                    distance=DSegment(center,pos).length()
+                    if distance>1000:
+                        continue
+                    if target is None:
                         target=s
-        if target is not None:
-            r_map[target]=content
-            radius_anno.append(content)
+                        min_distance=min(min_distance,distance)
+                    else:
+                        if distance<min_distance:
+                            min_distance=distance
+                            target=s
+            if target is not None:
+                if target not in r_map:
+                    r_map[target]=content
+                    d_map[target]=min_distance
+                elif min_distance<d_map[target]:
+                    r_map[target]=content
+                    d_map[target]=min_distance
+    for seg,content in  r_map.items():
+        radius_anno.append(content)
+
+    #缺省的自由边半径标注
+
+
+    arc_free_edges=[]
+    for s in s_free_edges:
+        if isinstance(s.ref,DArc):
+            arc_free_edges.append(s)
+
+    pairs=[]
+    for i,s1 in enumerate(arc_free_edges):
+        for j,s2 in enumerate(arc_free_edges):
+            if j<=i:
+                continue
+            pairs.append((s1,s2))
+    for pair in pairs:
+        s1,s2=pair
+        if s1.ref is None or s1.ref.radius is None or s2.ref is None or s2.ref.radius is None:
+            continue
+        if abs(s1.ref.radius-s2.ref.radius)>20:
+            continue
+        if s1 in r map and s2 in r map:
+            continue
+        if s1 not in r map and s2 not in r_map:
+            continue
+        if s1 in r_map and s2 not in r_map:
+            r_map[s2]=r_map[s1]
+        if s2 in r_map and s1 not in r_map:
+            r_map[s1]=r_map[s2]
     # print(str(r_map))
     # print(r_anno)
     return r_map,radius_anno
@@ -3397,7 +3442,7 @@ def plot_info_poly_std(constraint_edges,ori_edge_map,template_map,path):
 
 def check_one_class(classification_res,template_map,free_edges,constraint_edges,edges,poly_refs,poly,all_edge_map, ref_map):
     polygon=computePolygon(poly)
-    if "DPK(" in classification_res or "DPV(" in classification_res:
+    if "DPK(" in classification_res or "DPV(" in classification_res  or "DPKN(" in classification_res:
         if "free2" not in template_map or len(template_map["free2"])==0 or (not isinstance(template_map["free2"][0].ref,DArc)):
             return False
         center=template_map["free2"][0].ref.center 

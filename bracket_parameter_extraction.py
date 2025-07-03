@@ -83,6 +83,7 @@ def parse_elbow_plate(label="", annotation_position="other", is_fb=False):
         return {
             "Type": "R",
             "Radius": radius,
+            "Ref":"ref" if annotation_position=="top" or annotation_position=="bottom" else "hang"
         }
     # Check different annotation types
     if annotation_position == "top":

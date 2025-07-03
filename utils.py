@@ -2392,7 +2392,7 @@ def removeReferenceLines(elements,texts,initial_segments,all_segments,point_map,
                             break
                         if len(point_map[current_point])<=1:
                             break
-                        current_nedge=[sss for sss in point_map[current_point] if sss!=current_line and (isinstance(sss.ref, DLine) or isinstance(sss.ref,DLwpolyline)) and is_parallel(current_line,sss,segmentation_config.is_parallel_tolerance) and (sss.length()>20 or check_in_arc(sss,point_map))]
+                        current_nedge=[sss for sss in point_map[current_point] if sss!=current_line and (isinstance(sss.ref, DLine) or isinstance(sss.ref,DLwpolyline)) and is_parallel(current_line,sss,segmentation_config.is_parallel_tolerance) and (sss.length()>8 or check_in_arc(sss,point_map))]
                         if len(current_nedge)==0:
                             flag=False
                             break
@@ -2445,7 +2445,7 @@ def removeReferenceLines(elements,texts,initial_segments,all_segments,point_map,
                             break
                         if len(point_map[current_point])<=1:
                             break
-                        current_nedge=[sss for sss in point_map[current_point] if sss!=current_line and (isinstance(sss.ref, DLine) or isinstance(sss.ref,DLwpolyline))  and is_parallel(current_line,sss,segmentation_config.is_parallel_tolerance) and (sss.length()>20 or check_in_arc(sss,point_map))]
+                        current_nedge=[sss for sss in point_map[current_point] if sss!=current_line and (isinstance(sss.ref, DLine) or isinstance(sss.ref,DLwpolyline))  and is_parallel(current_line,sss,segmentation_config.is_parallel_tolerance) and (sss.length()>8 or check_in_arc(sss,point_map))]
                         if len(current_nedge)==0:
                             flag1=False
                             break
@@ -2501,7 +2501,7 @@ def removeReferenceLines(elements,texts,initial_segments,all_segments,point_map,
                             break
                         if len(point_map[current_point])<=1:
                             break
-                        current_nedge=[sss for sss in point_map[current_point] if sss!=current_line and (isinstance(sss.ref, DLine) or isinstance(sss.ref,DLwpolyline))  and is_parallel(current_line,sss,segmentation_config.is_parallel_tolerance) and (sss.length()>20 or check_in_arc(sss,point_map))]
+                        current_nedge=[sss for sss in point_map[current_point] if sss!=current_line and (isinstance(sss.ref, DLine) or isinstance(sss.ref,DLwpolyline))  and is_parallel(current_line,sss,segmentation_config.is_parallel_tolerance) and (sss.length()>8 or check_in_arc(sss,point_map))]
                         if len(current_nedge)==0:
                             flag2=False
                             break
@@ -2572,7 +2572,7 @@ def removeReferenceLines(elements,texts,initial_segments,all_segments,point_map,
                             break
                         if len(point_map[current_point])<=1:
                             break
-                        current_nedge=[sss for sss in point_map[current_point] if sss!=current_line and (isinstance(sss.ref, DLine) or isinstance(sss.ref,DLwpolyline))  and is_parallel(current_line,sss,segmentation_config.is_parallel_tolerance) and (sss.length()>20 or check_in_arc(sss,point_map))]
+                        current_nedge=[sss for sss in point_map[current_point] if sss!=current_line and (isinstance(sss.ref, DLine) or isinstance(sss.ref,DLwpolyline))  and is_parallel(current_line,sss,segmentation_config.is_parallel_tolerance) and (sss.length()>8 or check_in_arc(sss,point_map))]
                         if len(current_nedge)==0:
                             flag=False
                             break
@@ -2621,7 +2621,7 @@ def removeReferenceLines(elements,texts,initial_segments,all_segments,point_map,
                             break
                         if len(point_map[current_point])<=1:
                             break
-                        current_nedge=[sss for sss in point_map[current_point] if sss!=current_line and (isinstance(sss.ref, DLine) or isinstance(sss.ref,DLwpolyline))  and is_parallel(current_line,sss,segmentation_config.is_parallel_tolerance) and (sss.length()>20 or check_in_arc(sss,point_map))]
+                        current_nedge=[sss for sss in point_map[current_point] if sss!=current_line and (isinstance(sss.ref, DLine) or isinstance(sss.ref,DLwpolyline))  and is_parallel(current_line,sss,segmentation_config.is_parallel_tolerance) and (sss.length()>8 or check_in_arc(sss,point_map))]
                         if len(current_nedge)==0:
                             flag1=False
                             break
@@ -2673,7 +2673,7 @@ def removeReferenceLines(elements,texts,initial_segments,all_segments,point_map,
                             break
                         if len(point_map[current_point])<=1:
                             break
-                        current_nedge=[sss for sss in point_map[current_point] if sss!=current_line and (isinstance(sss.ref, DLine) or isinstance(sss.ref,DLwpolyline))  and is_parallel(current_line,sss,segmentation_config.is_parallel_tolerance) and (sss.length()>20 or check_in_arc(sss,point_map))]
+                        current_nedge=[sss for sss in point_map[current_point] if sss!=current_line and (isinstance(sss.ref, DLine) or isinstance(sss.ref,DLwpolyline))  and is_parallel(current_line,sss,segmentation_config.is_parallel_tolerance) and (sss.length()>8 or check_in_arc(sss,point_map))]
                         if len(current_nedge)==0:
                             flag2=False
                             break
