@@ -1059,7 +1059,31 @@ def process_block(T_is_contained,block_datas,blockName,scales,rotation,insert,bl
     ori_segments=transform_segments(ori_segments,scales,rotation,insert)
     stiffeners=transform_segments(stiffeners,scales,rotation,insert)
     transform_elements(elements)
-    return elements,segments,arc_splits,ori_segments,stiffeners
+    new_segments=[]
+    new_arc_splits=[]
+    new_ori_segments=[]
+    new_stiffeners=[]
+    x1,x2,y1,y2=bound["x1"]-20,bound["x2"]+20,bound["y1"]-20,bound["y2"]+20
+    for s in segments:
+        ps,pe=s.start_point,s.end_point
+        if ps.x>=x1 and ps.x <=x2 and ps.y>=y1 and ps.y<=y2 and pe.x>=x1 and pe.x <=x2 and pe.y>=y1 and pe.y<=y2:
+            new_segments.append(s)
+    for s in arc_splits:
+        ps,pe=s.start_point,s.end_point
+        if ps.x>=x1 and ps.x <=x2 and ps.y>=y1 and ps.y<=y2 and pe.x>=x1 and pe.x <=x2 and pe.y>=y1 and pe.y<=y2:
+            new_arc_splits.append(s)
+    for s in ori_segments:
+        ps,pe=s.start_point,s.end_point
+        if ps.x>=x1 and ps.x <=x2 and ps.y>=y1 and ps.y<=y2 and pe.x>=x1 and pe.x <=x2 and pe.y>=y1 and pe.y<=y2:
+            new_ori_segments.append(s)
+    for s in stiffeners:
+        ps,pe=s.start_point,s.end_point
+        if ps.x>=x1 and ps.x <=x2 and ps.y>=y1 and ps.y<=y2 and pe.x>=x1 and pe.x <=x2 and pe.y>=y1 and pe.y<=y2:
+            new_stiffeners.append(s)
+
+
+
+    return elements,new_segments,new_arc_splits,new_ori_segments,new_stiffeners
 # def process_blocks(block_sub_datas,segmentation_config):
 #     elements=[]
 #     segments=[]
@@ -1086,7 +1110,7 @@ def readJson(path,segmentation_config):
         with open(path, 'r', encoding='utf-8') as file:  
             data_list = json.load(file)
         block_datas=data_list[1]
-        elements,segments,arc_splits,ori_segments,stiffeners=process_block(False,block_datas,"TOP",[1.0,1.0],0,[0,0],"CONTINUOUS",[],None,data_list[0],segmentation_config)
+        elements,segments,arc_splits,ori_segments,stiffeners=process_block(False,block_datas,"TOP",[1.0,1.0],0,[0,0],"CONTINUOUS",[],{"x1":float("-inf"),"x2":float("inf"),"y1":float("-inf"),"y2":float("inf")},data_list[0],segmentation_config)
         new_segments=[]
         new_arc_splits=[]
         new_ori_segments=[]
@@ -4045,7 +4069,7 @@ def readJson_inbbpolys(path,segmentation_config, bb_polys):
                     break
         print("===================")
         print(len(data_list_filtered))
-        elements,segments,arc_splits,ori_segments,stiffeners=process_block(False,block_datas,"TOP",[1.0,1.0],0,[0,0],"CONTINUOUS",[],None,data_list_filtered,segmentation_config)
+        elements,segments,arc_splits,ori_segments,stiffeners=process_block(False,block_datas,"TOP",[1.0,1.0],0,[0,0],"CONTINUOUS",[],{"x1":float("-inf"),"x2":float("inf"),"y1":float("-inf"),"y2":float("inf")},data_list_filtered,segmentation_config)
         print("===============")
         print(len(elements))
         new_segments=[]
