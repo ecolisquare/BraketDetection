@@ -241,13 +241,13 @@ def is_tangent_(line,arc):
     s1,s2=DSegment(arc.ref.center,arc.ref.start_point),DSegment(arc.ref.center,arc.ref.end_point)
     v1,v2=line.start_point,line.end_point
     if v1==arc.ref.start_point or v2==arc.ref.start_point:
-        return is_vertical_(v1,v2,s1,0.35)
+        return is_vertical_(v1,v2,s1,0.1)
     if v1==arc.ref.end_point or v2==arc.ref.end_point:
-        return is_vertical_(v1,v2,s2,0.35)
+        return is_vertical_(v1,v2,s2,0.1)
     return True
 def is_toe(free_edge,last_free_edge,cons_edge,max_free_edge_length):
-    # if last_free_edge is not None and isinstance(last_free_edge.ref,DArc) and is_tangent_(free_edge,last_free_edge):
-    #     return False
+    if last_free_edge is not None and isinstance(last_free_edge.ref,DArc) and is_tangent_(free_edge,last_free_edge):
+        return False
     if (free_edge.length()<56 or free_edge.length()<=0.105*max_free_edge_length) and is_vertical_(free_edge.start_point,free_edge.end_point,cons_edge,epsilon=0.1):
         return True
     return False

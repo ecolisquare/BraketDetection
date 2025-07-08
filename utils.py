@@ -1857,7 +1857,7 @@ def checkValid(repline,segments,tolerance,segmentation_config):
         
     return flag
                     
-def checkTwoEndLines(ls,le,segmentation_config):
+def checkTwoEndLines(ls,le,segmentation_config,single=False):
     flag=True
     if len(ls)!=2 or len(le)!=2:
         return False
@@ -1871,6 +1871,32 @@ def checkTwoEndLines(ls,le,segmentation_config):
                 break
         if flag==False:
             break
+    if single and isinstance(ls[0].ref,DLine) and isinstance(ls[1].ref,DLine) and isinstance(le[0].ref,DLine) and isinstance(le[1].ref,DLine) and (ls[0].ref==ls[1].ref or le[0].ref==le[1].ref):
+        count_map={}
+        for h in [ls[0].ref.handle,ls[1].ref.handle,le[0].ref.handle,le[1].ref.handle]:
+            if h not in count_map:
+                count_map[h]=0
+            count_map[h]+=1
+            if count_map[h]>2:
+                return False
+
+        if ls[0].ref==ls[1].ref:
+            p=None
+            for s1 in [ls[0].start_point,ls[0].end_point]:
+                for s2 in [ls[1].start_point,ls[1].end_point]:
+                    if s1==s2:
+                        p=s1
+            if p==ls[0].ref.start_point or p==ls[0].ref.end_point :
+                return False
+        
+        if le[0].ref==le[1].ref:
+            p=None
+            for s1 in [le[0].start_point,le[0].end_point]:
+                for s2 in [le[1].start_point,le[1].end_point]:
+                    if s1==s2:
+                        p=s1
+            if p==le[0].ref.start_point or p==le[0].ref.end_point :
+                return False
     return flag
 def compute_cornor_holes(filtered_segments,filtered_point_map,segmentation_config):
     cornor_holes=[]
@@ -1895,7 +1921,10 @@ def compute_cornor_holes(filtered_segments,filtered_point_map,segmentation_confi
                     
                     ls=checkRefAndSlope(vs,ns,segmentation_config.is_parallel_tolerance_neighobor,filtered_point_map,segmentation_config)[1]
                     le=checkRefAndSlope(ve,ne,segmentation_config.is_parallel_tolerance_neighobor,filtered_point_map,segmentation_config)[1]
-                    if checkTwoEndLines(ls,le,segmentation_config):
+                    single=True
+                    if isinstance(s.ref,DArc):
+                        single=False
+                    if checkTwoEndLines(ls,le,segmentation_config,single=single):
                         segment_is_visited.add(s)
                         cornor_holes.append(DCornorHole([s]))
             else:
@@ -3953,7 +3982,7 @@ def processDimensions(dimensions):
             ds.append([d,dim_pos]) 
         elif type==37 or type==34 or type==162:
             #三点角度标注
-            dim_pos=DPoint(d.defpoints[3].x,d.defpoints[3].y)
+            dim_pos=DPoint(d.defpoints[4].x,d.defpoints[4].y)
             ds.append([d,dim_pos]) 
         elif type==38:
             #坐标标注

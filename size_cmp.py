@@ -94,6 +94,6 @@ def main(file1, file2,index_names):
     print(f"\n完全一致的 ID 数量为：{match_count}")
 
 if __name__ == '__main__':
-    gt=r"./output/尺寸标注信息.csv"
+    gt=r"./output/尺寸标注信息.csv"  
     test=r"./output/尺寸标注信息.csv"
-    main(gt, test,["标注句柄" ,"肘板类别","标注值"])
+    main(gt, test,["标注句柄" ,"肘板类别","标注值"]) #要测试的列名

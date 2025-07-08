@@ -705,8 +705,8 @@ def is_vertical_(point1,point2,segment,epsilon=0.05):
     return False 
 
 def is_toe(free_edge,last_free_edge,cons_edge,max_free_edge_length):
-    # if last_free_edge is not None and isinstance(last_free_edge.ref,DArc) and is_tangent_(free_edge,last_free_edge):
-    #     return False
+    if last_free_edge is not None and isinstance(last_free_edge.ref,DArc) and is_tangent_(free_edge,last_free_edge):
+        return False
     if (free_edge.length()<56 or free_edge.length()<=0.105*max_free_edge_length) and is_vertical_(free_edge.start_point,free_edge.end_point,cons_edge,epsilon=0.1):
         return True
     return False
@@ -3884,7 +3884,7 @@ def outputInfo(index,edges_info,poly_centroid,hint_info,meta_info,segmentation_c
                                 ref_no=f"自由边{free_edge_template_no[seg]}"
                             elif seg in constranit_edge_template_no:
                                 ref_no=f"约束边{constranit_edge_template_no[seg]}"
-                            size_hints.append([index,d.handle,poly_centroid,classification_res,ty,edge_no,ref_no,d.text,order_ty,is_diff])
+                            size_hints.append([index,d.handle,poly_centroid,classification_res,ty,edge_no,s.ref.handle,ref_no,seg.ref.handle,d.text,order_ty,is_diff])
                         elif len(d_t)==3:
                             d,des,seg=d_t 
                             if seg in constranit_edge_template_no:
@@ -3903,7 +3903,7 @@ def outputInfo(index,edges_info,poly_centroid,hint_info,meta_info,segmentation_c
                                     ref_no=f"自由边{free_edge_template_no[seg]}"
                                 elif seg in constranit_edge_template_no:
                                     ref_no=f"约束边{constranit_edge_template_no[seg]}"
-                                size_hints.append([index,d.handle,poly_centroid,classification_res,ty,edge_no,ref_no,d.text,"无",is_diff])
+                                size_hints.append([index,d.handle,poly_centroid,classification_res,ty,edge_no,s.ref.handle,ref_no,seg.ref.handle,d.text,"无",is_diff])
                         else:
                             new_ds.append(d_t)
                             if len(d_t)==2:
@@ -3915,7 +3915,7 @@ def outputInfo(index,edges_info,poly_centroid,hint_info,meta_info,segmentation_c
                                             edge_no=f"自由边{free_edge_template_no[s]}"
                                         elif s in constranit_edge_template_no:
                                             edge_no=f"约束边{constranit_edge_template_no[s]}"
-                                        size_hints.append([index,d.handle,poly_centroid,classification_res,ty,edge_no,"无",d.text,"无",is_diff])
+                                        size_hints.append([index,d.handle,poly_centroid,classification_res,ty,edge_no,s.ref.handle,"无","无",d.text,"无",is_diff])
                                 else:
                                     edge_no=""
                                     if s in free_edge_template_no:
@@ -3924,7 +3924,7 @@ def outputInfo(index,edges_info,poly_centroid,hint_info,meta_info,segmentation_c
                                         edge_no=f"约束边{constranit_edge_template_no[s]}"
                                     else:
                                         edge_no=f"角隅孔{cornerhole_edge_template_no[s]}"
-                                    size_hints.append([index,d.handle,poly_centroid,classification_res,ty,edge_no,"无",d.content,"无",is_diff])
+                                    size_hints.append([index,d.handle,poly_centroid,classification_res,ty,edge_no,s.ref.handle,"无","无",d.content,"无",is_diff])
                     new_dic[ty]=new_ds
                 else:
                     new_dic[ty]=ds
@@ -4558,7 +4558,7 @@ def   outputHints(meta_hints,size_hints,path="./标注.csv"):
     #     print(size_hint)
     # pass
     columns1=["poly_id","标注句柄","肘板几何中心点坐标","肘板类别","板厚材质信息","是否为扩散值"]
-    columns2=["poly_id","标注句柄","肘板几何中心点坐标","肘板类别","标注属性","标注边","参考边","标注值","顺时针A或B","是否为扩散值"]
+    columns2=["poly_id","标注句柄","肘板几何中心点坐标","肘板类别","标注属性","标注边","标注边句柄","参考边","参考边句柄","标注值","顺时针A或B","是否为扩散值"]
     with open(os.path.join(path,"板厚材质信息.csv"),"w",newline="",encoding="utf-8-sig") as csvfile:
         writer=csv.writer(csvfile)
         writer.writerow(columns1)

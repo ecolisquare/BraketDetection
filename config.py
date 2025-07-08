@@ -69,7 +69,7 @@ class SegmentationConfig:
         self.repline_neighbor_min_length=8
 
         #repline邻域边最小长度
-        self.check_valid_min_length=20
+        self.check_valid_min_length=10
         #is_repline
         self.arc_repline_min_length=10
         self.arc_repline_max_length=200
