@@ -224,7 +224,43 @@ def point_on_segments_idx(point,segments,epsilon=0.05):
         if pos !="not_on_line":
             segs.append((s,i))
     return segs
-
+def find_intersection(p1, p2, p3, p4):
+    """
+    计算两条线段的交点，包括延长线上的交点
+    
+    参数:
+    p1, p2: 第一条线段的两个端点 (x, y)
+    p3, p4: 第二条线段的两个端点 (x, y)
+    
+    返回:
+    (x, y): 交点坐标
+    None: 如果两条线段平行或重合
+    """
+    # 解线性方程组求参数
+    # 第一条线段参数方程: p1 + t(p2-p1)
+    # 第二条线段参数方程: p3 + u(p4-p3)
+    
+    x1, y1 = p1
+    x2, y2 = p2
+    x3, y3 = p3
+    x4, y4 = p4
+    
+    # 计算分母
+    denom = (y4 - y3) * (x2 - x1) - (x4 - x3) * (y2 - y1)
+    
+    # 如果分母为0，说明线段平行或重合
+    if denom == 0:
+        return None
+    
+    # 计算参数t和u
+    ua = ((x4 - x3) * (y1 - y3) - (y4 - y3) * (x1 - x3)) / denom
+    ub = ((x2 - x1) * (y1 - y3) - (y2 - y1) * (x1 - x3)) / denom
+    
+    # 计算交点坐标
+    x = x1 + ua * (x2 - x1)
+    y = y1 + ua * (y2 - y1)
+    
+    return DPoint(x, y)
 def check_whole(v1,v2,seg,s_constraint_edges,ori_cons_edges):
     idx=None
     for i ,s in enumerate(ori_cons_edges):
@@ -338,7 +374,7 @@ def nearest_free_edge(point,free_edges):
             distance=dis    
     return free_edge
 def check_non_parallel_anno(point1: DPoint, point2: DPoint, constraint_edges: list[DSegment],free_edges:list[DSegment], epsilon=0.05):
-    cons1=F(point1,constraint_edges,epsilon)
+    cons1=point_on_segments(point1,constraint_edges,epsilon)
     cons2=point_on_segments(point2,constraint_edges,epsilon)
     if len(cons1)==1 and len(cons2)==0 and is_on_free_edges(point2,free_edges):
         free=nearest_free_edge(point2,free_edges)
