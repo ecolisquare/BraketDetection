@@ -1,7 +1,7 @@
 from  element import *
 from plot_geo import plot_geometry,plot_polys, plot_info_poly,p_minus,p_add,p_mul
 import os
-from utils import segment_intersection_line,segment_intersection,computeBoundingBox,is_parallel,conpute_angle_of_two_segments,point_segment_position,shrinkFixedLength,check_points_against_segments,check_points_against_free_segments,check_parallel_anno,check_vertical_anno,check_non_parallel_anno
+from utils import segment_intersection_line,segment_intersection,computeBoundingBox,is_parallel,conpute_angle_of_two_segments,point_segment_position,shrinkFixedLength,check_points_against_segments,check_points_against_free_segments,check_parallel_anno,check_vertical_anno,check_non_parallel_anno,check_whole
 from classifier import poly_classifier,match_template,load_classification_table,eva_c_f,poly_classifier_ustd
 from scipy.spatial import ConvexHull
 import matplotlib.pyplot as plt
@@ -759,24 +759,27 @@ def match_l_anno(l_anno,poly_refs,constraint_edges,free_edges,segmentation_confi
         if ty is not None:
             edge=ori_cons_edges[idx]
             if ty=="whole":
-            
-                if edge not in l_whole_map:
-                    l_whole_map[edge]=[]    
-                l_whole_map[edge].append((v1,v2,l))
-                whole_anno.append(l)
+                if check_whole(v1,v2,edge,s_constraint_edges,ori_cons_edges):
+                    if edge not in l_whole_map:
+                        l_whole_map[edge]=[]    
+                    l_whole_map[edge].append((v1,v2,l))
+                    whole_anno.append(l)
+                    continue
             elif ty=="half":
                 
                 if edge not in l_half_map:
                     l_half_map[edge]=[]    
                 l_half_map[edge].append((v1,v2,l))
                 half_anno.append(l)
+                continue
             elif ty=="cornor":
                 
                 if edge not in l_cornor_map:
                     l_cornor_map[edge]=[]    
                 l_cornor_map[edge].append((v1,v2,l))
                 cornor_anno.append(l)
-            continue
+                continue
+            
         ty,idx=check_points_against_free_segments(v1,v2,ss_free_edges)
         
         if ty is not None:
@@ -1402,7 +1405,10 @@ def match_edge_anno(segments,constraint_edges,free_edges,edges,all_anno,all_map)
                 features.add('short_anno_para')
                 feature_map[free_edge].add('short_anno_para')
                 all_edge_map[free_edge]["平行标注"].append([d,f"句柄：{d.handle}，值：{d.text}，箭头起点：{v1}，箭头终点：{v2}，参考边：约束边",cons_edge])
-    
+            elif edge_type[free_edge]=="toe":
+                cons_edge=find_cons_edge(cons_edges,free_edge)
+                all_edge_map[cons_edge]["边长标注"].append([d,f"句柄：{d.handle}，值：{d.text}，箭头起点：{v1}，箭头终点：{v2}"])
+
     #半径尺寸标注
     for seg,t in r_map.items():
 

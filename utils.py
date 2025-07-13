@@ -209,7 +209,13 @@ def point_on_segments(point,segments,epsilon=0.05):
         pos = point_segment_position(point, s,epsilon=0.05)
         if pos !="not_on_line":
             segs.append(s)
-    return segs
+    new_segs=[]
+    for s in segs:
+        l1,l2=DSegment(s.start_point,point).length(),DSegment(s.end_point,point).length()
+        l=min(l1,l2)
+        if l<=2*s.length():
+            new_segs.append(s)
+    return new_segs
 
 def point_on_segments_idx(point,segments,epsilon=0.05):
     segs=[]
@@ -219,6 +225,77 @@ def point_on_segments_idx(point,segments,epsilon=0.05):
             segs.append((s,i))
     return segs
 
+def check_whole(v1,v2,seg,s_constraint_edges,ori_cons_edges):
+    idx=None
+    for i ,s in enumerate(ori_cons_edges):
+        if s==seg:
+            idx=i
+    if idx is None:
+        return False
+    pre,nex=idx-1,idx+1
+    if pre<0:
+        pre=None
+    if nex>=len(ori_cons_edges):
+        nex=None
+    next_seg=ori_cons_edges[nex] if nex is not None else None
+    last_seg=ori_cons_edges[pre] if pre is not None else None
+    new_seg=seg
+    if last_seg is not None:
+        inter1=find_intersection(last_seg.start_point,last_seg.end_point,seg.start_point,seg.end_point)
+    else:
+        inter1=None
+    if next_seg is not None:
+        inter2=find_intersection(next_seg.start_point,next_seg.end_point,seg.start_point,seg.end_point)
+    else:
+        inter2=None
+    if inter1 is not None and inter2 is not None:
+        new_seg=DSegment(inter1,inter2)
+    elif inter1 is not None:
+        if DSegment(inter1,seg.start_point).length()<DSegment(inter1,seg.end_point).length():
+            new_seg=DSegment(inter1,seg.end_point)
+        else:
+            new_seg=DSegment(inter1,seg.start_point)
+    elif inter2 is not None:
+        if DSegment(inter2,seg.start_point).length()<DSegment(inter2,seg.end_point).length():
+            new_seg=DSegment(inter2,seg.end_point)
+        else:
+            new_seg=DSegment(inter2,seg.start_point)
+    else:
+        new_seg=seg
+    for point in [v1,v2]:
+        l1,l2=DSegment(point,new_seg.start_point).length(),DSegment(point,new_seg.end_point).length()
+        l=min(l1,l2)
+        if l>35:
+            return False
+    return True
+
+def are_equal_with_tolerance_(a, b, tolerance=1e-6):
+    return abs(a - b) < tolerance
+
+def is_parallel_(seg1, seg2, tolerance=0.05):
+    """判断两条线段是否平行"""
+    dx1 = seg1.end_point.x - seg1.start_point.x
+    dy1 = seg1.end_point.y - seg1.start_point.y
+    dx2 = seg2.end_point.x - seg2.start_point.x
+    dy2 = seg2.end_point.y - seg2.start_point.y
+
+    # 计算两个方向向量的模长
+    length1 = math.sqrt(dx1**2 + dy1**2)
+    length2 = math.sqrt(dx2**2 + dy2**2)
+    
+    # 防止长度为0的线段
+    if length1 == 0 or length2 == 0:
+        return False
+    
+    # 归一化叉积
+    cross_product = (dx1 * dy2 - dy1 * dx2) / (length1 * length2)
+    # print(seg1)
+    # print(seg2)
+    # print(dx1,dx2,dy1,dy2)
+    # print(cross_product)
+    # 返回是否接近0
+    #print(cross_product)
+    return are_equal_with_tolerance_(cross_product, 0, tolerance)
 def check_parallel_anno(point1: DPoint, point2: DPoint, constraint_edges: list[DSegment],free_edges:list[DSegment], epsilon=0.05):
     para_set={}
     cons1=point_on_segments(point1,constraint_edges,epsilon)
@@ -227,11 +304,19 @@ def check_parallel_anno(point1: DPoint, point2: DPoint, constraint_edges: list[D
     free2=point_on_segments(point2,free_edges,epsilon)
     # print(len(cons1),len(cons2),len(free1),len(free2))
     key=None
-    if len(cons1)==1 and len(cons2)==0 and len(free1)==0 and len(free2)==1:
+    if len(cons1)>=1 and len(cons2)==0 and len(free1)==0 and len(free2)>=1:
         key=(cons1[0],free2[0])
+        for i ,s1 in enumerate(cons1):
+            for j,s2 in enumerate(free2):
+                if is_parallel_(s1,s2,0.1):
+                    key=(s1,s2)
         
-    if len(cons1)==0 and len(cons2)==1 and len(free1)==1 and len(free2)==0:
+    if len(cons1)==0 and len(cons2)>=1 and len(free1)>=1 and len(free2)==0:
         key=(cons2[0],free1[0])
+        for i ,s1 in enumerate(cons2):
+            for j,s2 in enumerate(free1):
+                if is_parallel_(s1,s2,0.1):
+                    key=(s1,s2)
     return key
 
 def is_on_free_edges(point,free_edges):
@@ -253,7 +338,7 @@ def nearest_free_edge(point,free_edges):
             distance=dis    
     return free_edge
 def check_non_parallel_anno(point1: DPoint, point2: DPoint, constraint_edges: list[DSegment],free_edges:list[DSegment], epsilon=0.05):
-    cons1=point_on_segments(point1,constraint_edges,epsilon)
+    cons1=F(point1,constraint_edges,epsilon)
     cons2=point_on_segments(point2,constraint_edges,epsilon)
     if len(cons1)==1 and len(cons2)==0 and is_on_free_edges(point2,free_edges):
         free=nearest_free_edge(point2,free_edges)
@@ -265,7 +350,7 @@ def check_non_parallel_anno(point1: DPoint, point2: DPoint, constraint_edges: li
 def is_vertical(point1,point2,segment,epsilon=0.05):
     v1=DPoint(point1.x-point2.x,point1.y-point2.y)
     v2=DPoint(segment.start_point.x-segment.end_point.x,segment.start_point.y-segment.end_point.y)
-    cross_product=(v1.x*v2.x+v1.y+v2.y)/(DSegment(point1,point2).length()*segment.length()+1e-4)
+    cross_product=(v1.x*v2.x+v1.y*v2.y)/(DSegment(point1,point2).length()*segment.length()+1e-4)
     if  abs(cross_product) <epsilon:
         return True
     return False 
@@ -274,7 +359,7 @@ def check_vertical_anno(point1: DPoint, point2: DPoint, constraint_edges: list[D
     cons2=point_on_segments_idx(point2,constraint_edges,epsilon)
     if len(cons1)==0 or len(cons2)==0:
         return None
-    if len(cons1)==1 and is_vertical(point1,point2,cons1[0][0],epsilon):
+    if len(cons1)==1 and len(cons2)>1 and  is_vertical(point1,point2,cons1[0][0],epsilon):
         flag=False
         idx1=cons1[0][1]
         idx2=None
@@ -283,10 +368,10 @@ def check_vertical_anno(point1: DPoint, point2: DPoint, constraint_edges: list[D
                 flag=True
                 idx2=cons[1]
                 break
-        if flag:
+        if flag and (not is_vertical(constraint_edges[idx2].start_point,constraint_edges[idx2].end_point,constraint_edges[idx1],epsilon)):
             key=(constraint_edges[idx2],constraint_edges[idx1])
             return key
-    if len(cons2)==1 and is_vertical(point1,point2,cons2[0][0],epsilon):
+    if len(cons2)==1 and len(cons1)>1 and is_vertical(point1,point2,cons2[0][0],epsilon):
         flag=False
         idx1=cons2[0][1]
         idx2=None
@@ -295,7 +380,7 @@ def check_vertical_anno(point1: DPoint, point2: DPoint, constraint_edges: list[D
                 flag=True
                 idx2=cons[1]
                 break
-        if flag:
+        if flag and (not is_vertical(constraint_edges[idx2].start_point,constraint_edges[idx2].end_point,constraint_edges[idx1],epsilon)):
             key=(constraint_edges[idx2],constraint_edges[idx1])
             return key
     return None

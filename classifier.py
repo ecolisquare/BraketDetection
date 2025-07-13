@@ -296,6 +296,15 @@ def conerhole_free_classifier(classification_table, conerhole_num, free_edges_se
     # unrestricted_cornerhole_type = [["line"], ["arc"]]
     if is_ustd:
         unrestricted_cornerhole_type = [["line"], ["arc"]]
+        current=[["line"], ["arc"]]
+        base=["line","arc"]
+        for i in range(9):
+            new_current=[]
+            for t in base:
+                for c in current:
+                    new_current.append(c+[t])
+            current=new_current
+            unrestricted_cornerhole_type.extend(current)
     else:
 
         unrestricted_cornerhole_type = []
