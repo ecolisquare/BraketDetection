@@ -32,7 +32,7 @@ if __name__ == '__main__':
     #文件中线段元素的读取和根据颜色过滤
     elements,segments,ori_segments,stiffeners,sign_handles,polyline_handles, hatch_polys=readJson(json_path,segmentation_config)
 
-    hole_polys = read_hole_polys(json_path, segmentation_config.hole_layer)
+    hole_polys = get_hole_text_coor(json_path, segmentation_config.hole_layer)
     print(f"图案填充个数：{len(hatch_polys)}")
     # print(sign_handles)
     ori_block=build_initial_block(ori_segments,segmentation_config)

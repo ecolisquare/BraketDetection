@@ -150,7 +150,7 @@ if __name__ == '__main__':
             poly.append([seg.start_point.x, seg.start_point.y])
     #文件中线段元素的读取和根据颜色过滤
     elements,segments,ori_segments,stiffeners,sign_handles,polyline_handles,hatch_polys=readJson_inbbpolys(json_path,segmentation_config, bb_polys_seg)
-    hole_polys = read_hole_polys(json_path, segmentation_config.hole_layer)
+    hole_polys = get_hole_text_coor(json_path, segmentation_config.hole_layer)
     ori_block=build_initial_block(ori_segments,segmentation_config)
     # grid,meta=segments_in_blocks(ori_segments,segmentation_config)
     # for row in grid:

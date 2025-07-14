@@ -4318,8 +4318,9 @@ def intersects(poly_a, poly_b):
             return False
     # 所有轴上投影均重叠，则多边形相交
     return True
-def read_hole_polys(json_path, hole_layer):
-    polys=[]
+def get_hole_text_coor(json_path, hole_layer):
+    cornerhole_prefixs = ["KS", "KSNR", "KSNKS", "VU", "VUF", "VUR", "R", "RC"]
+    text_coors = []
     try:  
         with open(json_path, 'r', encoding='utf-8') as file:  
             data_list = json.load(file)
@@ -4327,30 +4328,17 @@ def read_hole_polys(json_path, hole_layer):
         for ele in block_elements:
             if ele["layerName"]!=hole_layer:
                 continue
-            if ele["type"]=="lwpolyline":
-                vs = ele["vertices"]
-                new_vs=[]
-                poly=[]
-                for i,v in enumerate(vs):
-                    if len(v)==4:
-                        new_vs.append([v[0], v[1]])
-                        new_vs.append([v[2], v[3]])        
-                for i in range(len(new_vs)-1):
-                    s,e=DPoint(new_vs[i][0],new_vs[i][1]),DPoint(new_vs[i+1][0],new_vs[i+1][1])
-                    seg=DSegment(s,e,None)
-                    if seg.length()>0:
-                        poly.append(seg)
-                
-                if ele["isClosed"]:
-                    s,e=DPoint(new_vs[-1][0],new_vs[-1][1]),DPoint(new_vs[0][0],new_vs[0][1])
-                    seg=DSegment(s,e,None)
-                    if seg.length()>0:
-                        poly.append(seg)
-                polys.append(poly)
+            if ele["type"]=="text":
+                content = ele["content"]
+                if any(content.startswith((prefix) for prefix in cornerhole_prefixs)):
+                    continue
+                else:
+                    coor = ((ele["bound"]["x1"] + ele["bound"]["x2"]) / 2, (ele["bound"]["y1"] + ele["bound"]["y2"]) / 2)
+                    text_coors.append(coor)
         
     except FileNotFoundError:  
         print("The file does not exist.")
     except json.JSONDecodeError:  
         print("Error decoding JSON.")
     
-    return polys
+    return text_coors

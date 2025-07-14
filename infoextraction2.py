@@ -158,13 +158,11 @@ def is_intersect_hatch(poly, hatch_polys):
 
     return False
 
-def is_intersect_hole(poly, hole_polys):
+def is_intersect_hole(poly, hole_text_coors):
     # 提取poly的所有端点坐标
     poly_geom = computePolygon(poly)
-    for hole_poly in hole_polys:
-        hole_poly_geom = computePolygon(hole_poly)
-        intersection = poly_geom.intersection(hole_poly_geom)
-        if intersection.area / hole_poly_geom.area > 0.9:
+    for coor in hole_text_coors:
+        if poly_geom.contains(Point(coor[0], coor[1])):
             return True
         
     return False
@@ -1463,7 +1461,7 @@ def get_free_edge_des(edge,edge_types):
         des+=edge_types[s]+","
     return des[:-1]
 
-def calculate_poly_features(poly, segments, segmentation_config, point_map, index,star_pos_map,cornor_holes,texts,dimensions,text_map,stiffeners, hatch_polys,hole_polys):
+def calculate_poly_features(poly, segments, segmentation_config, point_map, index,star_pos_map,cornor_holes,texts,dimensions,text_map,stiffeners, hatch_polys,hole_text_coors):
     # step1: 计算几何中心坐标
     poly_centroid = calculate_poly_centroid(poly)
     # 特判：判断几何是否在阴影中
@@ -1472,7 +1470,7 @@ def calculate_poly_features(poly, segments, segmentation_config, point_map, inde
         return None
     
     # 特判：判断几何中是否包含开孔
-    if is_intersect_hole(poly, hole_polys):
+    if is_intersect_hole(poly, hole_text_coors):
         print(f"回路{index}中包含开孔")
         return None
     poly_map={}
