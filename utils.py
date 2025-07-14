@@ -1283,7 +1283,14 @@ def readJson(path,segmentation_config):
        
 
         #inner block 
+        jg_s = set()
         for name,sub_data in  data_list[1].items():
+            st_prefixs = ["L", "HP"]
+            if any(name.startswith(prefix) for prefix in st_prefixs):
+                for ele in sub_data:
+                    jg_s.add(ele["handle"])
+
+
             for ele in sub_data:
                 if ele["type"]=="lwpolyline":
                     vs=ele["vertices"]
@@ -1301,7 +1308,7 @@ def readJson(path,segmentation_config):
                             sign_handles.append(ele["handle"])
 
 
-        return elements,segments+arc_splits,ori_segments,stiffeners,sign_handles,polyline_handles,hatch_polys
+        return elements,segments+arc_splits,ori_segments,stiffeners,sign_handles,polyline_handles,hatch_polys,jg_s
     except FileNotFoundError:  
         print("The file does not exist.")
     except json.JSONDecodeError:  
@@ -4245,7 +4252,13 @@ def readJson_inbbpolys(path,segmentation_config, bb_polys):
        
 
         #inner block 
+        jg_s = set()
         for name,sub_data in  data_list[1].items():
+            st_prefixs = ["L", "HP"]
+            if any(name.startswith(prefix) for prefix in st_prefixs):
+                for ele in sub_data:
+                    jg_s.add(ele["handle"])
+                
             for ele in sub_data:
                 if ele["type"]=="lwpolyline":
                     vs=ele["vertices"]
@@ -4264,7 +4277,7 @@ def readJson_inbbpolys(path,segmentation_config, bb_polys):
 
         
                 
-        return elements,segments+arc_splits,ori_segments,stiffeners,sign_handles,polyline_handles,hatch_polys
+        return elements,segments+arc_splits,ori_segments,stiffeners,sign_handles,polyline_handles,hatch_polys,jg_s
     except FileNotFoundError:  
         print("The file does not exist.")
     except json.JSONDecodeError:  

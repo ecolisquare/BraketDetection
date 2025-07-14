@@ -1461,7 +1461,7 @@ def get_free_edge_des(edge,edge_types):
         des+=edge_types[s]+","
     return des[:-1]
 
-def calculate_poly_features(poly, segments, segmentation_config, point_map, index,star_pos_map,cornor_holes,texts,dimensions,text_map,stiffeners, hatch_polys,hole_text_coors):
+def calculate_poly_features(poly, segments, segmentation_config, point_map, index,star_pos_map,cornor_holes,texts,dimensions,text_map,stiffeners, hatch_polys,hole_text_coors, jg_s):
     # step1: 计算几何中心坐标
     poly_centroid = calculate_poly_centroid(poly)
     # 特判：判断几何是否在阴影中
@@ -1725,6 +1725,9 @@ def calculate_poly_features(poly, segments, segmentation_config, point_map, inde
         seg1,seg2,seg3=None,None,None
         for j, other in enumerate(segments):
             if segment == other:
+                continue
+
+            if other.ref.handle in jg_s and segment.ref.handle not in jg_s:
                 continue
             
             if is_parallel(segment, other,segmentation_config.is_parallel_tolerance):

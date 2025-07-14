@@ -30,7 +30,7 @@ if __name__ == '__main__':
     if segmentation_config.verbose:
         print("读取json文件")
     #文件中线段元素的读取和根据颜色过滤
-    elements,segments,ori_segments,stiffeners,sign_handles,polyline_handles, hatch_polys=readJson(json_path,segmentation_config)
+    elements,segments,ori_segments,stiffeners,sign_handles,polyline_handles, hatch_polys,jg_s=readJson(json_path,segmentation_config)
 
     hole_polys = get_hole_text_coor(json_path, segmentation_config.hole_layer)
     print(f"图案填充个数：{len(hatch_polys)}")
@@ -85,7 +85,7 @@ if __name__ == '__main__':
         # except Exception as e:
         #     res=None
         segments_nearby=ori_block.segments_near_poly(poly)
-        res = calculate_poly_features(poly, segments_nearby, segmentation_config, point_map, i, star_pos_map, cornor_holes,texts,dimensions,text_map,stiffeners, hatch_polys,hole_polys)
+        res = calculate_poly_features(poly, segments_nearby, segmentation_config, point_map, i, star_pos_map, cornor_holes,texts,dimensions,text_map,stiffeners, hatch_polys,hole_polys,jg_s)
         pbar.update()
         if res is not None:
             # print(res)
