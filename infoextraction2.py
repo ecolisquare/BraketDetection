@@ -3548,7 +3548,8 @@ def outputInfo(index,edges_info,poly_centroid,hint_info,meta_info,segmentation_c
     is_standard_elbow,bracket_parameter,strengthen_parameter,has_hint,is_fb,is_diff=meta_info
     free_edges,constraint_edges,edges,poly_refs,ref_map=edges_info
     all_edge_map,edge_types,features,feature_map,constraint_edge_no,free_edge_no,all_anno,tis,ds=hint_info
-
+    json_data={}
+    json_name = os.path.join(segmentation_config.poly_info_dir, f'标准肘板/info{index}.json')
     # 获取剖图信息
 
     try:
@@ -3799,7 +3800,9 @@ def outputInfo(index,edges_info,poly_centroid,hint_info,meta_info,segmentation_c
         log_to_file(file_path, f"肘板加强类别为:{s_info}")
         log_to_file(file_path,f"非标准肘板类别:{classification_res}")
         log_to_file(file_path, f"非标准肘板")
-
+        json_str=json.dump(json_data,indent=4,ensure_ascii=False)
+        with open(json_name,'w',encoding='utf-8') as f:
+            f.write(json_str)
         
         return poly_refs, classification_res,meta_hints,size_hints
 
@@ -4012,14 +4015,18 @@ def outputInfo(index,edges_info,poly_centroid,hint_info,meta_info,segmentation_c
         file_path = os.path.join(segmentation_config.poly_info_dir, f'标准肘板/info{index}.txt')
         clear_file(file_path)
         log_to_file(file_path, f"几何中心坐标：{poly_centroid}")
+        json_data["几何中心坐标"]=[poly_centroid[0],poly_centroid[1]]
 
         free_idx=1
         log_to_file(file_path, f"自由边轮廓({get_free_edge_des(free_edges[0],edge_types)})：")
+        json_data["自由边轮廓"]=[edge_types[s] for s in free_edges[0]]
+        json_data["自由边"]=[]
         while f'free{free_idx}' in template_map:
             if len(template_map[f'free{free_idx}'])==0:
                 log_to_file(file_path, f"   自由边{free_idx}")
                 log_to_file(file_path, f"        类型：KS_corner")
                 log_to_file(file_path,f"         缺省")
+                json_data["自由边"].append({"序号":free_idx,"类型":"KS_corner","缺省":True})
                 free_idx+=1
                 continue
             seg=template_map[f'free{free_idx}'][0]
@@ -4028,9 +4035,17 @@ def outputInfo(index,edges_info,poly_centroid,hint_info,meta_info,segmentation_c
             log_to_file(file_path, f"   自由边{free_idx}")
             log_to_file(file_path, f"        类型：{edge_types[seg]}")
 
-            
+            json_data["自由边"].append({"序号":free_idx,"类型":edge_types[seg],"缺省":False})
             if edge_types[seg]=="arc":
                 log_to_file(file_path, f"       起点：{seg.ref.start_point}、终点：{seg.ref.end_point}、圆心：{seg.ref.center}、半径：{seg.ref.radius}（圆弧）、句柄: {seg.ref.handle}")
+                json_data["自由边"][-1]["几何"]={
+                    "起点":[seg.ref.start_point.x,seg.ref.start_point.y],
+                    "终点":[seg.ref.end_point.x,seg.ref.end_point.y],
+                    "圆心":[seg.ref.center.x,seg.ref.center.y],
+                    "半径":seg.ref.radius
+                }
+                json_data["自由边"][-1]["句柄"]=seg.ref.handle
+                json_data["自由边"][-1]["标注"]=all_edge_map[seg]
                 anno_des=""
                 for anno in all_edge_map[seg]["半径尺寸标注"]:
                     anno_des=f"{anno_des},{anno[1]}"
@@ -4040,6 +4055,14 @@ def outputInfo(index,edges_info,poly_centroid,hint_info,meta_info,segmentation_c
             elif edge_types[seg]=="line":
                 
                 log_to_file(file_path, f"       起点：{seg.start_point}、终点{seg.end_point}、长度：{seg.length()}（直线）、句柄: {seg.ref.handle}")
+                json_data["自由边"][-1]["几何"]={
+                    "起点":[seg.ref.start_point.x,seg.ref.start_point.y],
+                    "终点":[seg.ref.end_point.x,seg.ref.end_point.y],
+                    "长度":seg.length()
+                }
+                json_data["自由边"][-1]["句柄"]=seg.ref.handle
+                json_data["自由边"][-1]["标注"]=all_edge_map[seg]
+                
                 des=f"是否与约束边平行:{all_edge_map[seg]["是否与约束边平行"]}\n\t\t\t是否与相邻约束边夹角为90度:{all_edge_map[seg]["是否与相邻约束边夹角为90度"]}"
                 for ty,annos in all_edge_map[seg].items():
                     if ty=="是否与约束边平行" or ty=="是否与相邻约束边夹角为90度" :
@@ -4057,6 +4080,14 @@ def outputInfo(index,edges_info,poly_centroid,hint_info,meta_info,segmentation_c
                 log_to_file(file_path, f"           标注:\n\t\t\t{des}")
             elif edge_types[seg]=="toe":  
                 log_to_file(file_path, f"       起点：{seg.start_point}、终点{seg.end_point}、长度：{seg.length()}（直线）、句柄: {seg.ref.handle}")
+                
+                json_data["自由边"][-1]["几何"]={
+                    "起点":[seg.ref.start_point.x,seg.ref.start_point.y],
+                    "终点":[seg.ref.end_point.x,seg.ref.end_point.y],
+                    "长度":seg.length()
+                }
+                json_data["自由边"][-1]["句柄"]=seg.ref.handle
+                json_data["自由边"][-1]["标注"]=all_edge_map[seg]
                 des=f""
                 for ty,annos in all_edge_map[seg].items():
                     anno_des=""
@@ -4066,6 +4097,14 @@ def outputInfo(index,edges_info,poly_centroid,hint_info,meta_info,segmentation_c
                 log_to_file(file_path, f"           标注:{des}")
             elif edge_types[seg]=="KS_corner":
                 log_to_file(file_path, f"       起点：{seg.start_point}、终点{seg.end_point}、长度：{seg.length()}（直线）、句柄: {seg.ref.handle}")
+                json_data["自由边"][-1]["几何"]={
+                    "起点":[seg.ref.start_point.x,seg.ref.start_point.y],
+                    "终点":[seg.ref.end_point.x,seg.ref.end_point.y],
+                    "长度":seg.length()
+                }
+                json_data["自由边"][-1]["句柄"]=seg.ref.handle
+                json_data["自由边"][-1]["标注"]=all_edge_map[seg]
+                
                 des=f""
                 for ty,annos in all_edge_map[seg].items():
                     anno_des=""
@@ -4085,7 +4124,8 @@ def outputInfo(index,edges_info,poly_centroid,hint_info,meta_info,segmentation_c
         k=1
         constarint_idx=0
         cornerhole_idx=0
-
+        json_data["非自由边轮廓"]=[]
+        json_data["非自由边"]=[]
         for i,edge in enumerate(template_edges):
 
 
@@ -4103,7 +4143,8 @@ def outputInfo(index,edges_info,poly_centroid,hint_info,meta_info,segmentation_c
                 log_to_file(file_path,f"    角隅孔{cornerhole_idx+1}({get_edge_des(edge)})")
                 log_to_file(file_path, f"       缺省")
                 cornerhole_idx+=1
-
+                json_data["非自由边轮廓"].append({"类型":"角隅孔","轮廓":[ignore_types[0]]})
+                json_data["非自由边"].append({"缺省内容":content,"缺省":True})
             elif edge[0].isCornerhole:
                 log_to_file(file_path, f"边界颜色{k}: {edge[0].ref.color}")
                 log_to_file(file_path, f"边界轮廓{k}({get_edge_des(edge)}): ")
@@ -4111,6 +4152,8 @@ def outputInfo(index,edges_info,poly_centroid,hint_info,meta_info,segmentation_c
                 corner_hole_start_edge=edge[0]
                 log_to_file(file_path,f"    角隅孔{cornerhole_idx+1}({get_edge_des(edge)})")
                 cornerhole_idx+=1
+                json_data["非自由边轮廓"].append({"类型":"角隅孔","轮廓":["line" if isinstance(s.ref,DLine) else "arc" for s in edge]})
+                json_data["非自由边"].append({"缺省":False,"颜色":edge[0].ref.color,"边":[]})
                 if len(edge)>1 and is_vu(edge):
                     anno_des=""
                     anno_des2=""
@@ -4120,6 +4163,7 @@ def outputInfo(index,edges_info,poly_centroid,hint_info,meta_info,segmentation_c
                         anno_des2=f"{anno_des2},{anno[1]}"
                     des=f"短边是否平行于相邻边:{all_edge_map[corner_hole_start_edge]["短边是否平行于相邻边"]};\n\t\t\t短边尺寸标注:{anno_des}\n\t\t\t尺寸参数:{anno_des2}"
                     log_to_file(file_path,f"        VU孔标注:\n\t\t\t{des}")
+                    json_data["非自由边"][-1]["标注"]=all_edge_map[corner_hole_start_edge]
                     for seg in edge:
                         if isinstance(seg.ref, DArc):
                             # actual_radius= seg.ref.radius if seg not in r_map else r_map[seg].content.lstrip("R")
@@ -4128,9 +4172,31 @@ def outputInfo(index,edges_info,poly_centroid,hint_info,meta_info,segmentation_c
                             for anno in all_edge_map[seg]["半径尺寸标注"]:
                                 anno_des=f"{anno_des},{anno[1]}"
                             des=f"半径尺寸标注:{anno_des}"
-                            log_to_file(file_path, f"           标注:\n\t\t\t{des}")                  
+                            log_to_file(file_path, f"           标注:\n\t\t\t{des}")   
+                            json_data["非自由边"][-1]["边"].append({
+                                "几何":{
+                                    "起点":[seg.ref.start_point.x,seg.ref.start_point.y],
+                                    "终点":[seg.ref.end_point.x,seg.ref.end_point.y],
+                                    "圆心":[seg.ref.center.x,seg.ref.center.y],
+                                    "半径":seg.ref.radius
+                                },
+                                "句柄":seg.ref.handle,
+                                "标注":all_edge_map[seg],
+                                "类型":"arc"
+
+                            })
                         else:
-                            
+                            json_data["非自由边"][-1]["边"].append({
+                                "几何":{
+                                    "起点":[seg.ref.start_point.x,seg.ref.start_point.y],
+                                    "终点":[seg.ref.end_point.x,seg.ref.end_point.y],
+                                    "长度":seg.length()
+                                },
+                                "句柄":seg.ref.handle,
+                                "标注":{},
+                                "类型":"line"
+
+                            })
                             log_to_file(file_path, f"       起点：{seg.start_point}、终点{seg.end_point}（直线）、句柄: {seg.ref.handle}")
                 else:
 
@@ -4151,6 +4217,8 @@ def outputInfo(index,edges_info,poly_centroid,hint_info,meta_info,segmentation_c
                 log_to_file(file_path, f"边界轮廓{k}({get_edge_des(edge)}): ")
                 k+=1
                 log_to_file(file_path,f"    约束边{constarint_idx+1}({get_edge_des(edge)})")
+                json_data["非自由边轮廓"].append({"类型":"约束边","轮廓":["line" if isinstance(s.ref,DLine) else "arc" for s in edge]})
+                json_data["非自由边"].append({"缺省":False,"颜色":edge[0].ref.color,"边":[],"实际轮廓":[],"延长后直线":[]})
                 constarint_idx+=1
                 next_cons_edge=[]
                 last_cons_edge=[]
@@ -4204,19 +4272,62 @@ def outputInfo(index,edges_info,poly_centroid,hint_info,meta_info,segmentation_c
                     if isinstance(seg.ref, DArc):
                         # actual_radius= seg.ref.radius if seg not in r_map else r_map[seg].content.lstrip("R")
                         log_to_file(file_path, f"           起点：{seg.ref.start_point}、终点：{seg.ref.end_point}、圆心：{seg.ref.center}、半径：{seg.ref.radius}（圆弧）、句柄: {seg.ref.handle}")
+                        json_data["非自由边"][-1]["实际轮廓"].append({
+                            "几何":{
+                                "起点":[seg.ref.start_point.x,seg.ref.start_point.y],
+                                "终点":[seg.ref.end_point.x,seg.ref.end_point.y],
+                                "圆心":[seg.ref.center.x,seg.ref.center.y],
+                                "半径":seg.ref.radius
+                            },
+                            "句柄":seg.ref.handle,
+                            "类型":"arc"
+
+                        })
                     else:
                         log_to_file(file_path, f"           起点：{seg.start_point}、终点{seg.end_point}（直线）、句柄: {seg.ref.handle}")
+                        json_data["非自由边"][-1]["实际轮廓"].append({
+                            "几何":{
+                                "起点":[seg.ref.start_point.x,seg.ref.start_point.y],
+                                "终点":[seg.ref.end_point.x,seg.ref.end_point.y],
+                                "长度":seg.length()
+                            },
+                            "句柄":seg.ref.handle,
+                            "类型":"line"
+
+                        })
 
 
                 log_to_file(file_path,f"        经过延长后直线：")
                 for seg in correct_edge:
                     log_to_file(file_path, f"           起点：{seg.start_point}、终点{seg.end_point}（直线）、长度: {seg.length()}")
+                    json_data["非自由边"][-1]["延长后直线"].append({
+                        "几何":{
+                            "起点":[seg.ref.start_point.x,seg.ref.start_point.y],
+                            "终点":[seg.ref.end_point.x,seg.ref.end_point.y],
+                            "长度":seg.length()
+                        },
+                        "句柄":seg.ref.handle,
+                        "类型":"line"
+
+                    })
                 log_to_file(file_path,f"        将约束边估计为直线：")
                 for seg in edge:
 
                     if isinstance(seg.ref, DArc):
                         # actual_radius= seg.ref.radius if seg not in r_map else r_map[seg].content.lstrip("R")
                         log_to_file(file_path, f"           起点：{seg.ref.start_point}、终点：{seg.ref.end_point}、圆心：{seg.ref.center}、半径：{seg.ref.radius}（圆弧）、句柄: {seg.ref.handle}")
+                        json_data["非自由边"][-1]["边"].append({
+                            "几何":{
+                                "起点":[seg.ref.start_point.x,seg.ref.start_point.y],
+                                "终点":[seg.ref.end_point.x,seg.ref.end_point.y],
+                                "圆心":[seg.ref.center.x,seg.ref.center.y],
+                                "半径":seg.ref.radius
+                            },
+                            "句柄":seg.ref.handle,
+                            "标注":{},
+                            "类型":"arc"
+
+                        })
                     else:
                         
                         log_to_file(file_path, f"           起点：{seg.start_point}、终点{seg.end_point}（直线）、句柄: {seg.ref.handle}")
@@ -4227,6 +4338,17 @@ def outputInfo(index,edges_info,poly_centroid,hint_info,meta_info,segmentation_c
                                 anno_des=f"{anno_des},{anno[1]}"
                             des=f"{des}\n\t\t\t\t{ty}:{anno_des}"
                         log_to_file(file_path, f"               标注:{des}")
+                        json_data["非自由边"][-1]["边"].append({
+                            "几何":{
+                                "起点":[seg.ref.start_point.x,seg.ref.start_point.y],
+                                "终点":[seg.ref.end_point.x,seg.ref.end_point.y],
+                                "长度":seg.length()
+                            },
+                            "句柄":seg.ref.handle,
+                            "标注":all_edge_map[seg],
+                            "类型":"line"
+
+                        })
 
     
 
@@ -4257,8 +4379,12 @@ def outputInfo(index,edges_info,poly_centroid,hint_info,meta_info,segmentation_c
         
 
         log_to_file(file_path, f"肘板加强类别为：{s_info}")
+        json_data["肘板加强类别"]=s_info
         if strengthen_parameter is  None:
             log_to_file(file_path,f"肘板加强参数为：缺省")
+            json_data["肘板加强参数"]={
+                "缺省":True
+            }
         else:
             section_height=strengthen_parameter["Section Height"]
             ty=strengthen_parameter["Type"]
@@ -4282,9 +4408,20 @@ def outputInfo(index,edges_info,poly_centroid,hint_info,meta_info,segmentation_c
             log_to_file(file_path,f"    厚度：{thick}")
             log_to_file(file_path,f"    材质：{material}")
             log_to_file(file_path,f"    特殊符号：{special}")
+            json_data["肘板加强参数"]={
+                "缺省":False,
+                "加强类型":ty,
+                "截面高度":section_height,
+                "厚度":thick,
+                "材质":material,
+                "特殊符号":special
+            }
        
         if  bracket_parameter is None:
             log_to_file(file_path,f"肘板参数为：缺省")
+            json_data["肘板加强参数"]={
+                "缺省":True
+            }
         else:
             log_to_file(file_path,f"肘板参数为：")
             al1=bracket_parameter["Arm Length1"]
@@ -4332,15 +4469,25 @@ def outputInfo(index,edges_info,poly_centroid,hint_info,meta_info,segmentation_c
                 special="缺省"
             
             log_to_file(file_path,f"    臂长1：{al1}{anno1}")
-            str(constranit_edge_template_no[seg])
+            # str(constranit_edge_template_no[seg])
 
             log_to_file(file_path,f"    臂长2：{al2}{anno2}")
 
             log_to_file(file_path,f"    厚度：{thick}")
             log_to_file(file_path,f"    材质：{material}")
             log_to_file(file_path,f"    特殊符号：{special}")
+            json_data["肘板参数"]={
+                "缺省":False,
+                "臂长1":{"长度":al1,"位置":anno1},
+                "臂长2":{"长度":al2,"位置":anno2},
+                "厚度":thick,
+                "材质":material,
+                "特殊符号":special
+            }
         log_to_file(file_path, f"肘板类别为{classification_res}")
+        json_data["肘板类别"]=classification_res
         log_to_file(file_path, f"肘板混淆类分类特征为：{str(features)}")
+        json_data["肘板混淆类分类特征"]=features
         free_idx=1
         free_codes=[]
         non_free_codes=[]
@@ -4362,7 +4509,15 @@ def outputInfo(index,edges_info,poly_centroid,hint_info,meta_info,segmentation_c
         log_to_file(file_path, f"肘板混淆类分类逐边特征为：")
         log_to_file(file_path, f"   free_codes：{str(free_codes)}")
         log_to_file(file_path, f"   non_free_codes：{str(non_free_codes)}")
+        json_data["肘板混淆类逐边分类特征"]={
+            "free_codes":free_codes,
+            "non_free_codes":non_free_codes
+        }
         log_to_file(file_path, f"标准肘板")
+        json_data["标准肘板"]=True
+        json_str=json.dump(json_data,indent=4,ensure_ascii=False)
+        with open(json_name,'w',encoding='utf-8') as f:
+            f.write(json_str)
         if is_diff==False:
             plot_info_poly_std(constraint_edges,ori_edge_map,template_map,os.path.join(segmentation_config.poly_info_dir, f'标准肘板详细信息参考图/std_infopoly{index}.png'))
         if classification_res == "Unclassified":
