@@ -301,7 +301,7 @@ def check_whole(v1,v2,seg,s_constraint_edges,ori_cons_edges):
     for point in [v1,v2]:
         l1,l2=DSegment(point,new_seg.start_point).length(),DSegment(point,new_seg.end_point).length()
         l=min(l1,l2)
-        if l>35:
+        if l>18.2:
             return False
     return True
 
@@ -378,9 +378,13 @@ def check_non_parallel_anno(point1: DPoint, point2: DPoint, constraint_edges: li
     cons2=point_on_segments(point2,constraint_edges,epsilon)
     if len(cons1)==1 and len(cons2)==0 and is_on_free_edges(point2,free_edges):
         free=nearest_free_edge(point2,free_edges)
+        if free is None or point_segment_position(point2,free,epsilon=0.05)=="not_on_line":
+            return None
         return (cons1[0],free)
     if len(cons2)==1 and len(cons1)==0 and is_on_free_edges(point1,free_edges):
         free=nearest_free_edge(point1,free_edges)
+        if free is None or point_segment_position(point1,free,epsilon=0.05)=="not_on_line":
+            return None
         return (cons2[0],free)
     return None
 def is_vertical(point1,point2,segment,epsilon=0.05):
@@ -3596,7 +3600,33 @@ def process_text_map(text_map,removed_segments,segmentation_config):
                 new_text_map[p].append([t,result,"other",None])
             else:
                 new_text_map[p].append([t,result,"other",None])
+    new_text_map_={}
     for p ,texts in new_text_map.items():
+        new_texts=[]
+        rts=[]
+        for t in texts:
+            if t[3] is not None and t[1]["Type"]=="R":
+                rts.append((abs(t[3]),t))
+            else:
+                new_texts.append(t)
+        rt=None
+        idx=None
+        distance=float("inf")
+        for i,tt in enumerate(rts):
+            dis,t=tt
+            if dis<distance:
+                distances=dis
+                idx=i
+                rt=t
+        if rt is not None:
+            new_texts.append(rt)
+            for i,tt in enumerate(rts):
+                dis,t = tt
+                if i!=idx:
+                    pos=DPoint((t[0].bound['x1']+t[0].bound['x2'])/2,(t[0].bound['y1']+t[0].bound['y2'])/2)
+                    if pos not in new_text_map_:
+                        new_text_map_[pos]=[]
+                    new_text_map_[pos].append([t[0],parse_elbow_plate(t[0].content,annotation_position="other"),"other",None])
         text_wo_d=[]
         text_w_d=[]
         text_map={}
@@ -3645,8 +3675,20 @@ def process_text_map(text_map,removed_segments,segmentation_config):
         new_text_map[p]=[]
         new_text_map[p].extend(new_text_w_d)
         new_text_map[p].extend(text_wo_d)
-
-    return new_text_map
+    for p,texts in new_text_map_.items():
+        if p not in new_text_map:
+            new_text_map[p]=[]
+        new_text_map[p].extend(texts)
+    new_text_map_={}
+    for p,texts in new_text_map.items():
+        new_texts=[]
+        for t in texts:
+            if t[1] is None:
+                new_texts.append([t[0],{"Type":"None"},t[2],t[3]])
+            else:
+                new_texts.append(t)
+        new_text_map_[p]=new_texts
+    return new_text_map_
 
 def get_segment_blocks(segment: DSegment, rect, M, N):
     """

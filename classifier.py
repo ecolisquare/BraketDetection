@@ -7,7 +7,7 @@ import copy
 def is_vertical_(point1,point2,segment,epsilon=0.05):
     v1=DPoint(point1.x-point2.x,point1.y-point2.y)
     v2=DPoint(segment.start_point.x-segment.end_point.x,segment.start_point.y-segment.end_point.y)
-    cross_product=(v1.x*v2.x+v1.y*v2.y)/(DSegment(point1,point2).length()*segment.length())
+    cross_product=(v1.x*v2.x+v1.y*v2.y)/(DSegment(point1,point2).length()*segment.length()+1e-4)
     if  abs(cross_product) <epsilon:
         return True
     return False 

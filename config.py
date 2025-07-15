@@ -102,7 +102,7 @@ class SegmentationConfig:
         self.constraint_min_length=52
         self.toe_length=26
         #bracket bounding box
-        self.bracket_bbox_expand_length=250
+        self.bracket_bbox_expand_length=450
         self.bracket_bbox_expand_ratio=0.25
         self.bracket_bbox_expand_is_ratio=False
 

@@ -487,8 +487,11 @@ def textsInPoly(text_map,poly,segmentation_config,is_fb,polygon):
         content=t_t[0].content.strip()
         if "FB" in content or "FL" in content:
             result=parse_elbow_plate(content, "bottom",is_fb)
-            new_ts.append([t_t[0],t_t[1],result,t_t[3]])
-            fb_count+=1
+            if result is None:
+                new_ts.append([t_t[0],t_t[1],{"Type":"None"},t_t[3]])
+            else:
+                new_ts.append([t_t[0],t_t[1],result,t_t[3]])
+                fb_count+=1
         elif t_t[2]["Type"]=="B":
             new_ts.append(t_t)
             b_count+=1
@@ -505,21 +508,33 @@ def textsInPoly(text_map,poly,segmentation_config,is_fb,polygon):
             if (content[0]=="$" or content[0]=="~" or content[0]=="&" or content[0]=="%" or content[0]=="#") and len(content)>1:
                 if b_count==0:
                     result=parse_elbow_plate(content, "top",is_fb)
-                    new_ts.append([t_t[0],t_t[1],result,t_t[3]])
-                    b_count+=1
+                    if result is None:
+                        new_ts.append([t_t[0],t_t[1],{"Type":"None"},t_t[3]])
+                    else:
+                        new_ts.append([t_t[0],t_t[1],result,t_t[3]])
+                        b_count+=1
                 elif fb_count==0:
                     result=parse_elbow_plate(content, "bottom",is_fb)
-                    new_ts.append([t_t[0],t_t[1],result,t_t[3]])
-                    fb_count+=1
+                    if result is None:
+                        new_ts.append([t_t[0],t_t[1],{"Type":"None"},t_t[3]])
+                    else:
+                        new_ts.append([t_t[0],t_t[1],result,t_t[3]])
+                        fb_count+=1
             elif ("$" in content or "~" in content or "&" in content or "%" in content  or "#" in content) and len(content)>2:
                 if b_count==0:
                     result=parse_elbow_plate(content, "top",is_fb)
-                    new_ts.append([t_t[0],t_t[1],result,t_t[3]])
-                    b_count+=1
+                    if result is None:
+                        new_ts.append([t_t[0],t_t[1],{"Type":"None"},t_t[3]])
+                    else:
+                        new_ts.append([t_t[0],t_t[1],result,t_t[3]])
+                        b_count+=1
                 elif fb_count==0:
                     result=parse_elbow_plate(content, "bottom",is_fb)
-                    new_ts.append([t_t[0],t_t[1],result,t_t[3]])
-                    fb_count+=1
+                    if result is None:
+                        new_ts.append([t_t[0],t_t[1],{"Type":"None"},t_t[3]])
+                    else:
+                        new_ts.append([t_t[0],t_t[1],result,t_t[3]])
+                        fb_count+=1
             else:
                 new_ts.append(t_t)
         else:
@@ -699,7 +714,7 @@ def is_vertical_(point1,point2,segment,epsilon=0.05):
         return False
     v1=DPoint(point1.x-point2.x,point1.y-point2.y)
     v2=DPoint(segment.start_point.x-segment.end_point.x,segment.start_point.y-segment.end_point.y)
-    cross_product=(v1.x*v2.x+v1.y*v2.y)/(DSegment(point1,point2).length()*segment.length())
+    cross_product=(v1.x*v2.x+v1.y*v2.y)/(DSegment(point1,point2).length()*segment.length()+1e-4)
     if  abs(cross_product) <epsilon:
         return True
     return False 
@@ -891,7 +906,15 @@ def match_a_anno(a_anno,free_edges,constraint_edges):
 
     return a_map,angle_anno,toe_angle_anno
 
-
+def affine(d1,d2,d3,d4,ori_cons_edges):
+    p1,p2,p3,p4=d1,d2,d3,d4
+    for s in ori_cons_edges:
+        for p in [s.start_point,s.end_point]:
+            if DSegment(p,p3).length()<5:
+                p3=p
+            if DSegment(p,p4).length()<5:
+                p4=p
+    return p1,p2,p3,p4
 def compute_accurate_position(d1,d2,d3,d4,constraint_edges):
     ori_cons_edges=[]
     for constraint_edge in constraint_edges:
@@ -906,16 +929,16 @@ def compute_accurate_position(d1,d2,d3,d4,constraint_edges):
             pos1 = point_segment_position(d3, segment)
             pos2 = point_segment_position(d4, segment)
             if pos1 !="not_on_line" and pos2 !="not_on_line":
-                return d1,d2,d3,d4
+                return affine(d1,d2,d3,d4,ori_cons_edges)
             if pos1!= "not_on_line":
-                return d1,d2,d3,p_minus(p_add(d1,d3),d2)
+                return affine(d1,d2,d3,p_minus(p_add(d1,d3),d2),ori_cons_edges)
             if pos2 !="not_on_line":
-                return d1,d2,p_minus(p_add(d2,d4),d1),d4
+                return affine(d1,d2,p_minus(p_add(d2,d4),d1),d4,ori_cons_edges)
     l1,l2=DSegment(d1,d4).length(),DSegment(d2,d3).length()
     if l1<l2:
-        return d1,d2,d3,p_minus(p_add(d1,d3),d2)
+        return affine(d1,d2,d3,p_minus(p_add(d1,d3),d2),ori_cons_edges)
     else:
-        return d1,d2,p_minus(p_add(d2,d4),d1),d4
+        return affine(d1,d2,p_minus(p_add(d2,d4),d1),d4,ori_cons_edges)
 
 
 def compara_free_order(free_edges,free_edges_seq):
@@ -1431,6 +1454,17 @@ def match_edge_anno(segments,constraint_edges,free_edges,edges,all_anno,all_map)
                 idx=i
         if idx is not None:
             corner_hole =corner_holes[idx]
+            ct=[]
+            for edge in corner_hole:
+                if isinstance(edge.ref,DLine):
+                    ct.append("line")
+                elif isinstance(edge.ref,DArc):
+                    ct.append("arc")
+            if t.content.strip()[0]=="R" and ct !=["arc"]:
+                continue
+            if (len(t.content.strip().split("X"))==2 or len(t.content.strip().split("x"))==2) and (not(ct==["arc","line"] or ct==["line","arc"])):
+                continue
+
             for edge in corner_hole:
                 all_edge_map[edge]["尺寸参数"].append([t,f"句柄：{t.handle}，值：{t.content}"])
     for s,fs in feature_map.items():
@@ -1632,7 +1666,7 @@ def calculate_poly_features(poly, segments, segmentation_config, point_map, inde
             pairs=[(o_vs,vs),(o_vs,ve),(o_ve,vs),(o_ve,ve)]
             flag=True
             for pair in pairs:
-                if DSegment(pair[0],pair[1]).length()<20:
+                if DSegment(pair[0],pair[1]).length()<15:
                     flag=False
                     break
             if flag:

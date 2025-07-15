@@ -324,7 +324,14 @@ class DDimension(DElement):
             elif self.dimtype==163:
                 self.text="Φ"+str(round(self.measurement))
             else:
-                self.text=str(round(round(self.measurement)))
+                r_m=round(measurement)
+                if r_m %10==9 or r_m %10==4:
+                    r_m+=1
+                err=r_m-measurement
+                if err <1:
+                    self.text=str(r_m)
+                else:
+                    self.text=str(round(self.measurement))
     def  __eq__(self,other):
         if not isinstance(other,DDimension):
             return False
