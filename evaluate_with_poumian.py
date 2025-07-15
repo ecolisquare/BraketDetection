@@ -190,7 +190,7 @@ def get_copy_time(poly, copy_poly_dic):
         poutu_polygon = Polygon(poutu_poly)
         itersection = polygon.intersection(poutu_polygon)
         if itersection.area / polygon.area > 0.8:
-            return copy_poly_dic[poly_co]
+            return copy_poly_dic[poly_co]["剖切符号调用次数"] + copy_poly_dic[poly_co]["副标题调用次数"] + 1
     
     return 1
 

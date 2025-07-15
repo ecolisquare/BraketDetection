@@ -125,6 +125,8 @@ if __name__ == '__main__':
     add_bracket_layer_name = input("请输入补充肘板边界图层名：")
     round=input("请输入轮次:")
     segmentation_config.json_path = json_path
+    base, ext = os.path.splitext(json_path)
+    segmentation_config.multi_json_path = f"{base}_multi.json"
     segmentation_config.remove_layername.append(add_bracket_layer_name)
     output_path=f"{segmentation_config.poly_info_dir}/round{round}"
     segmentation_config.line_image_path = os.path.join(output_path, "line.png")

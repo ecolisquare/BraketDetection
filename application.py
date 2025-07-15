@@ -23,6 +23,8 @@ def main():
     print("loading...")
     dxf2json(os.path.dirname(dxf_path),os.path.basename(dxf_path),os.path.dirname(dxf_path))
     json_path = os.path.join(os.path.dirname(dxf_path), (os.path.basename(dxf_path).split('.')[0] + ".json"))
+    base, ext = os.path.splitext(json_path)
+    segmentation_config.multi_json_path = f"{base}_multi.json"
     print("complete loading!")
     segmentation_config.json_path = json_path
     create_folder_safe(f"{segmentation_config.poly_info_dir}")

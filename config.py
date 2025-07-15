@@ -146,4 +146,7 @@ class SegmentationConfig:
 
         #开孔所在图层
         self.hole_layer = "开孔标注"
+
+        #剖图文件路径
+        self.multi_json_path = None
         

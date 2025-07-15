@@ -71,6 +71,8 @@ def process_json_files(folder_path, output_foler, training_data_output_folder, t
 def process_json_data(json_path, output_path, training_data_output_folder, training_img_output_folder, name):
     segmentation_config=SegmentationConfig()
     segmentation_config.json_path = json_path
+    base, ext = os.path.splitext(json_path)
+    segmentation_config.multi_json_path = f"{base}_multi.json"
     segmentation_config.line_image_path = os.path.join(output_path, "line.png")
     segmentation_config.poly_image_dir = os.path.join(output_path, "poly_image")
     segmentation_config.poly_info_dir = os.path.join(output_path)

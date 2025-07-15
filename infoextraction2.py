@@ -13,6 +13,8 @@ import numpy as np
 import csv
 import codecs
 import sys
+import ast
+
 def is_point_in_polygon(point, polygon_edges):
     
     polygon_points = set()  # Concave polygon example
@@ -3512,6 +3514,29 @@ def outputInfo(index,edges_info,poly_centroid,hint_info,meta_info,segmentation_c
     is_standard_elbow,bracket_parameter,strengthen_parameter,has_hint,is_fb,is_diff=meta_info
     free_edges,constraint_edges,edges,poly_refs,ref_map=edges_info
     all_edge_map,edge_types,features,feature_map,constraint_edge_no,free_edge_no,all_anno,tis,ds=hint_info
+
+    # 获取剖图信息
+
+    try:
+        with open(segmentation_config.multi_json_path, "r", encoding="utf-8") as f:
+            multi_data = json.load(f)
+    except FileNotFoundError:
+        print(f"文件未找到：{segmentation_config.multi_json_path}")
+        multi_data = None
+    except json.JSONDecodeError:
+        print(f"文件格式错误，非合法JSON：{segmentation_config.multi_json_path}")
+        multi_data = None
+    except Exception as e:
+        print(f"加载过程中出现其他错误：{e}")
+        multi_data = None
+
+    poumian_name = None
+    poumian_copy_time = 1
+    if multi_data is not None:
+        multi_poly_dic = multi_data[-1]["子图调用次数"]
+        poumian_name, poumian_copy_time = get_copy_info(poly_centroid, multi_poly_dic)
+        
+
     #handle center classification type edge  value AorB  is_diff
     size_hints=[]
     #handle center classification info is_diff
@@ -4669,3 +4694,23 @@ def classificationAndOutputStep(indices,edges_infos,poly_centroids,hint_infos,me
         log_to_file("./output/class_included.txt",name+"  "+str(count))
     outputHints(meta_hints,size_hints,segmentation_config.dxf_output_folder)
     return poly_infos,types,flags
+
+
+def get_copy_info(poly_c, copy_poly_dic):
+    poumian_name = None
+    poumian_copy_time = 1
+    for poly_co in copy_poly_dic:
+        poly_co_dic = ast.literal_eval(poly_co)
+        x1 = poly_co_dic["x1"]
+        x2 = poly_co_dic["x2"]
+        y1 = poly_co_dic["y1"]
+        y2 = poly_co_dic["y2"]
+        poutu_poly = [[x1, y1], [x2, y1], [x2, y2],[x1, y2]]
+        center = Point(poly_c[0], poly_c[1])
+        poutu_polygon = Polygon(poutu_poly)
+        if center.within(poutu_polygon):
+            poumian_name = copy_poly_dic[poly_co]["主图标题"]
+            poumian_copy_time = copy_poly_dic[poly_co]["剖切符号调用次数"] + copy_poly_dic[poly_co]["副标题调用次数"] + 1
+            return poumian_name, poumian_copy_time
+    
+    return poumian_name, poumian_copy_time
