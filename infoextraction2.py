@@ -4016,6 +4016,8 @@ def outputInfo(index,edges_info,poly_centroid,hint_info,meta_info,segmentation_c
         clear_file(file_path)
         log_to_file(file_path, f"几何中心坐标：{poly_centroid}")
         json_data["几何中心坐标"]=[poly_centroid[0],poly_centroid[1]]
+        json_data["主图标题"] = poumian_name
+        json_data["调用总次数"] = poumian_copy_time
 
         free_idx=1
         log_to_file(file_path, f"自由边轮廓({get_free_edge_des(free_edges[0],edge_types)})：")
