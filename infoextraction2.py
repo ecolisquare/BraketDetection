@@ -3800,7 +3800,7 @@ def outputInfo(index,edges_info,poly_centroid,hint_info,meta_info,segmentation_c
         log_to_file(file_path, f"肘板加强类别为:{s_info}")
         log_to_file(file_path,f"非标准肘板类别:{classification_res}")
         log_to_file(file_path, f"非标准肘板")
-        json_str=json.dump(json_data,indent=4,ensure_ascii=False)
+        json_str=json.dumps(json_data,indent=4,ensure_ascii=False,default=str)
         with open(json_name,'w',encoding='utf-8') as f:
             f.write(json_str)
         
@@ -4098,8 +4098,8 @@ def outputInfo(index,edges_info,poly_centroid,hint_info,meta_info,segmentation_c
             elif edge_types[seg]=="KS_corner":
                 log_to_file(file_path, f"       起点：{seg.start_point}、终点{seg.end_point}、长度：{seg.length()}（直线）、句柄: {seg.ref.handle}")
                 json_data["自由边"][-1]["几何"]={
-                    "起点":[seg.ref.start_point.x,seg.ref.start_point.y],
-                    "终点":[seg.ref.end_point.x,seg.ref.end_point.y],
+                    "起点":[seg.start_point.x,seg.start_point.y],
+                    "终点":[seg.end_point.x,seg.end_point.y],
                     "长度":seg.length()
                 }
                 json_data["自由边"][-1]["句柄"]=seg.ref.handle
@@ -4287,9 +4287,8 @@ def outputInfo(index,edges_info,poly_centroid,hint_info,meta_info,segmentation_c
                         log_to_file(file_path, f"           起点：{seg.start_point}、终点{seg.end_point}（直线）、句柄: {seg.ref.handle}")
                         json_data["非自由边"][-1]["实际轮廓"].append({
                             "几何":{
-                                "起点":[seg.ref.start_point.x,seg.ref.start_point.y],
-                                "终点":[seg.ref.end_point.x,seg.ref.end_point.y],
-                                "长度":seg.length()
+                                "起点":[seg.start_point.x,seg.start_point.y],
+                                "终点":[seg.end_point.x,seg.end_point.y]
                             },
                             "句柄":seg.ref.handle,
                             "类型":"line"
@@ -4302,11 +4301,10 @@ def outputInfo(index,edges_info,poly_centroid,hint_info,meta_info,segmentation_c
                     log_to_file(file_path, f"           起点：{seg.start_point}、终点{seg.end_point}（直线）、长度: {seg.length()}")
                     json_data["非自由边"][-1]["延长后直线"].append({
                         "几何":{
-                            "起点":[seg.ref.start_point.x,seg.ref.start_point.y],
-                            "终点":[seg.ref.end_point.x,seg.ref.end_point.y],
+                            "起点":[seg.start_point.x,seg.start_point.y],
+                            "终点":[seg.end_point.x,seg.end_point.y],
                             "长度":seg.length()
                         },
-                        "句柄":seg.ref.handle,
                         "类型":"line"
 
                     })
@@ -4515,7 +4513,7 @@ def outputInfo(index,edges_info,poly_centroid,hint_info,meta_info,segmentation_c
         }
         log_to_file(file_path, f"标准肘板")
         json_data["标准肘板"]=True
-        json_str=json.dump(json_data,indent=4,ensure_ascii=False)
+        json_data["标准肘板"]=True
         with open(json_name,'w',encoding='utf-8') as f:
             f.write(json_str)
         if is_diff==False:
