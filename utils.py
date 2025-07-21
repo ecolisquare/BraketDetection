@@ -3615,7 +3615,7 @@ def process_text_map(text_map,removed_segments,segmentation_config):
         for i,tt in enumerate(rts):
             dis,t=tt
             if dis<distance:
-                distances=dis
+                distance=dis
                 idx=i
                 rt=t
         if rt is not None:
@@ -3630,7 +3630,7 @@ def process_text_map(text_map,removed_segments,segmentation_config):
         text_wo_d=[]
         text_w_d=[]
         text_map={}
-        for t in texts:
+        for t in new_texts:
             if t[3] is None:
                 text_wo_d.append(t)
             else:
