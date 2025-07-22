@@ -109,6 +109,10 @@ def main():
   
     edges_infos,poly_centroids,hint_infos,meta_infos=diffusion_step(edges_infos,poly_centroids,hint_infos,meta_infos)
     polys_info,classi_res,flags=classificationAndOutputStep(indices,edges_infos,poly_centroids,hint_infos,meta_infos,segmentation_config,polys,polyline_handles)
+    
+    # 获得需要去重肘板的id
+    delete_bracket_ids = find_dump_bracket_ids(polys_info, classi_res, indices)
+    
     free_edge_handles = []
     all_handles=[]
     not_all_handles=[]
@@ -150,7 +154,7 @@ def main():
     
     dxf_path = os.path.splitext(segmentation_config.json_path)[0] + '.dxf'
     dxf_output_folder = segmentation_config.dxf_output_folder
-    draw_rectangle_in_dxf(dxf_path, dxf_output_folder, bboxs, classi_res,indices, free_edge_handles,non_free_edge_handles,all_handles,not_all_handles,removed_handles)
+    draw_rectangle_in_dxf(dxf_path, dxf_output_folder, bboxs, classi_res,indices, free_edge_handles,non_free_edge_handles,all_handles,not_all_handles,removed_handles,delete_bracket_ids)
 
 if __name__ == "__main__":
     print("肘板检测工具启动！")

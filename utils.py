@@ -4397,3 +4397,76 @@ def get_hole_text_coor(json_path, hole_layer):
         print("Error decoding JSON.")
     
     return text_coors
+
+
+def find_dump_bracket_ids(polys_info, classi_res, indices):
+    dump_bracket_ids = []
+    # 计算bbox
+    actual_bboxs = []
+    valid_classes = []
+    valid_indices = []
+    
+    for idx, (poly_refs, cls) in enumerate(zip(polys_info, classi_res)):
+        max_x = float('-inf')
+        min_x = float('inf')
+        max_y = float('-inf')
+        min_y = float('inf')
+        for seg in poly_refs:
+            x_coords = [seg.start_point[0], seg.end_point[0]]
+            y_coords = [seg.start_point[1], seg.end_point[1]]
+            max_x = max(max_x, *x_coords)
+            min_x = min(min_x, *x_coords)
+            max_y = max(max_y, *y_coords)
+            min_y = min(min_y, *y_coords)
+        
+        # 排除不合法分类
+        if cls == 'Unclassified' or cls == 'Unstandard' or ',' in cls or 'ustd' in cls:
+            continue
+
+        actual_bboxs.append((min_x - 20, max_x + 20, min_y - 20, max_y + 20))
+        valid_classes.append(cls)
+        valid_indices.append(indices[idx])
+
+    def compute_iou_area(b1, b2):
+        x1 = max(b1[0], b2[0])
+        x2 = min(b1[1], b2[1])
+        y1 = max(b1[2], b2[2])
+        y2 = min(b1[3], b2[3])
+
+        if x1 >= x2 or y1 >= y2:
+            return 0.0, 0.0, 0.0  # no overlap
+
+        inter_area = (x2 - x1) * (y2 - y1)
+        area1 = (b1[1] - b1[0]) * (b1[3] - b1[2])
+        area2 = (b2[1] - b2[0]) * (b2[3] - b2[2])
+        return inter_area, area1, area2
+
+    def same_main_class(cls1, cls2):
+        return cls1.split('(')[0] == cls2.split('(')[0]
+
+
+    def count_ks_inside_bracket(cls_str):
+        if '(' in cls_str and ')' in cls_str:
+            inside = cls_str.split('(', 1)[1].split(')', 1)[0]
+            return inside.count('KS')
+        return 0
+
+    n = len(actual_bboxs)
+    for i in range(n):
+        for j in range(i + 1, n):
+            inter_area, area_i, area_j = compute_iou_area(actual_bboxs[i], actual_bboxs[j])
+            if area_i == 0 or area_j == 0:
+                continue
+            if (inter_area / area_i > 0.9) and (inter_area / area_j > 0.9):
+                if same_main_class(valid_classes[i], valid_classes[j]):
+                    # 去除KS角孔含量最多的分类结果
+                    ks_i = count_ks_inside_bracket(valid_classes[i])
+                    ks_j = count_ks_inside_bracket(valid_classes[j])
+                    if ks_i > ks_j:
+                        dump_bracket_ids.append(valid_indices[i])
+                    elif ks_j > ks_i:
+                        dump_bracket_ids.append(valid_indices[j])
+                    else:
+                        dump_bracket_ids.append(valid_indices[j])  # 默认去除靠后的
+
+    return dump_bracket_ids

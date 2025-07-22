@@ -52,7 +52,7 @@ import json
 
 
 
-def draw_rectangle_in_dxf(file_path, folder, bbox_list, classi_res,idxs, free_edge_handles,non_free_edge_handles,all_handles,not_all_handles,removed_handles):
+def draw_rectangle_in_dxf(file_path, folder, bbox_list, classi_res,idxs, free_edge_handles,non_free_edge_handles,all_handles,not_all_handles,removed_handles,delete_bracket_ids):
     folder = os.path.normpath(os.path.abspath(folder))
     os.makedirs(folder, exist_ok=True)
 
@@ -63,6 +63,12 @@ def draw_rectangle_in_dxf(file_path, folder, bbox_list, classi_res,idxs, free_ed
         doc.layers.add("Braket", color=30)
 
     for idx, (bbox, classification) in enumerate(zip(bbox_list, classi_res)):
+        # 不对需要删除的肘板进行输出
+        if idxs[idx] in delete_bracket_ids:
+            continue
+        
+        # TODO:删除对应id的json和txt输出
+
         if classification=='Unclassified':
             continue
         if ',' in classification and 'ustd' not in classification:
