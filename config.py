@@ -121,7 +121,7 @@ class SegmentationConfig:
         self.stiffener_name = ["Stiffener_Invisible","Stiffener_Visible"]
         # self.remove_layername=["Stiffener_Invisible","Stiffener_Visible","Plate_Invisible","Plate_Visible"]
         self.remove_linetype=[]
-        self.remove_layername=["Seam","100-人孔盖","人孔盖", "开孔识别结果", "可识别贯穿孔" ]
+        self.remove_layername=["Seam","100-人孔盖","人孔盖", "开孔识别结果", "可识别贯穿孔","肘板标注","Braket"]
         self.remove_layername.extend(self.stiffener_name)
         #check is bracket
         #偏离凸多边形的程度
