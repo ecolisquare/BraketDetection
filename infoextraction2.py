@@ -79,12 +79,15 @@ def is_near_convex(points, i, tolerance=0.1):
     poly_area = polygon_area(points)
 
     # 计算凸包的面积
-    convex_hull = ConvexHull(points)
-    hull_area = convex_hull.volume  # ConvexHull 的面积
-    # 检查面积差
-    #print(poly_area,hull_area,abs(poly_area - hull_area) / hull_area)
-    if abs(poly_area - hull_area) / hull_area > tolerance:
-        return False
+    try:
+        convex_hull = ConvexHull(points)
+        hull_area = convex_hull.volume  # ConvexHull 的面积
+        # 检查面积差
+        #print(poly_area,hull_area,abs(poly_area - hull_area) / hull_area)
+        if abs(poly_area - hull_area) / hull_area > tolerance:
+            return False
+    except Exception as e:
+        pass
 
     return True
 
@@ -144,19 +147,22 @@ def is_intersect_hatch(poly, hatch_polys):
     poly_geom = computePolygon(poly)
 
     # 遍历所有 hatch 区域，判断是否相交
-    for hatch in hatch_polys:
-        hatch_points = [tuple(p) for p in hatch]
-        if len(hatch_points) < 3:
-            continue  # 不能构成面
-        if hatch_points[0] != hatch_points[-1]:
-            hatch_points.append(hatch_points[0])  # 确保闭合
+    try:
+        for hatch in hatch_polys:
+            hatch_points = [tuple(p) for p in hatch]
+            if len(hatch_points) < 3:
+                continue  # 不能构成面
+            if hatch_points[0] != hatch_points[-1]:
+                hatch_points.append(hatch_points[0])  # 确保闭合
 
-        hatch_geom = Polygon(hatch_points)
+            hatch_geom = Polygon(hatch_points)
 
-        intersection = poly_geom.intersection(hatch_geom)
+            intersection = poly_geom.intersection(hatch_geom)
 
-        if intersection.area / poly_geom.area > 0.5:
-            return True
+            if intersection.area / poly_geom.area > 0.5:
+                return True
+    except Exception as e:
+        pass
 
     return False
 
@@ -3587,7 +3593,7 @@ def outputInfo(index,edges_info,poly_centroid,hint_info,meta_info,segmentation_c
         if check_one_class_ustd(polyline_handles,classification_res,free_edges,constraint_edges,edges,poly_refs,poly,all_edge_map)==False:
             return poly_refs,"Unclassified",[],[]
         template_cons_edges=[]
-        cornorhole_edge_no=[]
+        cornorhole_edge_no={}
         i_=1
         for i,edge in enumerate(edges):
     
