@@ -4445,10 +4445,15 @@ def find_dump_bracket_ids(polys_info, classi_res, indices):
         return cls1.split('(')[0] == cls2.split('(')[0]
 
 
-    def count_ks_inside_bracket(cls_str):
+    def count_cor_inside_bracket(cls_str):
         if '(' in cls_str and ')' in cls_str:
             inside = cls_str.split('(', 1)[1].split(')', 1)[0]
-            return inside.count('KS')
+            inside = inside.split('-')
+            count = 0
+            for cor in inside:
+                if cor != 'KS':
+                    count += 1
+            return count
         return 0
 
     n = len(actual_bboxs)
@@ -4460,12 +4465,12 @@ def find_dump_bracket_ids(polys_info, classi_res, indices):
             if (inter_area / area_i > 0.9) and (inter_area / area_j > 0.9):
                 if same_main_class(valid_classes[i], valid_classes[j]):
                     # 去除KS角孔含量最多的分类结果
-                    ks_i = count_ks_inside_bracket(valid_classes[i])
-                    ks_j = count_ks_inside_bracket(valid_classes[j])
+                    ks_i = count_cor_inside_bracket(valid_classes[i])
+                    ks_j = count_cor_inside_bracket(valid_classes[j])
                     if ks_i > ks_j:
-                        dump_bracket_ids.append(valid_indices[i])
-                    elif ks_j > ks_i:
                         dump_bracket_ids.append(valid_indices[j])
+                    elif ks_j > ks_i:
+                        dump_bracket_ids.append(valid_indices[i])
                     else:
                         dump_bracket_ids.append(valid_indices[j])  # 默认去除靠后的
 
