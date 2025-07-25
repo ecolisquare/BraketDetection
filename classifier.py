@@ -735,49 +735,163 @@ def poly_classifier(features,all_anno,poly_refs, texts,dimensions,conerhole_num,
         free_code = classification_table[type_name]["free_code"]
         no_free_code = classification_table[type_name]["no_free_code"]
         template_map=match_template(edges,poly_free_edges,classification_table[type_name],edge_types,thickness=thickness)
-
-        # 自由边特征比对
+        template_free_code = []
         free_idx = 1
         while f'free{free_idx}' in template_map:
-            if len(template_map[f'free{free_idx}'])==0:
-                free_idx += 1
-                continue
-            seg=template_map[f'free{free_idx}'][0]
-            f = feature_map[seg]
-            c = free_code[free_idx - 1]
-            if eva_c_f(c, f):
-                f_score += 1
-            else:
-                best_match_flag = False
+            if len(template_map[f'free{free_idx}']) != 0:
+                template_free_code.append(free_code[free_idx - 1])
             free_idx += 1
-        
-        # 非自由边特征对比
-        constarint_idx=1
-        cornerhole_idx=1
-        while True:
-            if f'constraint{constarint_idx}' in template_map:
-                seg = template_map[f'constraint{constarint_idx}'][0]
+        r_template_free_code = template_free_code[::-1]
+        r_no_free_code = no_free_code[::-1]
+
+        # TODO: 添加轮廓是否对称的调用
+        flag = True
+
+        if flag:
+            f_score1 = 0
+            f_score2 = 0
+            best_match_flag1 = True
+            best_match_flag2 = True
+            # 正向比对
+            # 自由边特征比对
+            free_idx = 1
+            idx = 1
+            while f'free{free_idx}' in template_map:
+                if len(template_map[f'free{free_idx}'])==0:
+                    free_idx += 1
+                    continue
+                seg=template_map[f'free{free_idx}'][0]
                 f = feature_map[seg]
-                c = no_free_code[constarint_idx + cornerhole_idx - 2]
+                c = template_free_code[idx - 1]
+                idx += 1
                 if eva_c_f(c, f):
-                    f_score += 1
+                    f_score1 += 1
                 else:
-                    best_match_flag = False
-                constarint_idx+=1
-            else:
-                break
-            if f'cornerhole{cornerhole_idx}' in template_map:
-                if len(template_map[f'cornerhole{cornerhole_idx}'])==0:
-                    cornerhole_idx+=1
+                    best_match_flag1 = False
+                free_idx += 1
+            
+            # 非自由边特征对比
+            constarint_idx=1
+            cornerhole_idx=1
+            while True:
+                if f'constraint{constarint_idx}' in template_map:
+                    seg = template_map[f'constraint{constarint_idx}'][0]
+                    f = feature_map[seg]
+                    c = no_free_code[constarint_idx + cornerhole_idx - 2]
+                    if eva_c_f(c, f):
+                        f_score1 += 1
+                    else:
+                        best_match_flag1 = False
+                    constarint_idx+=1
+                else:
                     break
-                seg = template_map[f'cornerhole{cornerhole_idx}'][0]
+                if f'cornerhole{cornerhole_idx}' in template_map:
+                    if len(template_map[f'cornerhole{cornerhole_idx}'])==0:
+                        cornerhole_idx+=1
+                        break
+                    seg = template_map[f'cornerhole{cornerhole_idx}'][0]
+                    f = feature_map[seg]
+                    c = no_free_code[constarint_idx + cornerhole_idx - 2]
+                    if eva_c_f(c, f):
+                        f_score1 += 1
+                    else:
+                        best_match_flag1= False
+                    cornerhole_idx+=1
+
+            # 反向比对
+            # 自由边特征比对
+            free_idx = 1
+            idx = 1
+            while f'free{free_idx}' in template_map:
+                if len(template_map[f'free{free_idx}'])==0:
+                    free_idx += 1
+                    continue
+                seg=template_map[f'free{free_idx}'][0]
                 f = feature_map[seg]
-                c = no_free_code[constarint_idx + cornerhole_idx - 2]
+                c = r_template_free_code[idx - 1]
+                idx += 1
+                if eva_c_f(c, f):
+                    f_score2 += 1
+                else:
+                    best_match_flag2 = False
+                free_idx += 1
+            
+            # 非自由边特征对比
+            constarint_idx=1
+            cornerhole_idx=1
+            while True:
+                if f'constraint{constarint_idx}' in template_map:
+                    seg = template_map[f'constraint{constarint_idx}'][0]
+                    f = feature_map[seg]
+                    c = r_no_free_code[constarint_idx + cornerhole_idx - 2]
+                    if eva_c_f(c, f):
+                        f_score2 += 1
+                    else:
+                        best_match_flag2 = False
+                    constarint_idx+=1
+                else:
+                    break
+                if f'cornerhole{cornerhole_idx}' in template_map:
+                    if len(template_map[f'cornerhole{cornerhole_idx}'])==0:
+                        cornerhole_idx+=1
+                        break
+                    seg = template_map[f'cornerhole{cornerhole_idx}'][0]
+                    f = feature_map[seg]
+                    c = r_no_free_code[constarint_idx + cornerhole_idx - 2]
+                    if eva_c_f(c, f):
+                        f_score2 += 1
+                    else:
+                        best_match_flag2 = False
+                    cornerhole_idx+=1
+            
+            best_match_flag = best_match_flag1 or best_match_flag2
+            f_score = max(f_score1, f_score2)
+
+        # 如果不对称则只正向比对
+        else:
+            # 自由边特征比对
+            free_idx = 1
+            idx = 1
+            while f'free{free_idx}' in template_map:
+                if len(template_map[f'free{free_idx}'])==0:
+                    free_idx += 1
+                    continue
+                seg=template_map[f'free{free_idx}'][0]
+                f = feature_map[seg]
+                c = template_free_code[free_idx - 1]
                 if eva_c_f(c, f):
                     f_score += 1
                 else:
                     best_match_flag = False
-                cornerhole_idx+=1
+                free_idx += 1
+            
+            # 非自由边特征对比
+            constarint_idx=1
+            cornerhole_idx=1
+            while True:
+                if f'constraint{constarint_idx}' in template_map:
+                    seg = template_map[f'constraint{constarint_idx}'][0]
+                    f = feature_map[seg]
+                    c = no_free_code[constarint_idx + cornerhole_idx - 2]
+                    if eva_c_f(c, f):
+                        f_score += 1
+                    else:
+                        best_match_flag = False
+                    constarint_idx+=1
+                else:
+                    break
+                if f'cornerhole{cornerhole_idx}' in template_map:
+                    if len(template_map[f'cornerhole{cornerhole_idx}'])==0:
+                        cornerhole_idx+=1
+                        break
+                    seg = template_map[f'cornerhole{cornerhole_idx}'][0]
+                    f = feature_map[seg]
+                    c = no_free_code[constarint_idx + cornerhole_idx - 2]
+                    if eva_c_f(c, f):
+                        f_score += 1
+                    else:
+                        best_match_flag = False
+                    cornerhole_idx+=1
         # print(type_name,best_match_flag,f_score)
         # 如果完全匹配成功，直接作为最终结果；否则则进行分数比较
         if best_match_flag:
@@ -952,25 +1066,86 @@ def calculate_similarity(seq1, seq2):
 def is_new_feature_pass(matched_type, classification_table,edges, poly_free_edges, edge_types, thickness, feature_map):
     type_name = matched_type.split(',')[0]
     is_match_flag = True
+    f_score = 0
     free_code = classification_table[type_name]["free_code"]
     no_free_code = classification_table[type_name]["no_free_code"]
     template_map=match_template(edges,poly_free_edges,classification_table[type_name],edge_types,thickness=thickness)
 
-    # 自由边特征比对
+    template_free_code = []
     free_idx = 1
-    f_score=0
     while f'free{free_idx}' in template_map:
-        if len(template_map[f'free{free_idx}'])==0:
+        if len(template_map[f'free{free_idx}']) != 0:
+            template_free_code.append(free_code[free_idx - 1])
             free_idx += 1
-            continue
-        seg=template_map[f'free{free_idx}'][0]
-        f = feature_map[seg]
-        c = free_code[free_idx - 1]
-        if eva_c_f_new(c, f):
-            f_score += 1
-        else:
-            is_match_flag = False
-        free_idx += 1
+    r_template_free_code = template_free_code[::-1]
+
+    # 自由边特征比对（轮廓对称会正反进行）
+    # TODO: 添加轮廓是否对称的调用
+    flag = True
+
+    if flag:
+        f_score1 = 0
+        f_score2 = 0
+        is_match_flag1 = True
+        is_match_flag2 = True
+        # 正向比对
+        # 自由边特征比对
+        free_idx = 1
+        idx = 1
+        while f'free{free_idx}' in template_map:
+            if len(template_map[f'free{free_idx}'])==0:
+                free_idx += 1
+                continue
+            seg=template_map[f'free{free_idx}'][0]
+            f = feature_map[seg]
+            c = template_free_code[idx - 1]
+            idx += 1
+            if eva_c_f(c, f):
+                f_score1 += 1
+            else:
+                is_match_flag1 = False
+            free_idx += 1
+        
+        # 反向比对
+        # 自由边特征比对
+        free_idx = 1
+        idx = 1
+        while f'free{free_idx}' in template_map:
+            if len(template_map[f'free{free_idx}'])==0:
+                free_idx += 1
+                continue
+            seg=template_map[f'free{free_idx}'][0]
+            f = feature_map[seg]
+            c = r_template_free_code[idx - 1]
+            idx += 1
+            if eva_c_f(c, f):
+                f_score2 += 1
+            else:
+                is_match_flag2 = False
+            free_idx += 1
+        
+        
+        is_match_flag = is_match_flag1 or is_match_flag2
+        f_score = max(f_score1, f_score2)
+
+    # 如果不对称则只正向比对
+    else:
+        # 自由边特征比对
+        free_idx = 1
+        idx = 1
+        while f'free{free_idx}' in template_map:
+            if len(template_map[f'free{free_idx}'])==0:
+                free_idx += 1
+                continue
+            seg=template_map[f'free{free_idx}'][0]
+            f = feature_map[seg]
+            c = template_free_code[free_idx - 1]
+            if eva_c_f(c, f):
+                f_score += 1
+            else:
+                is_match_flag = False
+            free_idx += 1
+
     
     # 非自由边特征对比
     constarint_idx=1
