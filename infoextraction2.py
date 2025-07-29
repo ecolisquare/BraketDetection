@@ -1,7 +1,7 @@
 from  element import *
 from plot_geo import plot_geometry,plot_polys, plot_info_poly,p_minus,p_add,p_mul
 import os
-from utils import segment_intersection_line,segment_intersection,computeBoundingBox,is_parallel,conpute_angle_of_two_segments,point_segment_position,shrinkFixedLength,check_points_against_segments,check_points_against_free_segments,check_parallel_anno,check_vertical_anno,check_non_parallel_anno,check_whole
+from utils import segment_intersection_line,segment_intersection,computeBoundingBox,is_parallel,conpute_angle_of_two_segments,point_segment_position,shrinkFixedLength,check_points_against_segments,check_points_against_free_segments,check_parallel_anno,check_vertical_anno,check_non_parallel_anno,check_whole,compute_json_bbox
 from classifier import poly_classifier,match_template,load_classification_table,eva_c_f,poly_classifier_ustd
 from scipy.spatial import ConvexHull
 import matplotlib.pyplot as plt
@@ -3588,10 +3588,10 @@ def outputInfo(index,edges_info,poly_centroid,hint_info,meta_info,segmentation_c
             thickness=meta_info[1]["Thickness"]
         classification_res=poly_classifier_ustd(free_edges, edges, segmentation_config.unstandard_type_path, edge_types, thickness, feature_map)
         if classification_res is None or classification_res=="Unclassified":
-            return poly_refs,"Unclassified",[],[]
+            return poly_refs,"Unclassified",[],[], None
         classification_res=f"ustd:{classification_res}"
         if check_one_class_ustd(polyline_handles,classification_res,free_edges,constraint_edges,edges,poly_refs,poly,all_edge_map)==False:
-            return poly_refs,"Unclassified",[],[]
+            return poly_refs,"Unclassified",[],[], None
         template_cons_edges=[]
         cornorhole_edge_no={}
         i_=1
@@ -4103,7 +4103,7 @@ def outputInfo(index,edges_info,poly_centroid,hint_info,meta_info,segmentation_c
         with open(json_name,'w',encoding='utf-8') as f:
             f.write(json_str)
         
-        return poly_refs, classification_res,meta_hints,size_hints
+        return poly_refs, classification_res,meta_hints,size_hints, None
 
 
     cornerhole_num=0
@@ -4133,7 +4133,7 @@ def outputInfo(index,edges_info,poly_centroid,hint_info,meta_info,segmentation_c
             ignore_types=["line"]
         template_map=match_template(edges,free_edges,output_template,edge_types,thickness)
         if check_one_class(classification_res,template_map,free_edges,constraint_edges,edges,poly_refs,poly,all_edge_map, ref_map)==False:
-            return poly_refs,"Unclassified",[],[]
+            return poly_refs,"Unclassified",[],[], None
         # print(output_template)
         free_edge_template_no={}
         free_idx=1
@@ -4821,7 +4821,7 @@ def outputInfo(index,edges_info,poly_centroid,hint_info,meta_info,segmentation_c
             plot_info_poly_std(constraint_edges,ori_edge_map,template_map,os.path.join(segmentation_config.poly_info_dir, f'标准肘板详细信息参考图/std_infopoly{index}.png'))
         if classification_res == "Unclassified":
             # log_to_file("./output/Unclassified.txt", f"{os.path.splitext(os.path.basename(segmentation_config.json_path))[0]}_infopoly{index}")
-            return poly_refs, classification_res,[],[]
+            return poly_refs, classification_res,[],[], None
         # else:
         #     if len(classification_res.split(","))>1:
         #         log_to_file("./output/duplicate_class.txt",f"{os.path.splitext(os.path.basename(segmentation_config.json_path))[0]}_infopoly{index}")
@@ -5066,9 +5066,10 @@ def outputInfo(index,edges_info,poly_centroid,hint_info,meta_info,segmentation_c
         log_to_file(file_path, f"   free_codes：{str(free_codes)}")
         log_to_file(file_path, f"   non_free_codes：{str(non_free_codes)}")
         log_to_file(file_path, f"标准肘板")
-        return poly_refs, classification_res,[],[]
+        return poly_refs, classification_res,[],[], None
 
-    return poly_refs, classification_res,meta_hints,size_hints
+    json_data["bbox"] = compute_json_bbox(poly_refs)
+    return poly_refs, classification_res,meta_hints,size_hints, json_data
 
 
 def   outputHints(meta_hints,size_hints,path="./标注.csv"):
@@ -5096,9 +5097,12 @@ def classificationAndOutputStep(indices,edges_infos,poly_centroids,hint_infos,me
     meta_hints=[]
     size_hints=[]
     class_count={}
+    all_json_data = []
     for i in range(len(indices)):
         index,edges_info,poly_centroid,hint_info,meta_info=indices[i],edges_infos[i],poly_centroids[i],hint_infos[i],meta_infos[i]
-        poly_refs, classification_res,meta_hint,size_hint=outputInfo(index,edges_info,poly_centroid,hint_info,meta_info,segmentation_config,polys[index],polyline_handles)
+        poly_refs, classification_res,meta_hint,size_hint, json_data=outputInfo(index,edges_info,poly_centroid,hint_info,meta_info,segmentation_config,polys[index],polyline_handles)
+        if json != None:
+            all_json_data.append(json_data)
         poly_infos.append(poly_refs)
         types.append(classification_res)
         meta_hints.extend(meta_hint)
@@ -5181,7 +5185,7 @@ def classificationAndOutputStep(indices,edges_infos,poly_centroids,hint_infos,me
     for name ,count in class_count.items():
         log_to_file("./output/class_included.txt",name+"  "+str(count))
     outputHints(meta_hints,size_hints,segmentation_config.dxf_output_folder)
-    return poly_infos,types,flags
+    return poly_infos,types,flags, all_json_data
 
 
 def get_copy_info(poly_c, copy_poly_dic):
