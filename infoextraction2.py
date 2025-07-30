@@ -1924,7 +1924,13 @@ def calculate_poly_features(poly, segments, segmentation_config, point_map, inde
                 is_inside=True
             else:
                 is_inside=False
-            if distance < segmentation_config.parallel_max_distance and is_inside==False and not isinstance(segment.ref,DArc) and l1>=segmentation_config.constraint_min_length and l1 > segmentation_config.toe_length:
+            if segment.ref.handle in jg_s and other.ref.handle in jg_s:
+                others.add(other)
+                segment.isPart=True
+                poly_refs[i].isPart=True
+                segment.isConstraint = True
+                poly_refs[i].isConstraint = True   
+            elif distance < segmentation_config.parallel_max_distance and is_inside==False and not isinstance(segment.ref,DArc) and l1>=segmentation_config.constraint_min_length and l1 > segmentation_config.toe_length:
                 #contraint
                 # print(1)
                 others.add(other)

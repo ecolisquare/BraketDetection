@@ -522,6 +522,65 @@ def match_template(edges,detected_free_edges,template,edge_types,thickness):
                 template_map[key]=non_free_edges[j]
                 j+=1
     return template_map
+def is_duichen(edges,detected_free_edges,edge_types,thickness=0):
+    if thickness>25:
+        ignore_types=["arc"]
+    else:
+        ignore_types=["line"]
+    non_free_edges=[]
+    non_free_edges_types=[]
+    free_edges=[]
+    free_edges_types=[]
+    for edge in detected_free_edges[0]:
+        free_edges.append(edge)
+        free_edges_types.append(edge_types[edge])
+    for i,edge in enumerate(edges):
+        if (not edge[0].isConstraint) and (not edge[0].isCornerhole):
+            continue
+        if edge[0].isCornerhole:
+            if len(edge)==1 and ((isinstance(edge[0].ref,DLine) and ignore_types[0]=="line") or (isinstance(edge[0].ref,DArc) and ignore_types[0]=="arc")):
+                continue
+            non_free_edges_types.append('cornerhole')
+            segs=[]
+            for s in edge:
+                segs.append(s)
+            non_free_edges.append(segs)
+        else:
+            non_free_edges_types.append('constraint')
+            segs=[]
+            for s in edge:
+                segs.append(s)
+            non_free_edges.append(segs)
+    r_non_free_edges=non_free_edges[::-1]
+    r_non_free_edges_types=non_free_edges_types[::-1]
+    r_free_edges=free_edges[::-1]
+    r_free_edges_types=free_edges_types[::-1]
+    new_edges=[]
+    for edge in r_non_free_edges:
+        new_edges.append(edge[::-1])
+    r_non_free_edges=new_edges
+    ordered_str=""
+    ordered_str+="free:"
+    for t in free_edges_types:
+        ordered_str+=t
+    ordered_str+="non_free:"
+    for i,t in enumerate(non_free_edges_types):
+        ordered_str+=t
+        for s in  non_free_edges[i]:
+            ordered_str+="line" if isinstance(s.ref,DLine) else "arc"
+    r_ordered_str=""
+    r_ordered_str+="free:"
+    for t in r_free_edges_types:
+        r_ordered_str+=t
+    r_ordered_str+="non_free:"
+    for i,t in enumerate(r_non_free_edges_types):
+        r_ordered_str+=t
+        for s in  r_non_free_edges[i]:
+            r_ordered_str+="line" if isinstance(s.ref,DLine) else "arc"
+    if ordered_str==r_ordered_str:
+        return True
+    else:
+        return False
 # 标准肘板的匹配分类函数
 def poly_classifier(features,all_anno,poly_refs, texts,dimensions,conerhole_num, poly_free_edges, edges, thickness, feature_map, edge_types, standard_classification_file_path, info_json_path, keyname, is_output_json = False):
     classification_table = load_classification_table(standard_classification_file_path)
@@ -745,7 +804,7 @@ def poly_classifier(features,all_anno,poly_refs, texts,dimensions,conerhole_num,
         r_no_free_code = no_free_code[::-1]
 
         # TODO: 添加轮廓是否对称的调用
-        flag = True
+        flag = is_duichen(edges,poly_free_edges,edge_types,thickness=thickness)
 
         if flag:
             f_score1 = 0
@@ -1080,8 +1139,7 @@ def is_new_feature_pass(matched_type, classification_table,edges, poly_free_edge
     r_template_free_code = template_free_code[::-1]
 
     # 自由边特征比对（轮廓对称会正反进行）
-    # TODO: 添加轮廓是否对称的调用
-    flag = True
+    flag = is_duichen(edges,poly_free_edges,edge_types,thickness=thickness)
 
     if flag:
         f_score1 = 0
