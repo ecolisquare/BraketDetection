@@ -674,30 +674,30 @@ def poly_classifier(features,all_anno,poly_refs, texts,dimensions,conerhole_num,
 
 
     # 对肘板轮廓进行输出
-    if is_output_json:
-        geometry_info = {
-            keyname: {
-                "free_edges_sequence": free_edges_sequence,
-                "non_free_edges_sequence": edges_sequence
-            }
-        }
-        try:
-            # 检查目标文件是否存在，如果存在则读取并更新
-            try:
-                with open(info_json_path, "r") as file:
-                    existing_data = json.load(file)
-            except FileNotFoundError:
-                existing_data = {}
+    # if is_output_json and segmentation_config.mode=="dev":
+    #     geometry_info = {
+    #         keyname: {
+    #             "free_edges_sequence": free_edges_sequence,
+    #             "non_free_edges_sequence": edges_sequence
+    #         }
+    #     }
+    #     try:
+    #         # 检查目标文件是否存在，如果存在则读取并更新
+    #         try:
+    #             with open(info_json_path, "r") as file:
+    #                 existing_data = json.load(file)
+    #         except FileNotFoundError:
+    #             existing_data = {}
 
-            # 更新数据
-            existing_data.update(geometry_info)
+    #         # 更新数据
+    #         existing_data.update(geometry_info)
 
-            # 写入文件
-            with open(info_json_path, "w") as file:
-                json.dump(existing_data, file, indent=4)
+    #         # 写入文件
+    #         with open(info_json_path, "w") as file:
+    #             json.dump(existing_data, file, indent=4)
 
-        except Exception as e:
-            print(f"Error writing to JSON file: {e}")
+    #     except Exception as e:
+    #         print(f"Error writing to JSON file: {e}")
 
 
     # step5: 固定边轮廓严格匹配+角隅孔非严格匹配（直线角隅孔可能不画）
