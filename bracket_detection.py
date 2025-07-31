@@ -190,15 +190,15 @@ def bracket_detection_add(input_path, output_folder,  config_path):
     print("complete loading!")
 
     segmentation_config.json_path = json_path
-    add_bracket_layer_name = "add"
+    add_bracket_layer_name = "Bracket"
 
     segmentation_config.remove_layername.append(add_bracket_layer_name)
-    output_path=f"{segmentation_config.poly_info_dir}/round{round}"
-    segmentation_config.line_image_path = os.path.join(output_path, "line.png")
-    segmentation_config.poly_image_dir = os.path.join(output_path, "poly_image")
-    segmentation_config.poly_info_dir = os.path.join(output_path)
-    segmentation_config.res_image_path = os.path.join(output_path, "res.png")
-    segmentation_config.dxf_output_folder = os.path.join(output_path)
+    # output_path=f"{segmentation_config.poly_info_dir}/round{round}"
+    # segmentation_config.line_image_path = os.path.join(output_path, "line.png")
+    # segmentation_config.poly_image_dir = os.path.join(output_path, "poly_image")
+    # segmentation_config.poly_info_dir = os.path.join(output_path)
+    # segmentation_config.res_image_path = os.path.join(output_path, "res.png")
+    # segmentation_config.dxf_output_folder = os.path.join(output_path)
     create_folder_safe(f"{segmentation_config.poly_info_dir}")
     create_folder_safe(f"{segmentation_config.poly_info_dir}/标准肘板详细信息参考图")
     create_folder_safe(f"{segmentation_config.poly_info_dir}/所有肘板图像(仅限开发模式)")
