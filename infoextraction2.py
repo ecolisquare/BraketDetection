@@ -3730,7 +3730,6 @@ def outputInfo(index,edges_info,poly_centroid,hint_info,meta_info,segmentation_c
         json_data["几何中心坐标"]=[poly_centroid[0],poly_centroid[1]]
         json_data["主图标题"] = poumian_name
         json_data["调用总次数"] = poumian_copy_time
-        json_data["bbox"] = compute_json_bbox(poly_refs)
         log_to_file(file_path, f"边界数量（含自由边）：{len(constraint_edges) + len(free_edges)}")
         log_to_file(file_path, "边界信息（非自由边）：")
         json_data["非自由边轮廓"]=[]
@@ -5078,7 +5077,8 @@ def outputInfo(index,edges_info,poly_centroid,hint_info,meta_info,segmentation_c
         log_to_file(file_path, f"   non_free_codes：{str(non_free_codes)}")
         log_to_file(file_path, f"标准肘板")
         return poly_refs, classification_res,[],[], None
-
+    
+    json_data["bbox"] = compute_json_bbox(poly_refs)
     return poly_refs, classification_res,meta_hints,size_hints, json_data
 
 
@@ -5111,7 +5111,7 @@ def classificationAndOutputStep(indices,edges_infos,poly_centroids,hint_infos,me
     for i in range(len(indices)):
         index,edges_info,poly_centroid,hint_info,meta_info=indices[i],edges_infos[i],poly_centroids[i],hint_infos[i],meta_infos[i]
         poly_refs, classification_res,meta_hint,size_hint, json_data=outputInfo(index,edges_info,poly_centroid,hint_info,meta_info,segmentation_config,polys[index],polyline_handles)
-        if json != None:
+        if json_data != None:
             all_json_data.append(json_data)
         poly_infos.append(poly_refs)
         types.append(classification_res)
