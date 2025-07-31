@@ -209,7 +209,7 @@ def bracket_detection_add(input_path, output_folder,  config_path):
     if segmentation_config.verbose:
         print("读取json文件")
     # 获取补充肘板的边界
-    bb_polys_seg = get_bbox(json_path, add_bracket_layer_name)
+    bb_polys_seg = get_bbox(json_path)
     bb_polys = []
     for poly_seg in bb_polys_seg:
         poly = []
@@ -292,20 +292,6 @@ def bracket_detection_add(input_path, output_folder,  config_path):
     # 函数return bbox, all_json_data
     bbox, all_json_data = process_all_json_data(all_json_data)
 
-    # 在bbox中添加bracket图层中的bbox
-    old_bracket_bbox_polys_seg = get_bbox(json_path, "bracket")
-    for bbox_poly_seg in old_bracket_bbox_polys_seg:
-        for seg in bbox_poly_seg:
-            x_coords = [seg.start_point[0], seg.end_point[0]]
-            y_coords = [seg.start_point[1], seg.end_point[1]]
-
-            # 更新最大最小值
-            max_x = max(max_x, *x_coords)
-            min_x = min(min_x, *x_coords)
-            max_y = max(max_y, *y_coords)
-            min_y = min(min_y, *y_coords)
-        bbox.append((min_x,max_x,min_y,max_y))
-
     return bbox, all_json_data
     
 
@@ -365,7 +351,7 @@ def read_json_(json_path, bracket_layer):
     
     return bboxs
 # 读取指定图层bbox
-def get_bbox(json_path, bracket_layer):
+def get_bbox(json_path, bracket_layer_color = 30, bracket_layer_name = "Bracket"):
     texts=[]
     polys=[]
     poly_ids=[]
@@ -374,7 +360,9 @@ def get_bbox(json_path, bracket_layer):
             data_list = json.load(file)
         block_elements=data_list[0]
         for ele in block_elements:
-            if ele["layerName"]!=bracket_layer:
+            if ele["layerName"] != bracket_layer_name:
+                continue
+            if ele["color"] == bracket_layer_color:
                 continue
             if ele["type"]=="text":
                 e=DText(ele["bound"],ele["insert"], ele["color"],ele["content"].strip(),ele["height"],ele["handle"],meta=None)

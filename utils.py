@@ -3090,6 +3090,10 @@ def computeBoundingBox(poly):
     return x_min,x_max,y_min,y_max
 
 def compute_json_bbox(poly_refs):
+    max_x = float('-inf')
+    min_x = float('inf')
+    max_y = float('-inf')
+    min_y = float('inf')
     for seg in poly_refs:
         # 提取起点和终点的横纵坐标
         x_coords = [seg.start_point[0], seg.end_point[0]]
@@ -4579,4 +4583,4 @@ def process_all_json_data(all_json_data):
             i = i + 1
 
 
-    return res2, all_bbox
+    return all_bbox, res2
