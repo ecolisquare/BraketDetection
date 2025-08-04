@@ -4821,6 +4821,7 @@ def outputInfo(index,edges_info,poly_centroid,hint_info,meta_info,segmentation_c
         }
         #log_to_file(file_path, f"标准肘板")
         json_data["标准肘板"]=True
+        json_data["bbox"] = compute_json_bbox(poly_refs)
         json_str=json.dumps(json_data,indent=4,ensure_ascii=False,default=str)
         with open(json_name,'w',encoding='utf-8') as f:
             f.write(json_str)
@@ -5078,7 +5079,7 @@ def outputInfo(index,edges_info,poly_centroid,hint_info,meta_info,segmentation_c
         log_to_file(file_path, f"标准肘板")
         return poly_refs, classification_res,[],[], None
     
-    json_data["bbox"] = compute_json_bbox(poly_refs)
+    
     return poly_refs, classification_res,meta_hints,size_hints, json_data
 
 
