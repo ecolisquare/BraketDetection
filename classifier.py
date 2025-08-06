@@ -793,6 +793,9 @@ def poly_classifier(features,all_anno,poly_refs, texts,dimensions,conerhole_num,
             continue
         free_code = classification_table[type_name]["free_code"]
         no_free_code = classification_table[type_name]["no_free_code"]
+        reversed_free_code = free_code[::-1]
+        reversed_no_free_code = no_free_code[::-1]
+
         template_map=match_template(edges,poly_free_edges,classification_table[type_name],edge_types,thickness=thickness)
         template_free_code = []
         free_idx = 1
@@ -801,7 +804,6 @@ def poly_classifier(features,all_anno,poly_refs, texts,dimensions,conerhole_num,
                 template_free_code.append(free_code[free_idx - 1])
             free_idx += 1
         r_template_free_code = template_free_code[::-1]
-        r_no_free_code = no_free_code[::-1]
 
         # TODO: 添加轮廓是否对称的调用
         flag = is_duichen(edges,poly_free_edges,edge_types,thickness=thickness)
@@ -882,7 +884,7 @@ def poly_classifier(features,all_anno,poly_refs, texts,dimensions,conerhole_num,
                 if f'constraint{constarint_idx}' in template_map:
                     seg = template_map[f'constraint{constarint_idx}'][0]
                     f = feature_map[seg]
-                    c = r_no_free_code[constarint_idx + cornerhole_idx - 2]
+                    c = reversed_no_free_code[constarint_idx + cornerhole_idx - 2]
                     if eva_c_f(c, f):
                         f_score2 += 1
                     else:
@@ -896,7 +898,7 @@ def poly_classifier(features,all_anno,poly_refs, texts,dimensions,conerhole_num,
                         break
                     seg = template_map[f'cornerhole{cornerhole_idx}'][0]
                     f = feature_map[seg]
-                    c = r_no_free_code[constarint_idx + cornerhole_idx - 2]
+                    c = reversed_no_free_code[constarint_idx + cornerhole_idx - 2]
                     if eva_c_f(c, f):
                         f_score2 += 1
                     else:
@@ -917,7 +919,8 @@ def poly_classifier(features,all_anno,poly_refs, texts,dimensions,conerhole_num,
                     continue
                 seg=template_map[f'free{free_idx}'][0]
                 f = feature_map[seg]
-                c = template_free_code[free_idx - 1]
+                c = template_free_code[idx - 1]
+                idx += 1
                 if eva_c_f(c, f):
                     f_score += 1
                 else:
@@ -1135,7 +1138,7 @@ def is_new_feature_pass(matched_type, classification_table,edges, poly_free_edge
     while f'free{free_idx}' in template_map:
         if len(template_map[f'free{free_idx}']) != 0:
             template_free_code.append(free_code[free_idx - 1])
-            free_idx += 1
+        free_idx += 1
     r_template_free_code = template_free_code[::-1]
 
     # 自由边特征比对（轮廓对称会正反进行）
@@ -1197,7 +1200,8 @@ def is_new_feature_pass(matched_type, classification_table,edges, poly_free_edge
                 continue
             seg=template_map[f'free{free_idx}'][0]
             f = feature_map[seg]
-            c = template_free_code[free_idx - 1]
+            c = template_free_code[idx - 1]
+            idx += 1
             if eva_c_f(c, f):
                 f_score += 1
             else:
