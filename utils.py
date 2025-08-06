@@ -1115,6 +1115,7 @@ def process_block(T_is_contained,block_datas,blockName,scales,rotation,insert,bl
                 # if ele.get("linetype") is not None and ele["linetype"] in linetype:
                 #     continue
                 content=ele["content"].strip()
+                content=re.sub(r'<[^<>]*>','',content)
                 for ct in content.split("/"):
                     if ct.strip()!="":
                         if "R" in ct.strip():
@@ -1131,7 +1132,7 @@ def process_block(T_is_contained,block_datas,blockName,scales,rotation,insert,bl
             #     continue
             string = ele["text"].strip()
             # cleaned_string = re.sub(r"^\\A1;", "", string)
-            cleaned_string=string
+            cleaned_string=re.sub(r'<[^<>]*>','',string)
             for ct in cleaned_string.split("/"):
                 if ct.strip()!="":
                     if "R" in ct.strip():
