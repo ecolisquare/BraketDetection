@@ -931,7 +931,7 @@ def compute_accurate_position(d1,d2,d3,d4,constraint_edges):
     ref_segment=DSegment(d1,d2)
     for i,segment in enumerate(ori_cons_edges):
 
-        if is_parallel(ref_segment,segment,0.15):
+        if is_parallel(ref_segment,segment,0.15)  and min(DSegment(d3,segment.start_point).length(),DSegment(d3,segment.end_point).length(),DSegment(d4,segment.start_point).length(),DSegment(d4,segment.end_point).length())<50:
             pos1 = point_segment_position(d3, segment)
             pos2 = point_segment_position(d4, segment)
             if pos1 !="not_on_line" and pos2 !="not_on_line":
