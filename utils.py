@@ -1318,6 +1318,59 @@ def readJson(path,segmentation_config):
                         end=DPoint(vs[-1][2],vs[-1][3])
                         if DSegment(start,end).length()>100 and DSegment(start,end).length() <1000:
                             sign_handles.append(ele["handle"])
+            # 联通符
+            lines = []
+            solids = []
+            flag = True
+            for ele in sub_data:
+                if ele["type"]=="solid":
+                    solids.append(ele)
+                elif ele["type"] == "line":
+                    lines.append(ele)
+                else:
+                    flag = False
+                    break
+            if len(solids)!=2 or len(lines)!=2:
+                flag = False
+            if flag:
+                s1,s2,l1,l2=solids[0], solids[1], lines[0], lines[1]
+                if s1["vtx2"] != s1["vtx3"] or s2["vtx2"] != s2["vtx3"]:
+                    continue
+                seg1 = DSegment(DPoint(s1["vtx2"][0], s1["vtx2"][1]), DSegment(DPoint(s1["vtx0"][0], s1["vtx0"][1]), (DPoint(s1["vtx1"][0], s1["vtx1"][1]))).mid_point())
+                seg2 = DSegment(DPoint(l1["start"][0], l1["start"][1]),DPoint(l1["end"][0], l1["end"][1]))
+                seg3 = DSegment(DPoint(s2["vtx2"][0], s2["vtx2"][1]), DSegment(DPoint(s2["vtx0"][0], s2["vtx0"][1]), (DPoint(s2["vtx1"][0], s2["vtx1"][1]))).mid_point())
+                seg4 = DSegment(DPoint(l2["start"][0], l2["start"][1]),DPoint(l2["end"][0], l2["end"][1]))
+
+                if DSegment(seg1.end_point, seg2.start_point).length() < DSegment(seg1.end_point, seg2.end_point).length():
+                    if DSegment(seg1.end_point, seg2.start_point).length() > 5:
+                        continue
+                    p2 = seg2.start_point
+                    p3 = seg2.end_point
+                else:
+                    if DSegment(seg1.end_point, seg2.end_point).length() > 5:
+                        continue
+                    p2 = seg2.end_point
+                    p3 = seg2.start_point
+                p1 = seg1.start_point
+                if DSegment(seg3.end_point, seg4.start_point).length() < DSegment(seg3.end_point, seg4.end_point).length():
+                    if DSegment(seg3.end_point, seg4.start_point).length() > 5:
+                        continue
+                    p5 = seg4.start_point
+                    p4 = seg4.end_point
+                else:
+                    if DSegment(seg1.end_point, seg2.end_point).length() > 5:
+                        continue
+                    p5 = seg4.end_point
+                    p4 = seg4.start_point
+                p6 = seg3.start_point
+                if DSegment(p3, p4).length() > 5:
+                    continue
+                if DSegment(DSegment(p1, p6).mid_point(), p3).length() > 5:
+                    continue
+                if DSegment(DSegment(p2, p5).mid_point(), p3).length() > 5:
+                    continue
+                for ele in sub_data:
+                    sign_handles.append(ele["handle"])
 
 
         return elements,segments+arc_splits,ori_segments,stiffeners,sign_handles,polyline_handles,hatch_polys,jg_s

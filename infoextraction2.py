@@ -463,7 +463,7 @@ def textsInPoly(text_map,poly,segmentation_config,is_fb,polygon):
     ts=[]
     for pos,texts in text_map.items():
         for t in texts:
-            if t[1]["Type"]=="FB" or t[1]["Type"]=="FL" or t[1]["Type"]=="B" or t[1]["Type"]=="BK" or (t[1]["Type"]=="R" and t[1]["Ref"]=="ref"):
+            if t[1]["Type"]=="FB" or t[1]["Type"]=="FL" or t[1]["Type"]=="B" or t[1]["Type"]=="BK" or (t[1]["Type"]=="R" and t[1]["Ref"]=="ref") or t[1]["Type"]=="s_star" or t[1]["Type"]=="m_star" or t[1]["Type"]=="B_anno":
 
                 if point_is_inside(pos,polygon):
                     if t[1]["Type"]=="FB" or t[1]["Type"]=="FL":
