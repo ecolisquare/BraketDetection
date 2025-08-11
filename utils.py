@@ -1523,8 +1523,8 @@ def find_all_intersections(segments, segmentation_config,epsilon=0.1):
     # Divide segments into chunks of size k
     segment_chunks = [segments[i:i + k] for i in range(0, n, k)]
     s_l=[len(c) for c in segment_chunks]
-    print(len(segment_chunks))
-    print(s_l)
+    # print(len(segment_chunks))
+    # print(s_l)
     # Use ProcessPoolExecutor for parallel computation
     with ProcessPoolExecutor(max_workers=L) as executor:
         partial_intersections = partial(compute_intersections, chunk2=seg_block,epsilon=epsilon)
@@ -2306,8 +2306,8 @@ def removeReferenceLines(elements,texts,initial_segments,all_segments,point_map,
         vl2.append(DSegment(DPoint(x_1,y),DPoint(x,y+500)))
         vl2.append(DSegment(DPoint(x_2,y),DPoint(x,y+500)))
     #print(len(vertical_lines))
-    print(len(vertical_lines)*len(all_segments))
-    print(len(vl2)*len(all_segments))
+    # print(len(vertical_lines)*len(all_segments))
+    # print(len(vl2)*len(all_segments))
     horizontal_line=[]
     hl2=[]
     h1e=[]
@@ -2423,7 +2423,7 @@ def removeReferenceLines(elements,texts,initial_segments,all_segments,point_map,
                     text_set.add(h2e[i])
                 h2e[i].textpos=True
         reference_lines.append(line.ref)
-    print(len(reference_lines)*len(initial_segments))
+    # print(len(reference_lines)*len(initial_segments))
     new_segments=[]
     for s in initial_segments:
         
@@ -2561,8 +2561,8 @@ def removeReferenceLines(elements,texts,initial_segments,all_segments,point_map,
         vl2.append(DSegment(DPoint(x_1,y),DPoint(x,y+500)))
         vl2.append(DSegment(DPoint(x_2,y),DPoint(x,y+500)))
     #print(len(vertical_lines))
-    print(len(vertical_lines)*len(all_segments))
-    print(len(vl2)*len(all_segments))
+    # print(len(vertical_lines)*len(all_segments))
+    # print(len(vl2)*len(all_segments))
     horizontal_line=[]
     hl2=[]
     h1e=[]
@@ -2578,8 +2578,8 @@ def removeReferenceLines(elements,texts,initial_segments,all_segments,point_map,
     for i in range(len(segment_chunks)):
         chuncks.append([segment_chunks[i],element_chunks[i]])
     s_l=[len(c) for c in segment_chunks]
-    print(len(segment_chunks))
-    print(s_l)
+    # print(len(segment_chunks))
+    # print(s_l)
     # Use ProcessPoolExecutor for parallel computation
     with ProcessPoolExecutor(max_workers=L) as executor:
         partial_intersections = partial(process_intersections, segments=all_block,point_map=point_map,segmentation_config=segmentation_config)
@@ -2597,8 +2597,8 @@ def removeReferenceLines(elements,texts,initial_segments,all_segments,point_map,
     for i in range(len(segment_chunks)):
         chuncks.append([segment_chunks[i],element_chunks[i]])
     s_l=[len(c) for c in segment_chunks]
-    print(len(segment_chunks))
-    print(s_l)
+    # print(len(segment_chunks))
+    # print(s_l)
     # Use ProcessPoolExecutor for parallel computation
     with ProcessPoolExecutor(max_workers=L) as executor:
         partial_intersections = partial(process_intersections2, segments=all_block,point_map=point_map,segmentation_config=segmentation_config)
@@ -2965,7 +2965,7 @@ def removeReferenceLines(elements,texts,initial_segments,all_segments,point_map,
                         h2e[i].textpos=True
                 reference_lines.extend(refs1+refs2)
                 reference_lines.append(line.ref)
-    print(len(reference_lines)*len(initial_segments))
+    # print(len(reference_lines)*len(initial_segments))
     new_segments=[]
     removed_segments=[]
     removed_handles=[]
