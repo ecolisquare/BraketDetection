@@ -3944,33 +3944,35 @@ def visualize_grid_and_segment(segments, poly,rect, M, N, blocks):
     ax.set_title("Grid and Segment Visualization")
     ax.legend()
     plt.show()
-def findClosedPolys_via_BFS(elements,texts,dimensions,segments,sign_handles,segmentation_config, progress_json_path, s_time):
+def findClosedPolys_via_BFS(elements,texts,dimensions,segments,sign_handles,segmentation_config, progress_json_path = None, s_time = None):
     verbose=segmentation_config.verbose
     # Step 1: 计算交点
     # if verbose:
     #     print("计算交点")
 
-    # 4 时间戳
-    progress = {
-        "status": "回路探查",
-        "start_precentage": 0.2,
-        "end_percentage": 0.5,
-        "percent": 0,
-        "used_time":  datetime.datetime.now() - s_time
-    }
-    log_progress(progress_json_path, progress)
+    if progress_json_path != None:
+        # 4 时间戳
+        progress = {
+            "status": "回路探查",
+            "start_precentage": 0.2,
+            "end_percentage": 0.5,
+            "percent": 0,
+            "used_time":  datetime.datetime.now() - s_time
+        }
+        log_progress(progress_json_path, progress)
 
     isecDic = find_all_intersections(segments,segmentation_config,segmentation_config.intersection_epsilon)
 
-    # 5 时间戳
-    progress = {
-        "status": "回路探查",
-        "start_precentage": 0.2,
-        "end_percentage": 0.5,
-        "percent": 0.2,
-        "used_time":  datetime.datetime.now() - s_time
-    }
-    log_progress(progress_json_path, progress)
+    if progress_json_path != None:
+        # 5 时间戳
+        progress = {
+            "status": "回路探查",
+            "start_precentage": 0.2,
+            "end_percentage": 0.5,
+            "percent": 0.2,
+            "used_time":  datetime.datetime.now() - s_time
+        }
+        log_progress(progress_json_path, progress)
 
     # Step 2: 根据交点分割线段
     # if verbose:
@@ -4009,16 +4011,17 @@ def findClosedPolys_via_BFS(elements,texts,dimensions,segments,sign_handles,segm
     # outputLines(new_segments,point_map,polys,segmentation_config.line_image_path,segmentation_config.draw_intersections,segmentation_config.draw_segments,segmentation_config.line_image_drawPolys)
 
     #filtered_segments,filtered_point_map=removeOddPoints(filtered_segments,filtered_point_map,segmentation_config)
-
-    # 5 时间戳
-    progress = {
-        "status": "回路探查",
-        "start_precentage": 0.2,
-        "end_percentage": 0.5,
-        "percent": 0.5,
-        "used_time":  datetime.datetime.now() - s_time
-    }
-    log_progress(progress_json_path, progress)
+    
+    if progress_json_path != None:
+    # 6 时间戳
+        progress = {
+            "status": "回路探查",
+            "start_precentage": 0.2,
+            "end_percentage": 0.5,
+            "percent": 0.5,
+            "used_time":  datetime.datetime.now() - s_time
+        }
+        log_progress(progress_json_path, progress)
 
     # Step 3: 构建基于分割后线段的图结构
     if verbose:
@@ -4144,15 +4147,16 @@ def findClosedPolys_via_BFS(elements,texts,dimensions,segments,sign_handles,segm
     i = 0
     for sampled_line in sampled_lines:
         i = i + 1
-        # 6 动态时间戳
-        progress = {
-            "status": "回路探查",
-            "start_precentage": 0.2,
-            "end_percentage": 0.5,
-            "percent": 0.5 + (i / len(sampled_lines)) * 0.2,
-            "used_time":  datetime.datetime.now() - s_time
-        }
-        log_progress(progress_json_path, progress)
+        # 7 动态时间戳
+        if progress_json_path != None:
+            progress = {
+                "status": "回路探查",
+                "start_precentage": 0.2,
+                "end_percentage": 0.5,
+                "percent": 0.5 + (i / len(sampled_lines)) * 0.2,
+                "used_time":  datetime.datetime.now() - s_time
+            }
+            log_progress(progress_json_path, progress)
 
         if verbose:
             pbar.update()
@@ -4178,14 +4182,15 @@ def findClosedPolys_via_BFS(elements,texts,dimensions,segments,sign_handles,segm
     for sampled_line in sampled_lines:
         i = i + 1
         # 7 动态时间戳
-        progress = {
-            "status": "回路探查",
-            "start_precentage": 0.2,
-            "end_percentage": 0.5,
-            "percent": 0.7 + (i / len(sampled_lines)) * 0.2,
-            "used_time":  datetime.datetime.now() - s_time
-        }
-        log_progress(progress_json_path, progress)
+        if progress_json_path != None:
+            progress = {
+                "status": "回路探查",
+                "start_precentage": 0.2,
+                "end_percentage": 0.5,
+                "percent": 0.7 + (i / len(sampled_lines)) * 0.2,
+                "used_time":  datetime.datetime.now() - s_time
+            }
+            log_progress(progress_json_path, progress)
 
         if verbose:
             pbar.update()
@@ -4262,6 +4267,7 @@ def findClosedPolys_via_BFS(elements,texts,dimensions,segments,sign_handles,segm
         outputLines(segmentation_config,segments,filtered_point_map,closed_polys,cornor_holes,star_pos ,texts,text_map,dimensions,replines,segmentation_config.line_image_path,segmentation_config.draw_intersections,segmentation_config.draw_segments,segmentation_config.line_image_drawPolys,)
     
     # 8 时间戳
+    if progress_json_path != None:
         progress = {
             "status": "回路探查",
             "start_precentage": 0.2,
