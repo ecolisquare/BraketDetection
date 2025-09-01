@@ -1,7 +1,7 @@
 from  element import *
 from plot_geo import plot_geometry,plot_polys, plot_info_poly,p_minus,p_add,p_mul
 import os
-from utils import segment_intersection_line,segment_intersection,computeBoundingBox,is_parallel,conpute_angle_of_two_segments,point_segment_position,shrinkFixedLength,check_points_against_segments,check_points_against_free_segments,check_parallel_anno,check_vertical_anno,check_non_parallel_anno,check_whole,compute_json_bbox
+from utils import segment_intersection_line,segment_intersection,computeBoundingBox,is_parallel,conpute_angle_of_two_segments,point_segment_position,shrinkFixedLength,check_points_against_segments,check_points_against_free_segments,check_parallel_anno,check_vertical_anno,check_non_parallel_anno,check_whole,compute_json_bbox, log_progress
 from classifier import poly_classifier,match_template,load_classification_table,eva_c_f,poly_classifier_ustd
 from scipy.spatial import ConvexHull
 import matplotlib.pyplot as plt
@@ -14,6 +14,7 @@ import csv
 import codecs
 import sys
 import ast
+import datetime
 
 def is_point_in_polygon(point, polygon_edges):
     
@@ -5129,7 +5130,18 @@ def   outputHints(meta_hints,size_hints,path="./标注.csv"):
         writer.writerow(columns2)
         writer.writerows(size_hints)
 
-def classificationAndOutputStep(indices,edges_infos,poly_centroids,hint_infos,meta_infos,segmentation_config,polys,polyline_handles):
+def classificationAndOutputStep(indices,edges_infos,poly_centroids,hint_infos,meta_infos,segmentation_config,polys,polyline_handles, progress_json_path, s_time):
+
+    # 11 时间戳
+    progress = {
+        "status": "肘板分类及输出",
+        "start_precentage": 0.7,
+        "end_percentage": 0.9,
+        "percent": 0,
+        "used_time":  datetime.datetime.now() - s_time
+    }
+    log_progress(progress_json_path, progress)
+
     classification_table = load_classification_table(segmentation_config.standard_type_path)
     poly_infos=[]
     types=[]
@@ -5139,6 +5151,16 @@ def classificationAndOutputStep(indices,edges_infos,poly_centroids,hint_infos,me
     class_count={}
     all_json_data = []
     for i in range(len(indices)):
+        # 12 动态时间戳
+        progress = {
+            "status": "肘板分类及输出",
+            "start_precentage": 0.7,
+            "end_percentage": 0.95,
+            "percent": 0 + (i / len(indices)) * 1,
+            "used_time":  datetime.datetime.now() - s_time
+        }
+        log_progress(progress_json_path, progress)
+
         index,edges_info,poly_centroid,hint_info,meta_info=indices[i],edges_infos[i],poly_centroids[i],hint_infos[i],meta_infos[i]
         poly_refs, classification_res,meta_hint,size_hint, json_data=outputInfo(index,edges_info,poly_centroid,hint_info,meta_info,segmentation_config,polys[index],polyline_handles)
         if json_data != None:

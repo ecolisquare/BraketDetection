@@ -13,6 +13,8 @@ from draw_dxf import *
 import argparse
 from load import dxf2json
 import json
+import datetime
+
 
 def bracket_detection(input_path, output_folder, config_path = None):
     segmentation_config=SegmentationConfig()
@@ -350,9 +352,21 @@ def bracket_detection_inbbox(input_path, output_folder, bbox, config_path = None
     return bbox, all_json_data
 
 
-def bracket_detection_withmutijson(input_path, output_folder, multi_json_path, config_path = None):
+def bracket_detection_withmutijson(input_path, output_folder, multi_json_path, progress_json_path = "./progress.json", config_path = None):
+
     segmentation_config=SegmentationConfig()
     verbose=segmentation_config.verbose
+
+    # 1 时间戳
+    s_time = datetime.datetime.now()
+    progress = {
+        "status": "初始化",
+        "start_precentage": 0,
+        "end_percentage": 0.2,
+        "percent": 0,
+        "used_time": datetime.datetime.now() - s_time
+    }
+    log_progress(progress_json_path, progress)
     
     dxf_path = input_path
     segmentation_config.poly_info_dir = output_folder
@@ -361,6 +375,7 @@ def bracket_detection_withmutijson(input_path, output_folder, multi_json_path, c
     segmentation_config.dxf_output_folder = output_folder
     segmentation_config.json_output_path = os.path.join(output_folder, 'bracket.json')
     segmentation_config.poly_image_dir = output_folder
+
 
     print("loading...")
     dxf2json(os.path.dirname(dxf_path),os.path.basename(dxf_path),os.path.dirname(dxf_path))
@@ -376,6 +391,16 @@ def bracket_detection_withmutijson(input_path, output_folder, multi_json_path, c
     create_folder_safe(f"{segmentation_config.poly_info_dir}/非标准肘板")
     create_folder_safe(f"{segmentation_config.poly_info_dir}/标准肘板")
     create_folder_safe(f"{segmentation_config.poly_info_dir}/标准肘板(无分类)")
+
+    # 2 时间戳
+    progress = {
+        "status": "初始化",
+        "start_precentage": 0,
+        "end_percentage": 0.2,
+        "percent": 0.3,
+        "used_time":  datetime.datetime.now() - s_time
+    }
+    log_progress(progress_json_path, progress)
 
     if segmentation_config.verbose:
         print("读取json文件")
@@ -401,9 +426,18 @@ def bracket_detection_withmutijson(input_path, output_folder, multi_json_path, c
     if segmentation_config.verbose:
         print("json文件读取完毕")
     
+    # 3 时间戳
+    progress = {
+        "status": "初始化",
+        "start_precentage": 0,
+        "end_percentage": 0.2,
+        "percent": 1,
+        "used_time":  datetime.datetime.now() - s_time
+    }
+    log_progress(progress_json_path, progress)
 
     #找出所有包含角隅孔圆弧的基本环
-    polys, new_segments, point_map,star_pos_map,cornor_holes,text_map,removed_handles=findClosedPolys_via_BFS(elements,texts,dimensions,segments,sign_handles,segmentation_config)
+    polys, new_segments, point_map,star_pos_map,cornor_holes,text_map,removed_handles=findClosedPolys_via_BFS(elements,texts,dimensions,segments,sign_handles,segmentation_config, progress_json_path, s_time)
 
     # #预训练的几何分类模型筛选肘板
     # model_path = "/home/user4/BraketDetection/DGCNN/cpkt/geometry_classifier.pth"
@@ -412,11 +446,32 @@ def bracket_detection_withmutijson(input_path, output_folder, multi_json_path, c
     # print("DGCNN筛选后剩余回路: ", len(polys))
     # outputPolysAndGeometry(polys,segmentation_config.poly_image_dir,segmentation_config.draw_polys,segmentation_config.draw_geometry,segmentation_config.draw_poly_nums)
 
+    # 9 时间戳
+    progress = {
+        "status": "信息抽取",
+        "start_precentage": 0.5,
+        "end_percentage": 0.7,
+        "percent": 0,
+        "used_time":  datetime.datetime.now() - s_time
+    }
+    log_progress(progress_json_path, progress)
+
     #结构化输出每个肘板信息
     edges_infos,poly_centroids,hint_infos,meta_infos=[],[],[],[]
     indices=[]
     pbar=tqdm(total=len(polys),desc="正在输出结构化信息")
     for i, poly in enumerate(polys):
+
+        # 10 动态时间戳
+        progress = {
+            "status": "信息抽取",
+            "start_precentage": 0.5,
+            "end_percentage": 0.7,
+            "percent": 0 + (i / len(polys)) * 1,
+            "used_time":  datetime.datetime.now() - s_time
+        }
+        log_progress(progress_json_path, progress)
+
         # try:
         #     res = outputPolyInfo(poly, ori_segments, segmentation_config, point_map, i, star_pos_map, cornor_holes,texts,dimensions,text_pos_map)
         # except Exception as e:
@@ -450,8 +505,18 @@ def bracket_detection_withmutijson(input_path, output_folder, multi_json_path, c
     edges_infos,poly_centroids,hint_infos,meta_infos=hint_search_step(edges_infos,poly_centroids,hint_infos,meta_infos,code_map)
   
     edges_infos,poly_centroids,hint_infos,meta_infos=diffusion_step(edges_infos,poly_centroids,hint_infos,meta_infos)
-    polys_info,classi_res,flags, all_json_data=classificationAndOutputStep(indices,edges_infos,poly_centroids,hint_infos,meta_infos,segmentation_config,polys,polyline_handles)
+    polys_info,classi_res,flags, all_json_data=classificationAndOutputStep(indices,edges_infos,poly_centroids,hint_infos,meta_infos,segmentation_config,polys,polyline_handles, progress_json_path, s_time)
     
+    # 13 时间戳
+    progress = {
+        "status": "后处理",
+        "start_precentage": 0.95,
+        "end_percentage": 1,
+        "percent": 0,
+        "used_time":  datetime.datetime.now() - s_time
+    }
+    log_progress(progress_json_path, progress)
+
     # 获得需要去重肘板的id
     delete_bracket_ids = find_dump_bracket_ids(polys_info, classi_res, indices)
     
@@ -494,6 +559,16 @@ def bracket_detection_withmutijson(input_path, output_folder, multi_json_path, c
         bbox = [[min_x, min_y], [max_x, max_y]]
         bboxs.append(bbox)
     
+    # 14 时间戳
+    progress = {
+        "status": "后处理",
+        "start_precentage": 0.95,
+        "end_percentage": 1,
+        "percent": 0.5,
+        "used_time":  datetime.datetime.now() - s_time
+    }
+    log_progress(progress_json_path, progress)
+
     dxf_path = os.path.splitext(segmentation_config.json_path)[0] + '.dxf'
     dxf_output_folder = segmentation_config.dxf_output_folder
     draw_rectangle_in_dxf(dxf_path, dxf_output_folder, bboxs, classi_res,indices, free_edge_handles,non_free_edge_handles,all_handles,not_all_handles,removed_handles,delete_bracket_ids)
@@ -502,6 +577,17 @@ def bracket_detection_withmutijson(input_path, output_folder, multi_json_path, c
     # 处理all_json_data，对其进行去重，和复制
     # 函数return bbox, all_json_data
     bbox, all_json_data = process_all_json_data(all_json_data)
+
+    # 13 时间戳
+    progress = {
+        "status": "后处理",
+        "start_precentage": 0.95,
+        "end_percentage": 1,
+        "percent": 1,
+        "used_time":  datetime.datetime.now() - s_time
+    }
+    log_progress(progress_json_path, progress)
+
     return bbox, all_json_data
 
 
