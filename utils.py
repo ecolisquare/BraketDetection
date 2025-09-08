@@ -3944,7 +3944,7 @@ def visualize_grid_and_segment(segments, poly,rect, M, N, blocks):
     ax.set_title("Grid and Segment Visualization")
     ax.legend()
     plt.show()
-def findClosedPolys_via_BFS(elements,texts,dimensions,segments,sign_handles,segmentation_config, progress_json_path = None, s_time = None):
+def findClosedPolys_via_BFS(elements,texts,dimensions,segments,sign_handles,segmentation_config, progress_json_path = None, s_time = None, epoch = None, total_epoch = None):
     verbose=segmentation_config.verbose
     # Step 1: 计算交点
     # if verbose:
@@ -3953,11 +3953,13 @@ def findClosedPolys_via_BFS(elements,texts,dimensions,segments,sign_handles,segm
     if progress_json_path != None:
         # 4 时间戳
         progress = {
+            "epoch": epoch,
+            "total_epoch": total_epoch,
             "status": "回路探查",
             "start_precentage": 0.2,
             "end_percentage": 0.5,
             "percent": 0,
-            "used_time":  datetime.datetime.now() - s_time
+            "used_time":  (datetime.datetime.now() - s_time).total_seconds()
         }
         log_progress(progress_json_path, progress)
 
@@ -3966,11 +3968,13 @@ def findClosedPolys_via_BFS(elements,texts,dimensions,segments,sign_handles,segm
     if progress_json_path != None:
         # 5 时间戳
         progress = {
+            "epoch": epoch,
+            "total_epoch": total_epoch,
             "status": "回路探查",
             "start_precentage": 0.2,
             "end_percentage": 0.5,
             "percent": 0.2,
-            "used_time":  datetime.datetime.now() - s_time
+            "used_time":  (datetime.datetime.now() - s_time).total_seconds()
         }
         log_progress(progress_json_path, progress)
 
@@ -4015,11 +4019,13 @@ def findClosedPolys_via_BFS(elements,texts,dimensions,segments,sign_handles,segm
     if progress_json_path != None:
     # 6 时间戳
         progress = {
+            "epoch": epoch,
+            "total_epoch": total_epoch,
             "status": "回路探查",
             "start_precentage": 0.2,
             "end_percentage": 0.5,
             "percent": 0.5,
-            "used_time":  datetime.datetime.now() - s_time
+            "used_time": (datetime.datetime.now() - s_time).total_seconds()
         }
         log_progress(progress_json_path, progress)
 
@@ -4150,11 +4156,13 @@ def findClosedPolys_via_BFS(elements,texts,dimensions,segments,sign_handles,segm
         # 7 动态时间戳
         if progress_json_path != None:
             progress = {
+                "epoch": epoch,
+                "total_epoch": total_epoch,
                 "status": "回路探查",
                 "start_precentage": 0.2,
                 "end_percentage": 0.5,
                 "percent": 0.5 + (i / len(sampled_lines)) * 0.2,
-                "used_time":  datetime.datetime.now() - s_time
+                "used_time":  (datetime.datetime.now() - s_time).total_seconds()
             }
             log_progress(progress_json_path, progress)
 
@@ -4184,11 +4192,13 @@ def findClosedPolys_via_BFS(elements,texts,dimensions,segments,sign_handles,segm
         # 7 动态时间戳
         if progress_json_path != None:
             progress = {
+                "epoch": epoch,
+                "total_epoch": total_epoch,
                 "status": "回路探查",
                 "start_precentage": 0.2,
                 "end_percentage": 0.5,
                 "percent": 0.7 + (i / len(sampled_lines)) * 0.2,
-                "used_time":  datetime.datetime.now() - s_time
+                "used_time":  (datetime.datetime.now() - s_time).total_seconds()
             }
             log_progress(progress_json_path, progress)
 
@@ -4269,11 +4279,13 @@ def findClosedPolys_via_BFS(elements,texts,dimensions,segments,sign_handles,segm
     # 8 时间戳
     if progress_json_path != None:
         progress = {
+            "epoch": epoch,
+            "total_epoch": total_epoch,
             "status": "回路探查",
             "start_precentage": 0.2,
             "end_percentage": 0.5,
             "percent": 1,
-            "used_time":  datetime.datetime.now() - s_time
+            "used_time":  (datetime.datetime.now() - s_time).total_seconds()
         }
         log_progress(progress_json_path, progress)
 
