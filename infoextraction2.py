@@ -546,7 +546,6 @@ def textsInPoly(text_map,poly,segmentation_config,is_fb,polygon):
                 new_ts.append(t_t)
         else:
             new_ts.append(t_t)
-
     return new_ts
 
 def braketTextInPoly(braket_texts,braket_pos,poly,segmentation_config):

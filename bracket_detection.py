@@ -98,8 +98,11 @@ def bracket_detection(input_path, output_folder, config_path = None):
         #     res = outputPolyInfo(poly, segments_nearby, segmentation_config, point_map, i, star_pos_map, cornor_holes,texts,dimensions,text_map,stiffeners)
         # except Exception as e:
         #     res=None
-        segments_nearby=ori_block.segments_near_poly(poly)
-        res = calculate_poly_features(poly, segments_nearby, segmentation_config, point_map, i, star_pos_map, cornor_holes,texts,dimensions,text_map,stiffeners, hatch_polys, hole_polys,jg_s)
+        try:
+            segments_nearby=ori_block.segments_near_poly(poly)
+            res = calculate_poly_features(poly, segments_nearby, segmentation_config, point_map, i, star_pos_map, cornor_holes,texts,dimensions,text_map,stiffeners, hatch_polys, hole_polys,jg_s)
+        except Exception as e:
+            res=None
         pbar.update()
         if res is not None:
             # print(res)
