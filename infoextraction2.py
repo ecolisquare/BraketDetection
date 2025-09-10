@@ -5129,16 +5129,18 @@ def   outputHints(meta_hints,size_hints,path="./标注.csv"):
         writer.writerow(columns2)
         writer.writerows(size_hints)
 
-def classificationAndOutputStep(indices,edges_infos,poly_centroids,hint_infos,meta_infos,segmentation_config,polys,polyline_handles, progress_json_path = None, s_time = None):
+def classificationAndOutputStep(indices,edges_infos,poly_centroids,hint_infos,meta_infos,segmentation_config,polys,polyline_handles, progress_json_path = None, s_time = None, epoch = None, total_epoch = None):
 
     # 11 时间戳
     if progress_json_path != None:
         progress = {
+            "epoch": epoch,
+            "total_epoch": total_epoch,
             "status": "肘板分类及输出",
             "start_precentage": 0.7,
             "end_percentage": 0.95,
             "percent": 0,
-            "used_time":  datetime.datetime.now() - s_time
+            "used_time": (datetime.datetime.now() - s_time).total_seconds()
         }
         log_progress(progress_json_path, progress)
 
@@ -5154,11 +5156,13 @@ def classificationAndOutputStep(indices,edges_infos,poly_centroids,hint_infos,me
         # 12 动态时间戳
         if progress_json_path != None:
             progress = {
+                "epoch": epoch,
+                "total_epoch": total_epoch,
                 "status": "肘板分类及输出",
                 "start_precentage": 0.7,
                 "end_percentage": 0.95,
                 "percent": 0 + (i / len(indices)) * 1,
-                "used_time":  datetime.datetime.now() - s_time
+                "used_time":  (datetime.datetime.now() - s_time).total_seconds()
             }
             log_progress(progress_json_path, progress)
 
