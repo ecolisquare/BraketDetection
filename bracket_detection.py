@@ -370,8 +370,15 @@ def bracket_detection_withmutijson2(input_path, output_folder, multi_json_path, 
         "used_time": (datetime.datetime.now() - s_time).total_seconds()
     }
     log_progress(progress_json_path, progress)
-
+    
     dxf_path = input_path
+    segmentation_config.poly_info_dir = output_folder
+    segmentation_config.res_image_path = os.path.join(output_folder, 'res.png')
+    segmentation_config.line_image_path = os.path.join(output_folder, 'line.png')
+    segmentation_config.dxf_output_folder = output_folder
+    segmentation_config.json_output_path = os.path.join(output_folder, 'bracket.json')
+    segmentation_config.poly_image_dir = output_folder
+
 
     print("loading...")
     dxf2json(os.path.dirname(dxf_path),os.path.basename(dxf_path),os.path.dirname(dxf_path))
@@ -379,8 +386,15 @@ def bracket_detection_withmutijson2(input_path, output_folder, multi_json_path, 
     base, ext = os.path.splitext(json_path)
     segmentation_config.multi_json_path = multi_json_path
     print("complete loading!")
-
     segmentation_config.json_path = json_path
+    create_folder_safe(f"{segmentation_config.poly_info_dir}")
+    create_folder_safe(f"{segmentation_config.poly_info_dir}/标准肘板详细信息参考图")
+    create_folder_safe(f"{segmentation_config.poly_info_dir}/所有肘板图像(仅限开发模式)")
+    create_folder_safe(f"{segmentation_config.poly_info_dir}/所有有效回路图像")
+    create_folder_safe(f"{segmentation_config.poly_info_dir}/非标准肘板")
+    create_folder_safe(f"{segmentation_config.poly_info_dir}/标准肘板")
+    create_folder_safe(f"{segmentation_config.poly_info_dir}/标准肘板(无分类)")
+
     split_layer_name = "Bracket"
     segmentation_config.remove_layername.append(split_layer_name)
 
@@ -392,30 +406,39 @@ def bracket_detection_withmutijson2(input_path, output_folder, multi_json_path, 
     total_epoch = len(bb_polys_seg)
     bbox = []
     all_json_data = []
+    bboxs_=[]
+    classi_res_=[]
+    indices_=[]
+    free_edge_handles_=[]
+    non_free_edge_handles_=[]
+    all_handles_=[]
+    not_all_handles_=[]
+    removed_handles_=[]
+    delete_bracket_ids_=[]
     for bb_poly_seg in bb_polys_seg:
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-        
-        split_bbox, split_all_json_data = bracket_dettection_eachbbox(bb_poly_seg, input_path, output_folder, multi_json_path, epoch,total_epoch, progress_json_path = progress_json_path)
+        split_bbox, split_all_json_data,bboxs, classi_res,indices,free_edge_handles,non_free_edge_handles,all_handles,not_all_handles,removed_handles,delete_bracket_ids = bracket_dettection_eachbbox(segmentation_config,bb_poly_seg, input_path, output_folder, multi_json_path, epoch,total_epoch, progress_json_path = progress_json_path)
+        for i,index in enumerate(indices):
+            indices[i]=indices[i]+len(indices_)
+        for i,index in enumerate(delete_bracket_ids):
+            delete_bracket_ids[i]+=len(indices_)
+        bboxs_.extend(bboxs)
+        classi_res_.extend(classi_res)
+        indices_.extend(indices)
+        free_edge_handles_.extend(free_edge_handles)
+        non_free_edge_handles_.extend(non_free_edge_handles)
+        all_handles_.extend(all_handles)
+        not_all_handles_.extend(not_all_handles)
+        removed_handles_.extend(removed_handles)
+        delete_bracket_ids_.extend(delete_bracket_ids)
         bbox.extend(split_bbox)
         all_json_data.extend(split_all_json_data)
         epoch = epoch + 1
     
+    dxf_path = os.path.splitext(segmentation_config.json_path)[0] + '.dxf'
+    dxf_output_folder = segmentation_config.dxf_output_folder
+    draw_rectangle_in_dxf(dxf_path, dxf_output_folder, bboxs_, classi_res_,indices_,free_edge_handles_,non_free_edge_handles_,all_handles_,not_all_handles_,removed_handles_,delete_bracket_ids_)
+
+
     return bbox, all_json_data
 
 # 未按照图纸分割加速版本
@@ -839,46 +862,7 @@ def bracket_detection_inbbox_withmutijson(input_path, output_folder, bbox, multi
     return bbox, all_json_data
 
 # 对每个图纸分割包围盒进行肘板检测
-def bracket_dettection_eachbbox(bb_poly_seg, input_path, output_folder, bbox, multi_json_path, epoch, total_epoch, progress_json_path = "./progress.json",config_path = None):
-    segmentation_config=SegmentationConfig()
-    verbose=segmentation_config.verbose
-
-    # 1 时间戳
-    s_time = datetime.datetime.now()
-    progress = {
-        "epoch": epoch,
-        "total_epoch": total_epoch,
-        "status": "初始化",
-        "start_precentage": 0,
-        "end_percentage": 0.2,
-        "percent": 0,
-        "used_time": (datetime.datetime.now() - s_time).total_seconds()
-    }
-    log_progress(progress_json_path, progress)
-    
-    dxf_path = input_path
-    segmentation_config.poly_info_dir = output_folder
-    segmentation_config.res_image_path = os.path.join(output_folder, 'res.png')
-    segmentation_config.line_image_path = os.path.join(output_folder, 'line.png')
-    segmentation_config.dxf_output_folder = output_folder
-    segmentation_config.json_output_path = os.path.join(output_folder, 'bracket.json')
-    segmentation_config.poly_image_dir = output_folder
-
-
-    print("loading...")
-    dxf2json(os.path.dirname(dxf_path),os.path.basename(dxf_path),os.path.dirname(dxf_path))
-    json_path = os.path.join(os.path.dirname(dxf_path), (os.path.basename(dxf_path).split('.')[0] + ".json"))
-    base, ext = os.path.splitext(json_path)
-    segmentation_config.multi_json_path = multi_json_path
-    print("complete loading!")
-    segmentation_config.json_path = json_path
-    create_folder_safe(f"{segmentation_config.poly_info_dir}")
-    create_folder_safe(f"{segmentation_config.poly_info_dir}/标准肘板详细信息参考图")
-    create_folder_safe(f"{segmentation_config.poly_info_dir}/所有肘板图像(仅限开发模式)")
-    create_folder_safe(f"{segmentation_config.poly_info_dir}/所有有效回路图像")
-    create_folder_safe(f"{segmentation_config.poly_info_dir}/非标准肘板")
-    create_folder_safe(f"{segmentation_config.poly_info_dir}/标准肘板")
-    create_folder_safe(f"{segmentation_config.poly_info_dir}/标准肘板(无分类)")
+def bracket_dettection_eachbbox(segmentation_config,bb_poly_seg, input_path, output_folder, bbox, multi_json_path, epoch, total_epoch, progress_json_path = "./progress.json",config_path = None):
 
     # 2 时间戳
     progress = {
@@ -1043,11 +1027,6 @@ def bracket_dettection_eachbbox(bb_poly_seg, input_path, output_folder, bbox, mu
     }
     log_progress(progress_json_path, progress)
 
-    dxf_path = os.path.splitext(segmentation_config.json_path)[0] + '.dxf'
-    dxf_output_folder = segmentation_config.dxf_output_folder
-    draw_rectangle_in_dxf(dxf_path, dxf_output_folder, bboxs, classi_res,indices, free_edge_handles,non_free_edge_handles,all_handles,not_all_handles,removed_handles,delete_bracket_ids)
-
-
     # 处理all_json_data，对其进行去重，和复制
     # 函数return bbox, all_json_data
     bbox, all_json_data = process_all_json_data(all_json_data)
@@ -1064,7 +1043,7 @@ def bracket_dettection_eachbbox(bb_poly_seg, input_path, output_folder, bbox, mu
     }
     log_progress(progress_json_path, progress)
 
-    return bbox, all_json_data
+    return bbox, all_json_data,bboxs, classi_res,indices,free_edge_handles,non_free_edge_handles,all_handles,not_all_handles,removed_handles,delete_bracket_ids
 
 
 def read_json_(json_path, bracket_layer):
