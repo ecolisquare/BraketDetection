@@ -3593,7 +3593,7 @@ def outputInfo(index,edges_info,poly_centroid,hint_info,meta_info,segmentation_c
     size_hints=[]
     #handle center classification info is_diff
     meta_hints=[]
-    if is_standard_elbow==False and segmentation_config.mode=="dev":
+    if is_standard_elbow==False:
         return poly_refs,"Unclassified",[],[], None
         thickness=0
         if meta_info[1] is not None and meta_info[1]["Thickness"] is not None:

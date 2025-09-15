@@ -393,6 +393,24 @@ def bracket_detection_withmutijson2(input_path, output_folder, multi_json_path, 
     bbox = []
     all_json_data = []
     for bb_poly_seg in bb_polys_seg:
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+        
         split_bbox, split_all_json_data = bracket_dettection_eachbbox(bb_poly_seg, input_path, output_folder, multi_json_path, epoch,total_epoch, progress_json_path = progress_json_path)
         bbox.extend(split_bbox)
         all_json_data.extend(split_all_json_data)
