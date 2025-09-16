@@ -1099,8 +1099,8 @@ def dxf2json(dxfpath,dxfname,output_folder):
 
 if __name__ == "__main__":
     
-    dxfpath = ''
-    dxfname = 'test13_braket.dxf'
+    dxfpath = './data/data'
+    dxfname = 'test12.dxf'
     dxf2json(dxfpath,dxfname, dxfpath)
     # folder_path = './data/dimension_data'
     # output_foler='./data/dimension_data'
