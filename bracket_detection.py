@@ -378,7 +378,7 @@ def bracket_detection_withmutijson2(input_path, output_folder, multi_json_path, 
     print("complete loading!")
 
     segmentation_config.json_path = json_path
-    split_layer_name = "Bracket"
+    split_layer_name = "结构AI-图面分割框"
     segmentation_config.remove_layername.append(split_layer_name)
 
     # 获得图纸分割的结果
