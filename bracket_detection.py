@@ -1150,7 +1150,7 @@ def read_json_(json_path, bracket_layer):
     
     return bboxs
 # 读取指定图层bbox
-def get_bbox(json_path, bracket_layer_color = 30, bracket_layer_name = "结构AI-"):
+def get_bbox(json_path, bracket_layer_color = 30, bracket_layer_name = "结构AI-单独检测"):
     texts=[]
     polys=[]
     poly_ids=[]
