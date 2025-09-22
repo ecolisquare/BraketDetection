@@ -1293,7 +1293,7 @@ def match_edge_anno(segments,constraint_edges,free_edges,edges,all_anno,all_map)
                             if l1>=l-2.4 or l2>=l-2.4:
                                 anno__="正面"
                             else:
-                                anno__="非正面“
+                                anno__="非正面"
                             if (all_edge_map[toe_points[v1]]["存在正面或背面结构约束"][0][-1]=="正面" and anno__=="正面") or (all_edge_map[toe_points[v1]]["存在正面或背面结构约束"][0][-1]!="正面" and anno__!="正面"):
                                 all_edge_map[toe_points[v1]]["Gap尺寸标注"].append([d,f"句柄：{d.handle}，值：{d.text}，箭头起点：{v1}，箭头终点：{v2}"])
                                 all_edge_map[toe_points[v1]]["Gap"].append([DDimension(),d.text.strip()])
@@ -1309,7 +1309,7 @@ def match_edge_anno(segments,constraint_edges,free_edges,edges,all_anno,all_map)
                             if l1>=l-2.4 or l2>=l-2.4:
                                 anno__="正面"
                             else:
-                                anno__="非正面“
+                                anno__="非正面"
                             if (all_edge_map[toe_points[v2]]["存在正面或背面结构约束"][0][-1]=="正面" and anno__=="正面") or (all_edge_map[toe_points[v2]]["存在正面或背面结构约束"][0][-1]!="正面" and anno__!="正面"):
                                 all_edge_map[toe_points[v2]]["Gap尺寸标注"].append([d,f"句柄：{d.handle}，值：{d.text}，箭头起点：{v1}，箭头终点：{v2}"])
                                 all_edge_map[toe_points[v2]]["Gap"].append([DDimension(),d.text.strip()])
@@ -1475,7 +1475,7 @@ def match_edge_anno(segments,constraint_edges,free_edges,edges,all_anno,all_map)
                     if l1>=l-2.4 or l2>=l-2.4:
                         anno__="正面"
                     else:
-                        anno__="非正面“
+                        anno__="非正面"
                     if (all_edge_map[toe_points[v1]]["存在正面或背面结构约束"][0][-1]=="正面" and anno__=="正面") or (all_edge_map[toe_points[v1]]["存在正面或背面结构约束"][0][-1]!="正面" and anno__!="正面"):
                         all_edge_map[toe_points[v1]]["Gap尺寸标注"].append([d,f"句柄：{d.handle}，值：{d.text}，箭头起点：{v1}，箭头终点：{v2}"])
                         all_edge_map[toe_points[v1]]["Gap"].append([DDimension(),d.text.strip()])
@@ -1491,7 +1491,7 @@ def match_edge_anno(segments,constraint_edges,free_edges,edges,all_anno,all_map)
                     if l1>=l-2.4 or l2>=l-2.4:
                         anno__="正面"
                     else:
-                        anno__="非正面“
+                        anno__="非正面"
                     if (all_edge_map[toe_points[v2]]["存在正面或背面结构约束"][0][-1]=="正面" and anno__=="正面") or (all_edge_map[toe_points[v2]]["存在正面或背面结构约束"][0][-1]!="正面" and anno__!="正面"):
                         all_edge_map[toe_points[v2]]["Gap尺寸标注"].append([d,f"句柄：{d.handle}，值：{d.text}，箭头起点：{v1}，箭头终点：{v2}"])
                         all_edge_map[toe_points[v2]]["Gap"].append([DDimension(),d.text.strip()])
