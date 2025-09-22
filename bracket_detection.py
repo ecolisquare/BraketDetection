@@ -379,14 +379,6 @@ def bracket_detection_withmutijson2(input_path, output_folder, multi_json_path, 
     segmentation_config.json_output_path = os.path.join(output_folder, 'bracket.json')
     segmentation_config.poly_image_dir = output_folder
 
-
-    print("loading...")
-    dxf2json(os.path.dirname(dxf_path),os.path.basename(dxf_path),os.path.dirname(dxf_path))
-    json_path = os.path.join(os.path.dirname(dxf_path), (os.path.basename(dxf_path).split('.')[0] + ".json"))
-    base, ext = os.path.splitext(json_path)
-    segmentation_config.multi_json_path = multi_json_path
-    print("complete loading!")
-    segmentation_config.json_path = json_path
     create_folder_safe(f"{segmentation_config.poly_info_dir}")
     create_folder_safe(f"{segmentation_config.poly_info_dir}/标准肘板详细信息参考图")
     create_folder_safe(f"{segmentation_config.poly_info_dir}/所有肘板图像(仅限开发模式)")
@@ -395,7 +387,14 @@ def bracket_detection_withmutijson2(input_path, output_folder, multi_json_path, 
     create_folder_safe(f"{segmentation_config.poly_info_dir}/标准肘板")
     create_folder_safe(f"{segmentation_config.poly_info_dir}/标准肘板(无分类)")
 
-    split_layer_name = "Bracket"
+    print("loading...")
+    dxf2json(os.path.dirname(dxf_path),os.path.basename(dxf_path),os.path.dirname(dxf_path))
+    json_path = os.path.join(os.path.dirname(dxf_path), (os.path.basename(dxf_path).split('.')[0] + ".json"))
+    base, ext = os.path.splitext(json_path)
+    segmentation_config.multi_json_path = multi_json_path
+    print("complete loading!")
+    segmentation_config.json_path = json_path
+    split_layer_name = "结构AI-图面分割框"
     segmentation_config.remove_layername.append(split_layer_name)
 
     # 获得图纸分割的结果
@@ -565,21 +564,7 @@ def bracket_detection_withmutijson(input_path, output_folder, multi_json_path, p
         }
         log_progress(progress_json_path, progress)
 
-        # try:
-        #     res = outputPolyInfo(poly, ori_segments, segmentation_config, point_map, i, star_pos_map, cornor_holes,texts,dimensions,text_pos_map)
-        # except Exception as e:
-        #     res=None
-
-        #     print(e)
-        # segments_nearby,blocks=segments_near_poly(poly,grid,meta)
         
-        # visualize_grid_and_segment(segments_nearby, poly,meta[0],meta[1],meta[2], blocks)
-        # print(len(segments_nearby))
-        # try:
-        #     segments_nearby=ori_block.segments_near_poly(poly)
-        #     res = outputPolyInfo(poly, segments_nearby, segmentation_config, point_map, i, star_pos_map, cornor_holes,texts,dimensions,text_map,stiffeners)
-        # except Exception as e:
-        #     res=None
         segments_nearby=ori_block.segments_near_poly(poly)
         res = calculate_poly_features(poly, segments_nearby, segmentation_config, point_map, i, star_pos_map, cornor_holes,texts,dimensions,text_map,stiffeners, hatch_polys, hole_polys,jg_s)
         pbar.update()
@@ -685,10 +670,21 @@ def bracket_detection_withmutijson(input_path, output_folder, multi_json_path, p
 
 
     
-def bracket_detection_add_withmutijson(input_path, output_folder, multi_json_path, config_path = None):
+def bracket_detection_add_withmutijson(input_path, output_folder, multi_json_path, progress_json_path = "./progress.json", config_path = None):
     segmentation_config=SegmentationConfig()
     verbose=segmentation_config.verbose
     
+    # 1 时间戳
+    s_time = datetime.datetime.now()
+    progress = {
+        "status": "初始化",
+        "start_precentage": 0,
+        "end_percentage": 0.2,
+        "percent": 0,
+        "used_time": (datetime.datetime.now() - s_time).total_seconds()
+    }
+    log_progress(progress_json_path, progress)
+
     dxf_path = input_path
     segmentation_config.poly_info_dir = output_folder
     segmentation_config.res_image_path = os.path.join(output_folder, 'res.png')
@@ -715,6 +711,17 @@ def bracket_detection_add_withmutijson(input_path, output_folder, multi_json_pat
     create_folder_safe(f"{segmentation_config.poly_info_dir}/非标准肘板")
     create_folder_safe(f"{segmentation_config.poly_info_dir}/标准肘板")
     create_folder_safe(f"{segmentation_config.poly_info_dir}/标准肘板(无分类)")
+    
+    # 2 时间戳
+    progress = {
+        "status": "初始化",
+        "start_precentage": 0,
+        "end_percentage": 0.2,
+        "percent": 0.3,
+        "used_time":  (datetime.datetime.now() - s_time).total_seconds()
+    }
+    log_progress(progress_json_path, progress)
+    
     if segmentation_config.verbose:
         print("读取json文件")
     # 获取补充肘板的边界
@@ -741,13 +748,34 @@ def bracket_detection_add_withmutijson(input_path, output_folder, multi_json_pat
     
 
     #找出所有包含角隅孔圆弧的基本环
-    polys, new_segments, point_map,star_pos_map,cornor_holes,text_map,removed_handles=findClosedPolys_via_BFS(elements,texts,dimensions,segments,sign_handles,segmentation_config)
+    polys, new_segments, point_map,star_pos_map,cornor_holes,text_map,removed_handles=findClosedPolys_via_BFS(elements,texts,dimensions,segments,sign_handles,segmentation_config, progress_json_path, s_time)
+
+    # 9 时间戳
+    progress = {
+        "status": "信息抽取",
+        "start_precentage": 0.5,
+        "end_percentage": 0.7,
+        "percent": 0,
+        "used_time":  (datetime.datetime.now() - s_time).total_seconds()
+    }
+    log_progress(progress_json_path, progress)
 
     #结构化输出每个肘板信息
     edges_infos,poly_centroids,hint_infos,meta_infos=[],[],[],[]
     indices=[]
     pbar=tqdm(total=len(polys),desc="正在输出结构化信息")
     for i, poly in enumerate(polys):
+
+        # 10 动态时间戳
+        progress = {
+            "status": "信息抽取",
+            "start_precentage": 0.5,
+            "end_percentage": 0.7,
+            "percent": 0 + (i / len(polys)) * 1,
+            "used_time":  (datetime.datetime.now() - s_time).total_seconds()
+        }
+        log_progress(progress_json_path, progress)
+
         segments_nearby=ori_block.segments_near_poly(poly)
         res = calculate_poly_features(poly, segments_nearby, segmentation_config, point_map, i, star_pos_map, cornor_holes,texts,dimensions,text_map,stiffeners,hatch_polys,hole_polys,jg_s)
         pbar.update()
@@ -767,11 +795,31 @@ def bracket_detection_add_withmutijson(input_path, output_folder, multi_json_pat
   
     edges_infos,poly_centroids,hint_infos,meta_infos=diffusion_step(edges_infos,poly_centroids,hint_infos,meta_infos)
 
-    polys_info,classi_res,flags,all_json_data=classificationAndOutputStep(indices,edges_infos,poly_centroids,hint_infos,meta_infos,segmentation_config,polys,polyline_handles)
+    polys_info,classi_res,flags,all_json_data=classificationAndOutputStep(indices,edges_infos,poly_centroids,hint_infos,meta_infos,segmentation_config,polys,polyline_handles, progress_json_path, s_time)
     
+    # 13 时间戳
+    progress = {
+        "status": "后处理",
+        "start_precentage": 0.95,
+        "end_percentage": 1,
+        "percent": 0,
+        "used_time":  (datetime.datetime.now() - s_time).total_seconds()
+    }
+    log_progress(progress_json_path, progress)
+
     # 处理all_json_data，对其进行去重，和复制
     # 函数return bbox, all_json_data
     bbox, all_json_data = process_all_json_data(all_json_data)
+
+    # 15 时间戳
+    progress = {
+        "status": "后处理",
+        "start_precentage": 0.95,
+        "end_percentage": 1,
+        "percent": 1,
+        "used_time":  (datetime.datetime.now() - s_time).total_seconds()
+    }
+    log_progress(progress_json_path, progress)
 
     return bbox, all_json_data
     
@@ -866,7 +914,8 @@ def bracket_detection_inbbox_withmutijson(input_path, output_folder, bbox, multi
 
 # 对每个图纸分割包围盒进行肘板检测
 def bracket_dettection_eachbbox(segmentation_config,bb_poly_seg, input_path, output_folder, bbox, multi_json_path, epoch, total_epoch, progress_json_path = "./progress.json",config_path = None,base=0):
-
+    
+    s_time = datetime.datetime.now()
     # 2 时间戳
     progress = {
         "epoch": epoch,
@@ -1104,7 +1153,7 @@ def read_json_(json_path, bracket_layer):
     
     return bboxs
 # 读取指定图层bbox
-def get_bbox(json_path, bracket_layer_color = 30, bracket_layer_name = "Bracket"):
+def get_bbox(json_path, bracket_layer_color = 30, bracket_layer_name = "结构AI-单独检测"):
     texts=[]
     polys=[]
     poly_ids=[]
