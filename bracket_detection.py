@@ -415,8 +415,9 @@ def bracket_detection_withmutijson2(input_path, output_folder, multi_json_path, 
     not_all_handles_=[]
     removed_handles_=[]
     delete_bracket_ids_=[]
+    base=0
     for bb_poly_seg in bb_polys_seg:
-        split_bbox, split_all_json_data,bboxs, classi_res,indices,free_edge_handles,non_free_edge_handles,all_handles,not_all_handles,removed_handles,delete_bracket_ids = bracket_dettection_eachbbox(segmentation_config,bb_poly_seg, input_path, output_folder, multi_json_path, epoch,total_epoch, progress_json_path = progress_json_path)
+        split_bbox, split_all_json_data,bboxs, classi_res,indices,free_edge_handles,non_free_edge_handles,all_handles,not_all_handles,removed_handles,delete_bracket_ids = bracket_dettection_eachbbox(segmentation_config,bb_poly_seg, input_path, output_folder, multi_json_path, epoch,total_epoch, progress_json_path = progress_json_path,base=base)
         for i,index in enumerate(indices):
             indices[i]=indices[i]+len(indices_)
         for i,index in enumerate(delete_bracket_ids):
@@ -432,6 +433,8 @@ def bracket_detection_withmutijson2(input_path, output_folder, multi_json_path, 
         delete_bracket_ids_.extend(delete_bracket_ids)
         bbox.extend(split_bbox)
         all_json_data.extend(split_all_json_data)
+        if len(indices)>0:
+            base=base+indices[-1]+1
         epoch = epoch + 1
     
     dxf_path = os.path.splitext(segmentation_config.json_path)[0] + '.dxf'
@@ -862,7 +865,7 @@ def bracket_detection_inbbox_withmutijson(input_path, output_folder, bbox, multi
     return bbox, all_json_data
 
 # 对每个图纸分割包围盒进行肘板检测
-def bracket_dettection_eachbbox(segmentation_config,bb_poly_seg, input_path, output_folder, bbox, multi_json_path, epoch, total_epoch, progress_json_path = "./progress.json",config_path = None):
+def bracket_dettection_eachbbox(segmentation_config,bb_poly_seg, input_path, output_folder, bbox, multi_json_path, epoch, total_epoch, progress_json_path = "./progress.json",config_path = None,base=0):
 
     # 2 时间戳
     progress = {
@@ -942,7 +945,7 @@ def bracket_dettection_eachbbox(segmentation_config,bb_poly_seg, input_path, out
 
         
         segments_nearby=ori_block.segments_near_poly(poly)
-        res = calculate_poly_features(poly, segments_nearby, segmentation_config, point_map, i, star_pos_map, cornor_holes,texts,dimensions,text_map,stiffeners, hatch_polys, hole_polys,jg_s)
+        res = calculate_poly_features(poly, segments_nearby, segmentation_config, point_map, i, star_pos_map, cornor_holes,texts,dimensions,text_map,stiffeners, hatch_polys, hole_polys,jg_s,base=base)
         pbar.update()
         if res is not None:
             # print(res)
@@ -959,7 +962,7 @@ def bracket_dettection_eachbbox(segmentation_config,bb_poly_seg, input_path, out
     edges_infos,poly_centroids,hint_infos,meta_infos=hint_search_step(edges_infos,poly_centroids,hint_infos,meta_infos,code_map)
   
     edges_infos,poly_centroids,hint_infos,meta_infos=diffusion_step(edges_infos,poly_centroids,hint_infos,meta_infos)
-    polys_info,classi_res,flags, all_json_data=classificationAndOutputStep(indices,edges_infos,poly_centroids,hint_infos,meta_infos,segmentation_config,polys,polyline_handles, progress_json_path, s_time, epoch, total_epoch)
+    polys_info,classi_res,flags, all_json_data=classificationAndOutputStep(indices,edges_infos,poly_centroids,hint_infos,meta_infos,segmentation_config,polys,polyline_handles, progress_json_path, s_time, epoch, total_epoch,base=base)
     
     # 13 时间戳
     progress = {

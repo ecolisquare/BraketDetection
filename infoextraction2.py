@@ -1245,6 +1245,7 @@ def match_edge_anno(segments,constraint_edges,free_edges,edges,all_anno,all_map)
     for seg,ds in l_half_map.items():
         for d_t in ds:
             v1,v2,d=d_t
+            flag=False
             for idx,free_edge in enumerate(fr_edges):
                 if edge_type[free_edge]!="line":
                     continue
@@ -1252,8 +1253,16 @@ def match_edge_anno(segments,constraint_edges,free_edges,edges,all_anno,all_map)
                     continue
                 if point_segment_position(v1,free_edge,epsilon=0.25,anno=False)!="not_on_line" or point_segment_position(v2,free_edge,epsilon=0.25,anno=False)!="not_on_line":
                     if point_segment_position(v1,free_edge,epsilon=0.25,anno=False)!="not_on_line":
+                        l1,l2=DSegment(v1,seg.start_point).length(),DSegment(v1,seg.end_point).length()
+                        l=seg.length()
+                        if l1>=l-2.4 or l2>=l-2.4:
+                            continue
                         v=v2
                     else:
+                        l1,l2=DSegment(v2,seg.start_point).length(),DSegment(v2,seg.end_point).length()
+                        l=seg.length()
+                        if l1>=l-2.4 or l2>=l-2.4:
+                            continue
                         v=v1
                     if DSegment(v,seg.start_point).length() < DSegment(v,seg.end_point).length():
                         point1,point2=seg.start_point,seg.end_point
@@ -1264,14 +1273,50 @@ def match_edge_anno(segments,constraint_edges,free_edges,edges,all_anno,all_map)
                     all_edge_map[free_edge]["延长线与约束边交点标注"].append([d,f"句柄：{d.handle}，值：{d.text}，箭头起点：{v1}，箭头终点：{v2}，参考边：约束边",seg,(seg,point1,point2)])
                     features.add('short_anno')
                     feature_map[free_edge].add('short_anno')
+                    flag=True
                     break
-                else:
-                    if v1 in toe_points:
-                        all_edge_map[toe_points[v1]]["Gap尺寸标注"].append([d,f"句柄：{d.handle}，值：{d.text}，箭头起点：{v1}，箭头终点：{v2}"])
-                        all_edge_map[toe_points[v1]]["Gap"].append([DDimension(),d.text.strip()])
-                    elif v2 in toe_points:
-                        all_edge_map[toe_points[v2]]["Gap尺寸标注"].append([d,f"句柄：{d.handle}，值：{d.text}，箭头起点：{v1}，箭头终点：{v2}"])
-                        all_edge_map[toe_points[v2]]["Gap"].append([DDimension(),d.text.strip()])
+            if flag==False:
+                for idx,free_edge in enumerate(fr_edges):
+                    if edge_type[free_edge]!="line":
+                        continue
+                    if isinstance(free_edge.ref,DArc):
+                        continue
+                    if point_segment_position(v1,free_edge,epsilon=0.25,anno=False)!="not_on_line" or point_segment_position(v2,free_edge,epsilon=0.25,anno=False)!="not_on_line":
+                        continue
+                    else:
+
+                        if v1 in toe_points:
+                            seg_=find_cons_edge(cons_edges,toe_points[v1])
+                            l1,l2=DSegment(v2,seg_.start_point).length(),DSegment(v2,seg_.end_point).length()
+                            l=seg_.length()
+                            anno__=""
+                            if l1>=l-2.4 or l2>=l-2.4:
+                                anno__="正面"
+                            else:
+                                anno__="非正面“
+                            if (all_edge_map[toe_points[v1]]["存在正面或背面结构约束"][0][-1]=="正面" and anno__=="正面") or (all_edge_map[toe_points[v1]]["存在正面或背面结构约束"][0][-1]!="正面" and anno__!="正面"):
+                                all_edge_map[toe_points[v1]]["Gap尺寸标注"].append([d,f"句柄：{d.handle}，值：{d.text}，箭头起点：{v1}，箭头终点：{v2}"])
+                                all_edge_map[toe_points[v1]]["Gap"].append([DDimension(),d.text.strip()])
+                                flag=True
+                                break
+                            else:
+                                continue
+                        elif v2 in toe_points:
+                            seg_=find_cons_edge(cons_edges,toe_points[v2])
+                            l1,l2=DSegment(v1,seg_.start_point).length(),DSegment(v1,seg_.end_point).length()
+                            l=seg_.length()
+                            anno__=""
+                            if l1>=l-2.4 or l2>=l-2.4:
+                                anno__="正面"
+                            else:
+                                anno__="非正面“
+                            if (all_edge_map[toe_points[v2]]["存在正面或背面结构约束"][0][-1]=="正面" and anno__=="正面") or (all_edge_map[toe_points[v2]]["存在正面或背面结构约束"][0][-1]!="正面" and anno__!="正面"):
+                                all_edge_map[toe_points[v2]]["Gap尺寸标注"].append([d,f"句柄：{d.handle}，值：{d.text}，箭头起点：{v1}，箭头终点：{v2}"])
+                                all_edge_map[toe_points[v2]]["Gap"].append([DDimension(),d.text.strip()])
+                                flag=True
+                                break
+                            else:
+                                continue
             # point_segment_position(p1,,epsilon=0.2,anno=False)!="not_on_line"
     
 
@@ -1423,12 +1468,37 @@ def match_edge_anno(segments,constraint_edges,free_edges,edges,all_anno,all_map)
                         break
             if flag==False:
                 if v1 in toe_points:
-                    all_edge_map[toe_points[v1]]["Gap尺寸标注"].append([d,f"句柄：{d.handle}，值：{d.text}，箭头起点：{v1}，箭头终点：{v2}"])
-                    all_edge_map[toe_points[v1]]["Gap"].append([DDimension(),d.text.strip()])
+                    seg_=find_cons_edge(cons_edges,toe_points[v1])
+                    l1,l2=DSegment(v2,seg_.start_point).length(),DSegment(v2,seg_.end_point).length()
+                    l=seg_.length()
+                    anno__=""
+                    if l1>=l-2.4 or l2>=l-2.4:
+                        anno__="正面"
+                    else:
+                        anno__="非正面“
+                    if (all_edge_map[toe_points[v1]]["存在正面或背面结构约束"][0][-1]=="正面" and anno__=="正面") or (all_edge_map[toe_points[v1]]["存在正面或背面结构约束"][0][-1]!="正面" and anno__!="正面"):
+                        all_edge_map[toe_points[v1]]["Gap尺寸标注"].append([d,f"句柄：{d.handle}，值：{d.text}，箭头起点：{v1}，箭头终点：{v2}"])
+                        all_edge_map[toe_points[v1]]["Gap"].append([DDimension(),d.text.strip()])
+                        flag=True
+                        break
+                    else:
+                        continue
                 elif v2 in toe_points:
-                    all_edge_map[toe_points[v2]]["Gap尺寸标注"].append([d,f"句柄：{d.handle}，值：{d.text}，箭头起点：{v1}，箭头终点：{v2}"])
-                    all_edge_map[toe_points[v2]]["Gap"].append([DDimension(),d.text.strip()])
-
+                    seg_=find_cons_edge(cons_edges,toe_points[v2])
+                    l1,l2=DSegment(v1,seg_.start_point).length(),DSegment(v1,seg_.end_point).length()
+                    l=seg_.length()
+                    anno__=""
+                    if l1>=l-2.4 or l2>=l-2.4:
+                        anno__="正面"
+                    else:
+                        anno__="非正面“
+                    if (all_edge_map[toe_points[v2]]["存在正面或背面结构约束"][0][-1]=="正面" and anno__=="正面") or (all_edge_map[toe_points[v2]]["存在正面或背面结构约束"][0][-1]!="正面" and anno__!="正面"):
+                        all_edge_map[toe_points[v2]]["Gap尺寸标注"].append([d,f"句柄：{d.handle}，值：{d.text}，箭头起点：{v1}，箭头终点：{v2}"])
+                        all_edge_map[toe_points[v2]]["Gap"].append([DDimension(),d.text.strip()])
+                        flag=True
+                        break
+                    else:
+                        continue
     #自由边直线平行标注
     for key,ds in l_para_map.items():
         cons_edge,free_edge=key
@@ -1507,7 +1577,7 @@ def get_free_edge_des(edge,edge_types):
         des+=edge_types[s]+","
     return des[:-1]
 
-def calculate_poly_features(poly, segments, segmentation_config, point_map, index,star_pos_map,cornor_holes,texts,dimensions,text_map,stiffeners, hatch_polys,hole_text_coors, jg_s):
+def calculate_poly_features(poly, segments, segmentation_config, point_map, index,star_pos_map,cornor_holes,texts,dimensions,text_map,stiffeners, hatch_polys,hole_text_coors, jg_s,base=0):
     # step1: 计算几何中心坐标
     poly_centroid = calculate_poly_centroid(poly)
     # 特判：判断几何是否在阴影中
@@ -2158,7 +2228,7 @@ def calculate_poly_features(poly, segments, segmentation_config, point_map, inde
     # print("=============")
     # print(cornerhole_edges)
     if segmentation_config.mode=="dev":
-        plot_info_poly(polygon,poly_refs, os.path.join(segmentation_config.poly_info_dir, f'所有肘板图像(仅限开发模式)/infopoly{index}.png'),tis,ds,sfs,others)
+        plot_info_poly(polygon,poly_refs, os.path.join(segmentation_config.poly_info_dir, f'所有肘板图像(仅限开发模式)/infopoly{index+base}.png'),tis,ds,sfs,others)
     if len(free_edges) > 1:
         print(f"回路{index}超过两条自由边！")
         #return poly_refs
@@ -2378,7 +2448,7 @@ def calculate_poly_features(poly, segments, segmentation_config, point_map, inde
 
     # step6: 绘制对边分类后的几何图像
     if segmentation_config.mode=="dev":
-        plot_info_poly(polygon,poly_refs, os.path.join(segmentation_config.poly_info_dir, f'所有有效回路图像/infopoly{index}.png'),tis,ds,sfs,others)
+        plot_info_poly(polygon,poly_refs, os.path.join(segmentation_config.poly_info_dir, f'所有有效回路图像/infopoly{index+base}.png'),tis,ds,sfs,others)
 
     # for i,t_t in enumerate(tis):
     #     print(t_t[0].content)
@@ -3561,12 +3631,12 @@ def check_one_class_ustd(polyline_handles,classification_res,free_edges,constrai
         if s.ref is not None and s.ref.handle is not None and s.ref.handle in polyline_handles:
             return False
     return True 
-def outputInfo(index,edges_info,poly_centroid,hint_info,meta_info,segmentation_config,poly,polyline_handles):
+def outputInfo(index,edges_info,poly_centroid,hint_info,meta_info,segmentation_config,poly,polyline_handles,base=0):
     is_standard_elbow,bracket_parameter,strengthen_parameter,has_hint,is_fb,is_diff=meta_info
     free_edges,constraint_edges,edges,poly_refs,ref_map=edges_info
     all_edge_map,edge_types,features,feature_map,constraint_edge_no,free_edge_no,all_anno,tis,ds=hint_info
     json_data={}
-    json_name = os.path.join(segmentation_config.poly_info_dir, f'标准肘板/info{index}.json')
+    json_name = os.path.join(segmentation_config.poly_info_dir, f'标准肘板/info{index+base}.json')
     # 获取剖图信息
 
     try:
@@ -3728,7 +3798,7 @@ def outputInfo(index,edges_info,poly_centroid,hint_info,meta_info,segmentation_c
             content=t_t[0].content.strip()
             if t_t[2]["Type"]=="B" or t_t[2]["Type"]=="FB" or t_t[2]["Type"]=="FL":
                 meta_hints.append([index,t_t[0].handle,poly_centroid,classification_res,content,False])
-        file_path = os.path.join(segmentation_config.poly_info_dir, f'非标准肘板/info{index}.txt')
+        file_path = os.path.join(segmentation_config.poly_info_dir, f'非标准肘板/info{index+base}.txt')
         clear_file(file_path)
         log_to_file(file_path, f"几何中心坐标：{poly_centroid}")
 
@@ -4130,7 +4200,7 @@ def outputInfo(index,edges_info,poly_centroid,hint_info,meta_info,segmentation_c
         thickness=meta_info[1]["Thickness"]
     classification_res,output_template = poly_classifier(features,all_anno,poly_refs, tis,ds,cornerhole_num, free_edges, edges, thickness,feature_map,edge_types,
                                          segmentation_config.standard_type_path, segmentation_config.json_output_path, 
-                                         f"{os.path.splitext(os.path.basename(segmentation_config.json_path))[0]}_infopoly{index}",
+                                         f"{os.path.splitext(os.path.basename(segmentation_config.json_path))[0]}_infopoly{index+base}",
                                          is_output_json=True)
     if classification_res is None:
         classification_res="Unclassified"
@@ -4323,7 +4393,7 @@ def outputInfo(index,edges_info,poly_centroid,hint_info,meta_info,segmentation_c
 
 
 
-        file_path = os.path.join(segmentation_config.poly_info_dir, f'标准肘板/info{index}.txt')
+        file_path = os.path.join(segmentation_config.poly_info_dir, f'标准肘板/info{index+base}.txt')
         clear_file(file_path)
         # log_to_file(file_path, f"几何中心坐标：{poly_centroid}")
         json_data["几何中心坐标"]=[poly_centroid[0],poly_centroid[1]]
@@ -4855,7 +4925,7 @@ def outputInfo(index,edges_info,poly_centroid,hint_info,meta_info,segmentation_c
         with open(json_name,'w',encoding='utf-8') as f:
             f.write(json_str)
         if is_diff==False and segmentation_config.mode=="dev":
-            plot_info_poly_std(constraint_edges,ori_edge_map,template_map,os.path.join(segmentation_config.poly_info_dir, f'标准肘板详细信息参考图/std_infopoly{index}.png'))
+            plot_info_poly_std(constraint_edges,ori_edge_map,template_map,os.path.join(segmentation_config.poly_info_dir, f'标准肘板详细信息参考图/std_infopoly{index+base}.png'))
         if classification_res == "Unclassified":
             # log_to_file("./output/Unclassified.txt", f"{os.path.splitext(os.path.basename(segmentation_config.json_path))[0]}_infopoly{index}")
             return poly_refs, classification_res,[],[], None
@@ -4943,7 +5013,7 @@ def outputInfo(index,edges_info,poly_centroid,hint_info,meta_info,segmentation_c
                     new_dic[ty]=ds
             new_all_edge_map[s]=new_dic
         all_edge_map=new_all_edge_map
-        file_path = os.path.join(segmentation_config.poly_info_dir, f'标准肘板(无分类)/info{index}.txt')
+        file_path = os.path.join(segmentation_config.poly_info_dir, f'标准肘板(无分类)/info{index+base}.txt')
 
         clear_file(file_path)
         log_to_file(file_path, f"几何中心坐标：{poly_centroid}")
@@ -5129,7 +5199,7 @@ def   outputHints(meta_hints,size_hints,path="./标注.csv"):
         writer.writerow(columns2)
         writer.writerows(size_hints)
 
-def classificationAndOutputStep(indices,edges_infos,poly_centroids,hint_infos,meta_infos,segmentation_config,polys,polyline_handles, progress_json_path = None, s_time = None, epoch = None, total_epoch = None):
+def classificationAndOutputStep(indices,edges_infos,poly_centroids,hint_infos,meta_infos,segmentation_config,polys,polyline_handles, progress_json_path = None, s_time = None, epoch = None, total_epoch = None,base=0):
 
     # 11 时间戳
     if progress_json_path != None:
@@ -5167,7 +5237,7 @@ def classificationAndOutputStep(indices,edges_infos,poly_centroids,hint_infos,me
             log_progress(progress_json_path, progress)
 
         index,edges_info,poly_centroid,hint_info,meta_info=indices[i],edges_infos[i],poly_centroids[i],hint_infos[i],meta_infos[i]
-        poly_refs, classification_res,meta_hint,size_hint, json_data=outputInfo(index,edges_info,poly_centroid,hint_info,meta_info,segmentation_config,polys[index],polyline_handles)
+        poly_refs, classification_res,meta_hint,size_hint, json_data=outputInfo(index,edges_info,poly_centroid,hint_info,meta_info,segmentation_config,polys[index],polyline_handles,base=base)
         if json_data != None:
             all_json_data.append(json_data)
         poly_infos.append(poly_refs)
