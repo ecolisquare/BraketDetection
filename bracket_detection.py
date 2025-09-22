@@ -416,7 +416,7 @@ def bracket_detection_withmutijson2(input_path, output_folder, multi_json_path, 
     delete_bracket_ids_=[]
     base=0
     for bb_poly_seg in bb_polys_seg:
-        split_bbox, split_all_json_data,bboxs, classi_res,indices,free_edge_handles,non_free_edge_handles,all_handles,not_all_handles,removed_handles,delete_bracket_ids = bracket_dettection_eachbbox(segmentation_config,bb_poly_seg, input_path, output_folder, multi_json_path, epoch,total_epoch, progress_json_path = progress_json_path,base=base)
+        split_bbox, split_all_json_data,bboxs, classi_res,indices,free_edge_handles,non_free_edge_handles,all_handles,not_all_handles,removed_handles,delete_bracket_ids = bracket_dettection_eachbbox(segmentation_config,bb_poly_seg, input_path, output_folder, multi_json_path, epoch,total_epoch, json_path, progress_json_path = progress_json_path,base=base)
         for i,index in enumerate(indices):
             indices[i]=indices[i]+len(indices_)
         for i,index in enumerate(delete_bracket_ids):
@@ -913,7 +913,7 @@ def bracket_detection_inbbox_withmutijson(input_path, output_folder, bbox, multi
     return bbox, all_json_data
 
 # 对每个图纸分割包围盒进行肘板检测
-def bracket_dettection_eachbbox(segmentation_config,bb_poly_seg, input_path, output_folder, bbox, multi_json_path, epoch, total_epoch, progress_json_path = "./progress.json",config_path = None,base=0):
+def bracket_dettection_eachbbox(segmentation_config,bb_poly_seg, input_path, output_folder, multi_json_path, epoch, total_epoch, json_path, progress_json_path = "./progress.json",config_path = None,base=0):
     
     s_time = datetime.datetime.now()
     # 2 时间戳
