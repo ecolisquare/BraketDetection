@@ -210,7 +210,7 @@ def point_free_segment_position(point: DPoint, segment: DSegment, epsilon=0.05):
 def point_on_segments(point,segments,epsilon=0.05):
     segs=[]
     for i,s in enumerate(segments):
-        pos = point_segment_position(point, s,epsilon=0.05)
+        pos = point_segment_position(point, s,epsilon=epsilon)
         if pos !="not_on_line":
             segs.append(s)
     new_segs=[]
@@ -224,7 +224,7 @@ def point_on_segments(point,segments,epsilon=0.05):
 def point_on_segments_idx(point,segments,epsilon=0.05):
     segs=[]
     for i,s in enumerate(segments):
-        pos = point_segment_position(point, s,epsilon=0.05)
+        pos = point_segment_position(point, s,epsilon=epsilon)
         if pos !="not_on_line":
             segs.append((s,i))
     return segs
@@ -336,7 +336,7 @@ def is_parallel_(seg1, seg2, tolerance=0.05):
     # 返回是否接近0
     #print(cross_product)
     return are_equal_with_tolerance_(cross_product, 0, tolerance)
-def check_parallel_anno(point1: DPoint, point2: DPoint, constraint_edges: list[DSegment],free_edges:list[DSegment], epsilon=0.05):
+def check_parallel_anno(point1: DPoint, point2: DPoint, constraint_edges: list[DSegment],free_edges:list[DSegment], epsilon=0.115):
     para_set={}
     cons1=point_on_segments(point1,constraint_edges,epsilon)
     cons2=point_on_segments(point2,constraint_edges,epsilon)
@@ -430,7 +430,7 @@ def check_vertical_anno(point1: DPoint, point2: DPoint, constraint_edges: list[D
     return None
 
 
-def check_points_against_segments(point1: DPoint, point2: DPoint, segments: list[DSegment], epsilon=0.05):
+def check_points_against_segments(point1: DPoint, point2: DPoint, segments: list[DSegment], epsilon=0.07):
     """
     检查两个点与线段列表中的所有线段的位置关系。
     返回是否存在一条线段满足以下条件之一：
@@ -1123,10 +1123,10 @@ def process_block(T_is_contained,block_datas,blockName,scales,rotation,insert,bl
                 for ct in content.split("/"):
                     if ct.strip()!="":
                         if "R" in ct.strip():
-                            e=DText(ele["bound"],[ele["insert"][0],ele["insert"][1]-5], ele["color"],ct.strip(),ele["height"],ele["handle"],ele["rotation"],meta=block_meta_data)
+                            e=DText(ele["bound"],[ele["insert"][0],ele["insert"][1]-5], ele["color"],ct.strip(),ele["height"],ele["handle"],ele["rotation"],meta=block_meta_data,width=ele["width"],k=len(ele["content"]))
                             elements.append(e)
                         else:
-                            e=DText(ele["bound"],ele["insert"], ele["color"],ct.strip(),ele["height"],ele["handle"],ele["rotation"],meta=block_meta_data)
+                            e=DText(ele["bound"],ele["insert"], ele["color"],ct.strip(),ele["height"],ele["handle"],ele["rotation"],meta=block_meta_data,width=ele["width"],k=len(ele["content"]))
                             elements.append(e)           
         elif  ele["type"]=="mtext":
             if ele.get("layerName") is not None and ele["layerName"] in layname:

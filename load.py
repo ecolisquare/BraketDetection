@@ -595,7 +595,8 @@ def convertText(entity: ezdxf.entities.Text):
     mid['insert'] = [entity.dxf.insert[0],entity.dxf.insert[1]]
     mid['content'] = entity.dxf.text
     mid['height'] = entity.dxf.height
-    mid['rotation']=entity.dxf.rotation
+    mid['rotation'] = entity.dxf.rotation
+    mid['width'] = entity.dxf.width
     return mid
 
 def convertLine(doc, entity:ezdxf.entities.LineEdge):

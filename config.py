@@ -114,7 +114,7 @@ class SegmentationConfig:
         self.is_parallel_tolerance=0.15
         #readJson
         self.line_type=["BYLAYER","CONTINUOUS","BYBLOCK"]
-        self.color=[]
+        self.color=[8]
         self.constraint_color=[1,3,80]
         self.element_type=["line","arc","lwpolyline","polyline","spline"]
 

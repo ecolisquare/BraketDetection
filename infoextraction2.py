@@ -13,7 +13,7 @@ import numpy as np
 import csv
 import codecs
 import sys
-import ast
+import ast   
 import datetime
 
 def is_point_in_polygon(point, polygon_edges):
@@ -489,16 +489,21 @@ def textsInPoly(text_map,poly,segmentation_config,is_fb,polygon):
     new_ts=[]
     b_count=0
     fb_count=0
-
+    has_f=False
+    for t_t in ts:
+        if t_t[2]["Type"]=="FB" or t_t[2]["Type"]=="FL":
+            has_f=True
+            break
     for t_t in ts:
         content=t_t[0].content.strip()
-        if "FB" in content or "FL" in content:
+        if ("FB" in content or "FL" in content) and has_f ==False and point_is_inside(t_t[1],polygon):
             result=parse_elbow_plate(content, "bottom",is_fb)
             if result is None:
                 new_ts.append([t_t[0],t_t[1],{"Type":"None"},t_t[3]])
             else:
                 new_ts.append([t_t[0],t_t[1],result,t_t[3]])
                 fb_count+=1
+                has_f=True
         elif t_t[2]["Type"]=="B":
             new_ts.append(t_t)
             b_count+=1
@@ -510,7 +515,7 @@ def textsInPoly(text_map,poly,segmentation_config,is_fb,polygon):
     ts=new_ts
     new_ts=[]
     for t_t in ts:
-        if t_t[2]["Type"]=="None" and (b_count==0 or fb_count==0):
+        if t_t[2]["Type"]=="None" and (b_count==0 or fb_count==0) and point_is_inside(t_t[1],polygon):
             content=t_t[0].content.strip()
             if (content[0]=="$" or content[0]=="~" or content[0]=="&" or content[0]=="%" or content[0]=="#") and len(content)>1:
                 if b_count==0:
