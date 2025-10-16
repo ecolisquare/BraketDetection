@@ -11,12 +11,12 @@ def is_useful_text(content=""):
         return False
     if label=="B":
         return True
-    pattern_b = r"(?:B)?(?P<val1>\d+([.]\d+)?)((X|x)(?P<val2>\d+([.]\d+)?))?((X|x)(?P<val3>\d+([.]\d+)?))?\s*(?P<special>[~%$&]+)?\s*(?P<material>[A-Z0-9]+)?"
-    pattern_b_op = r"(?P<special>[~%$&]+)?\s*(?P<material>[A-Z0-9]+)?"
-    pattern_fb = r"(?:FB)?(?P<val1>\d+([.]\d+)?)((X|x)(?P<val2>\d+([.]\d+)?))?\s*(?P<special>[~%$&]+)?\s*(?P<material>[A-Z0-9]+)?"
-    pattern_fb_op = r"(?P<special>[~%$&]+)?\s*(?P<material>[A-Z0-9]+)?"
-    pattern_fl = r"(?:FL)?(?P<val1>\d+([.]\d+)?)((X|x)(?P<val2>\d+([.]\d+)?))?\s*(?P<special>[~%$&]+)?\s*(?P<material>[A-Z0-9]+)?"
-    pattern_fl_op=r"(?P<special>[~%$&]+)?\s*(?P<material>[A-Z0-9]+)?"
+    pattern_b = r"(?:B)?(?P<val1>\d+([.]\d+)?)((X|x)(?P<val2>\d+([.]\d+)?))?((X|x)(?P<val3>\d+([.]\d+)?))?\s*(?P<special>[~%#$&]+)?\s*(?P<material>[A-Z0-9]+)?"
+    pattern_b_op = r"(?P<special>[~%#$&]+)?\s*(?P<material>[A-Z0-9]+)?"
+    pattern_fb = r"(?:FB)?(?P<val1>\d+([.]\d+)?)((X|x)(?P<val2>\d+([.]\d+)?))?\s*(?P<special>[~%#$&]+)?\s*(?P<material>[A-Z0-9]+)?"
+    pattern_fb_op = r"(?P<special>[~%#$&]+)?\s*(?P<material>[A-Z0-9]+)?"
+    pattern_fl = r"(?:FL)?(?P<val1>\d+([.]\d+)?)((X|x)(?P<val2>\d+([.]\d+)?))?\s*(?P<special>[~%#$&]+)?\s*(?P<material>[A-Z0-9]+)?"
+    pattern_fl_op=r"(?P<special>[~%#$&]+)?\s*(?P<material>[A-Z0-9]+)?"
     pattern_bk = r"BK(?P<bk_code>\d+)"
     pattern_r = r"R(?P<radius>\d+([.]\d+)?)"
     pattern_digit = r"(?P<value>\d+([.]\d+)?)"
@@ -48,12 +48,12 @@ def parse_elbow_plate(label="", annotation_position="other", is_fb=False):
         return None
 
     # Define regular expressions
-    pattern_b = r"(?:B)?(?P<val1>\d+([.]\d+)?)((X|x)(?P<val2>\d+([.]\d+)?))?((X|x)(?P<val3>\d+([.]\d+)?))?\s*(?P<special>[~%$&]+)?\s*(?P<material>[A-Z0-9]+)?"
-    pattern_b_op = r"(?P<special>[~%$&]+)?\s*(?P<material>[A-Z0-9]+)?"
-    pattern_fb = r"(?:FB)?(?P<val1>\d+([.]\d+)?)((X|x)(?P<val2>\d+([.]\d+)?))?\s*(?P<special>[~%$&]+)?\s*(?P<material>[A-Z0-9]+)?"
-    pattern_fb_op = r"(?P<special>[~%$&]+)?\s*(?P<material>[A-Z0-9]+)?"
-    pattern_fl = r"(?:FL)?(?P<val1>\d+([.]\d+)?)((X|x)(?P<val2>\d+([.]\d+)?))?\s*(?P<special>[~%$&]+)?\s*(?P<material>[A-Z0-9]+)?"
-    pattern_fl_op=r"(?P<special>[~%$&]+)?\s*(?P<material>[A-Z0-9]+)?"
+    pattern_b = r"(?:B)?(?P<val1>\d+([.]\d+)?)((X|x)(?P<val2>\d+([.]\d+)?))?((X|x)(?P<val3>\d+([.]\d+)?))?\s*(?P<special>[~%#$&]+)?\s*(?P<material>[A-Z0-9]+)?"
+    pattern_b_op = r"(?P<special>[~%#$&]+)?\s*(?P<material>[A-Z0-9]+)?"
+    pattern_fb = r"(?:FB)?(?P<val1>\d+([.]\d+)?)((X|x)(?P<val2>\d+([.]\d+)?))?\s*(?P<special>[~%#$&]+)?\s*(?P<material>[A-Z0-9]+)?"
+    pattern_fb_op = r"(?P<special>[~%#$&]+)?\s*(?P<material>[A-Z0-9]+)?"
+    pattern_fl = r"(?:FL)?(?P<val1>\d+([.]\d+)?)((X|x)(?P<val2>\d+([.]\d+)?))?\s*(?P<special>[~%#$&]+)?\s*(?P<material>[A-Z0-9]+)?"
+    pattern_fl_op=r"(?P<special>[~%#$&]+)?\s*(?P<material>[A-Z0-9]+)?"
     pattern_bk = r"BK(?P<bk_code>\d+)"
     pattern_r = r"R(?P<radius>\d+([.]\d+)?)"
     pattern_digit = r"(?P<value>\d+([.]\d+)?)"

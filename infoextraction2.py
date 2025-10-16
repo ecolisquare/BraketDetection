@@ -416,6 +416,36 @@ def point_is_inside(point,polygon):
     point_=Point(point.x,point.y)
     return polygon.contains(point_)
 
+def calculate_dot_product(p1,p2):
+    return p1.x*p2.x+p1.y*p2.y
+
+def calculate_cross_product(p1,p2):
+    return abs(p1.x*p2.y-p1.y*p2.x)
+def is_near_free_edges(point,poly):
+    distance=float('inf')
+    for s in poly:
+        if s.isConstraint or s.isCornerhole:
+            continue
+        p1,p2=s.start_point,s.end_point
+        p=point
+        p2p1=DPoint(p1.x-p2.x,p1.y-p2.y)
+        p1p2=DPoint(p2.x-p1.x,p2.y-p1.y)
+        pp1=DPoint(p1.x-p.x,p1.y-p.y)
+        pp2=DPoint(p2.x-p.x,p2.y-p.y)
+        p1p=DPoint(p.x-p1.x,p.y-p1.y)
+        p2p=DPoint(p.x-p2.x,p.y-p2.y)
+
+        dis=float('inf')
+        if calculate_dot_product(p1p2,p1p)*calculate_dot_product(p2p1,p2p)<0:
+            dis=min(DSegment(point,s.start_point).length(),DSegment(point,s.end_point).length())
+        else:
+            dis=calculate_cross_product(p1p2,p1p)/(s.length()+1e-4)
+        if  dis <distance:
+            distance=dis
+    if distance<200:
+        return True
+    return False
+
 
 def stiffenersInPoly(stiffeners,poly,segmentation_config):
     # Define your polygon (list of vertices)
@@ -496,7 +526,7 @@ def textsInPoly(text_map,poly,segmentation_config,is_fb,polygon):
             break
     for t_t in ts:
         content=t_t[0].content.strip()
-        if ("FB" in content or "FL" in content) and has_f ==False and point_is_inside(t_t[1],polygon):
+        if ("FB" in content or "FL" in content) and has_f ==False and (point_is_inside(t_t[1],polygon) or is_near_free_edges(t_t[1],poly)):
             result=parse_elbow_plate(content, "bottom",is_fb)
             if result is None:
                 new_ts.append([t_t[0],t_t[1],{"Type":"None"},t_t[3]])
@@ -515,7 +545,7 @@ def textsInPoly(text_map,poly,segmentation_config,is_fb,polygon):
     ts=new_ts
     new_ts=[]
     for t_t in ts:
-        if t_t[2]["Type"]=="None" and (b_count==0 or fb_count==0) and point_is_inside(t_t[1],polygon):
+        if t_t[2]["Type"]=="None" and (b_count==0 or fb_count==0) and (point_is_inside(t_t[1],polygon) or is_near_free_edges(t_t[1],poly)):
             content=t_t[0].content.strip()
             if (content[0]=="$" or content[0]=="~" or content[0]=="&" or content[0]=="%" or content[0]=="#") and len(content)>1:
                 if b_count==0:
@@ -616,6 +646,8 @@ def match_r_anno(r_anno,free_edges):
                 if isinstance(s.ref,DArc):
                     center=DSegment(s.ref.start_point,s.ref.end_point).mid_point()
                     distance=DSegment(center,pos).length()
+                    if abs(result["Radius"]-abs(s.ref.radius))>10:
+                        continue
                     if distance>1000:
                         continue
                     if target is None:
@@ -653,7 +685,7 @@ def match_r_anno(r_anno,free_edges):
         s1,s2=pair
         if s1.ref is None or s1.ref.radius is None or s2.ref is None or s2.ref.radius is None:
             continue
-        if abs(s1.ref.radius-s2.ref.radius)>20:
+        if abs(s1.ref.radius-s2.ref.radius)>10:
             continue
         if s1 in r_map and s2 in r_map:
             continue
