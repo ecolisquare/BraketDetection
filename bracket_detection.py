@@ -361,8 +361,6 @@ def bracket_detection_withmutijson2(input_path, output_folder, multi_json_path, 
     # 0 时间戳
     s_time = datetime.datetime.now()
     progress = {
-        "epoch": 0,
-        "total_epoch": None,
         "status": "初始化",
         "start_precentage": 0,
         "end_percentage": 0,
@@ -748,7 +746,7 @@ def bracket_detection_add_withmutijson(input_path, output_folder, multi_json_pat
     
 
     #找出所有包含角隅孔圆弧的基本环
-    polys, new_segments, point_map,star_pos_map,cornor_holes,text_map,removed_handles=findClosedPolys_via_BFS(elements,texts,dimensions,segments,sign_handles,segmentation_config, progress_json_path, s_time)
+    polys, new_segments, point_map,star_pos_map,cornor_holes,text_map,removed_handles=findClosedPolys_via_BFS(elements,texts,dimensions,segments,sign_handles,segmentation_config, progress_json_path, s_time, 1, 1)
 
     # 9 时间戳
     progress = {
@@ -795,7 +793,7 @@ def bracket_detection_add_withmutijson(input_path, output_folder, multi_json_pat
   
     edges_infos,poly_centroids,hint_infos,meta_infos=diffusion_step(edges_infos,poly_centroids,hint_infos,meta_infos)
 
-    polys_info,classi_res,flags,all_json_data=classificationAndOutputStep(indices,edges_infos,poly_centroids,hint_infos,meta_infos,segmentation_config,polys,polyline_handles, progress_json_path, s_time)
+    polys_info,classi_res,flags,all_json_data=classificationAndOutputStep(indices,edges_infos,poly_centroids,hint_infos,meta_infos,segmentation_config,polys,polyline_handles, progress_json_path, s_time, 1, 1)
     
     # 13 时间戳
     progress = {
@@ -918,11 +916,9 @@ def bracket_dettection_eachbbox(segmentation_config,bb_poly_seg, input_path, out
     s_time = datetime.datetime.now()
     # 2 时间戳
     progress = {
-        "epoch": epoch,
-        "total_epoch": total_epoch,
-        "status": "初始化",
-        "start_precentage": 0,
-        "end_percentage": 0.2,
+        "status": f"初始化{epoch}/{total_epoch}",
+        "start_precentage": (epoch - 1) / total_epoch + 1 / total_epoch * 0,
+        "end_percentage": (epoch - 1) / total_epoch + 1 / total_epoch * 0.2,
         "percent": 0.3,
         "used_time":  (datetime.datetime.now() - s_time).total_seconds()
     }
@@ -949,11 +945,9 @@ def bracket_dettection_eachbbox(segmentation_config,bb_poly_seg, input_path, out
     
     # 3 时间戳
     progress = {
-        "epoch": epoch,
-        "total_epoch": total_epoch,
-        "status": "初始化",
-        "start_precentage": 0,
-        "end_percentage": 0.2,
+        "status": f"初始化{epoch}/{total_epoch}",
+        "start_precentage": (epoch - 1) / total_epoch + 1 / total_epoch * 0,
+        "end_percentage": (epoch - 1) / total_epoch + 1 / total_epoch * 0.2,
         "percent": 1,
         "used_time":  (datetime.datetime.now() - s_time).total_seconds()
     }
@@ -964,11 +958,9 @@ def bracket_dettection_eachbbox(segmentation_config,bb_poly_seg, input_path, out
 
     # 9 时间戳
     progress = {
-        "epoch": epoch,
-        "total_epoch": total_epoch,
-        "status": "信息抽取",
-        "start_precentage": 0.5,
-        "end_percentage": 0.7,
+        "status": f"信息抽取{epoch}/{total_epoch}",
+        "start_precentage": (epoch - 1) / total_epoch + 1 / total_epoch * 0.5,
+        "end_percentage": (epoch - 1) / total_epoch + 1 / total_epoch * 0.7,
         "percent": 0,
         "used_time":  (datetime.datetime.now() - s_time).total_seconds()
     }
@@ -982,11 +974,9 @@ def bracket_dettection_eachbbox(segmentation_config,bb_poly_seg, input_path, out
 
         # 10 动态时间戳
         progress = {
-            "epoch": epoch,
-            "total_epoch": total_epoch,
-            "status": "信息抽取",
-            "start_precentage": 0.5,
-            "end_percentage": 0.7,
+            "status": f"信息抽取{epoch}/{total_epoch}",
+            "start_precentage": (epoch - 1) / total_epoch + 1 / total_epoch * 0.5,
+            "end_percentage": (epoch - 1) / total_epoch + 1 / total_epoch * 0.7,
             "percent": 0 + (i / len(polys)) * 1,
             "used_time":  (datetime.datetime.now() - s_time).total_seconds()
         }
@@ -1015,11 +1005,9 @@ def bracket_dettection_eachbbox(segmentation_config,bb_poly_seg, input_path, out
     
     # 13 时间戳
     progress = {
-        "epoch": epoch,
-        "total_epoch": total_epoch,
-        "status": "后处理",
-        "start_precentage": 0.95,
-        "end_percentage": 1,
+        "status": f"后处理{epoch}/{total_epoch}",
+        "start_precentage": (epoch - 1) / total_epoch + 1 / total_epoch * 0.95,
+        "end_percentage": (epoch - 1) / total_epoch + 1 / total_epoch * 1,
         "percent": 0,
         "used_time":  (datetime.datetime.now() - s_time).total_seconds()
     }
@@ -1069,11 +1057,9 @@ def bracket_dettection_eachbbox(segmentation_config,bb_poly_seg, input_path, out
     
     # 14 时间戳
     progress = {
-        "epoch": epoch,
-        "total_epoch": total_epoch,
-        "status": "后处理",
-        "start_precentage": 0.95,
-        "end_percentage": 1,
+        "status": f"后处理{epoch}/{total_epoch}",
+        "start_precentage": (epoch - 1) / total_epoch + 1 / total_epoch * 0.95,
+        "end_percentage": (epoch - 1) / total_epoch + 1 / total_epoch * 1,
         "percent": 0.5,
         "used_time":  (datetime.datetime.now() - s_time).total_seconds()
     }
@@ -1085,11 +1071,9 @@ def bracket_dettection_eachbbox(segmentation_config,bb_poly_seg, input_path, out
 
     # 15 时间戳
     progress = {
-        "epoch": epoch,
-        "total_epoch": total_epoch,
-        "status": "后处理",
-        "start_precentage": 0.95,
-        "end_percentage": 1,
+        "status": f"后处理{epoch}/{total_epoch}",
+        "start_precentage": (epoch - 1) / total_epoch + 1 / total_epoch * 0.95,
+        "end_percentage": (epoch - 1) / total_epoch + 1 / total_epoch * 1,
         "percent": 1,
         "used_time":  (datetime.datetime.now() - s_time).total_seconds()
     }

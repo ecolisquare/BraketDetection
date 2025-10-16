@@ -5241,11 +5241,9 @@ def classificationAndOutputStep(indices,edges_infos,poly_centroids,hint_infos,me
     # 11 时间戳
     if progress_json_path != None:
         progress = {
-            "epoch": epoch,
-            "total_epoch": total_epoch,
-            "status": "肘板分类及输出",
-            "start_precentage": 0.7,
-            "end_percentage": 0.95,
+            "status": f"肘板分类及输出{epoch}/{total_epoch}",
+            "start_precentage": (epoch - 1) / total_epoch + 1 / total_epoch * 0.7,
+            "end_percentage": (epoch - 1) / total_epoch + 1 / total_epoch * 0.95,
             "percent": 0,
             "used_time": (datetime.datetime.now() - s_time).total_seconds()
         }
@@ -5263,11 +5261,9 @@ def classificationAndOutputStep(indices,edges_infos,poly_centroids,hint_infos,me
         # 12 动态时间戳
         if progress_json_path != None:
             progress = {
-                "epoch": epoch,
-                "total_epoch": total_epoch,
-                "status": "肘板分类及输出",
-                "start_precentage": 0.7,
-                "end_percentage": 0.95,
+                "status": f"肘板分类及输出{epoch}/{total_epoch}",
+                "start_precentage": (epoch - 1) / total_epoch + 1 / total_epoch * 0.7,
+                "end_percentage": (epoch - 1) / total_epoch + 1 / total_epoch * 0.95,
                 "percent": 0 + (i / len(indices)) * 1,
                 "used_time":  (datetime.datetime.now() - s_time).total_seconds()
             }

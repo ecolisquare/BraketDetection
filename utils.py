@@ -3953,11 +3953,9 @@ def findClosedPolys_via_BFS(elements,texts,dimensions,segments,sign_handles,segm
     if progress_json_path != None:
         # 4 时间戳
         progress = {
-            "epoch": epoch,
-            "total_epoch": total_epoch,
-            "status": "回路探查",
-            "start_precentage": 0.2,
-            "end_percentage": 0.5,
+            "status": f"回路探查{epoch}/{total_epoch}",
+            "start_precentage": (epoch - 1) / total_epoch + 1 / total_epoch * 0.2,
+            "end_percentage": (epoch - 1) / total_epoch + 1 / total_epoch * 0.5,
             "percent": 0,
             "used_time":  (datetime.datetime.now() - s_time).total_seconds()
         }
@@ -3968,11 +3966,9 @@ def findClosedPolys_via_BFS(elements,texts,dimensions,segments,sign_handles,segm
     if progress_json_path != None:
         # 5 时间戳
         progress = {
-            "epoch": epoch,
-            "total_epoch": total_epoch,
-            "status": "回路探查",
-            "start_precentage": 0.2,
-            "end_percentage": 0.5,
+            "status": f"回路探查{epoch}/{total_epoch}",
+            "start_precentage": (epoch - 1) / total_epoch + 1 / total_epoch * 0.2,
+            "end_percentage": (epoch - 1) / total_epoch + 1 / total_epoch * 0.5,
             "percent": 0.2,
             "used_time":  (datetime.datetime.now() - s_time).total_seconds()
         }
@@ -4019,11 +4015,9 @@ def findClosedPolys_via_BFS(elements,texts,dimensions,segments,sign_handles,segm
     if progress_json_path != None:
     # 6 时间戳
         progress = {
-            "epoch": epoch,
-            "total_epoch": total_epoch,
-            "status": "回路探查",
-            "start_precentage": 0.2,
-            "end_percentage": 0.5,
+            "status": f"回路探查{epoch}/{total_epoch}",
+            "start_precentage": (epoch - 1) / total_epoch + 1 / total_epoch * 0.2,
+            "end_percentage": (epoch - 1) / total_epoch + 1 / total_epoch * 0.5,
             "percent": 0.5,
             "used_time": (datetime.datetime.now() - s_time).total_seconds()
         }
@@ -4156,11 +4150,9 @@ def findClosedPolys_via_BFS(elements,texts,dimensions,segments,sign_handles,segm
         # 7 动态时间戳
         if progress_json_path != None:
             progress = {
-                "epoch": epoch,
-                "total_epoch": total_epoch,
-                "status": "回路探查",
-                "start_precentage": 0.2,
-                "end_percentage": 0.5,
+                "status": f"回路探查{epoch}/{total_epoch}",
+                "start_precentage": (epoch - 1) / total_epoch + 1 / total_epoch * 0.2,
+                "end_percentage": (epoch - 1) / total_epoch + 1 / total_epoch * 0.5,
                 "percent": 0.5 + (i / len(sampled_lines)) * 0.2,
                 "used_time":  (datetime.datetime.now() - s_time).total_seconds()
             }
@@ -4192,11 +4184,9 @@ def findClosedPolys_via_BFS(elements,texts,dimensions,segments,sign_handles,segm
         # 7 动态时间戳
         if progress_json_path != None:
             progress = {
-                "epoch": epoch,
-                "total_epoch": total_epoch,
-                "status": "回路探查",
-                "start_precentage": 0.2,
-                "end_percentage": 0.5,
+                "status": f"回路探查{epoch}/{total_epoch}",
+                "start_precentage": (epoch - 1) / total_epoch + 1 / total_epoch * 0.2,
+                "end_percentage": (epoch - 1) / total_epoch + 1 / total_epoch * 0.5,
                 "percent": 0.7 + (i / len(sampled_lines)) * 0.2,
                 "used_time":  (datetime.datetime.now() - s_time).total_seconds()
             }
@@ -4279,11 +4269,9 @@ def findClosedPolys_via_BFS(elements,texts,dimensions,segments,sign_handles,segm
     # 8 时间戳
     if progress_json_path != None:
         progress = {
-            "epoch": epoch,
-            "total_epoch": total_epoch,
-            "status": "回路探查",
-            "start_precentage": 0.2,
-            "end_percentage": 0.5,
+            "status": f"回路探查{epoch}/{total_epoch}",
+            "start_precentage": (epoch - 1) / total_epoch + 1 / total_epoch * 0.2,
+            "end_percentage": (epoch - 1) / total_epoch + 1 / total_epoch * 0.5,
             "percent": 1,
             "used_time":  (datetime.datetime.now() - s_time).total_seconds()
         }
