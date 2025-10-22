@@ -591,12 +591,67 @@ def convertCircle(entity : ezdxf.entities.Circle):
     return mid
   
 def convertText(entity: ezdxf.entities.Text):
+    insert_point = [entity.dxf.insert[0], entity.dxf.insert[1]]
+    x = insert_point[0]
+    y = insert_point[1]
+    c_height = entity.dxf.height
+    c_width = c_height * entity.dxf.width
+    rotation = entity.dxf.rotation
+    flag = int(entity.dxf.text_generation_flag) if entity.dxf.hasattr("text_generation_flag") else 0
+    mirrored_x = bool(flag & 2)  # 左右反向
+    mirrored_y = bool(flag & 4)  # 上下倒置
+    halign = entity.dxf.halign
+    valign = entity.dxf.valign
+    theta = math.radians(rotation)
+    content = entity.dxf.text
+    width = len(content) * c_width
+
+    dx, dy = 0, 0
+
+    # 水平对齐
+    if halign == 4:
+        dx = -width / 2
+    elif halign == 2:
+        dx = -width
+
+    # 垂直对齐
+    if valign == 3:
+        dy = -c_height
+    elif valign == 2:
+        dy = -c_height / 2
+
+    # 四个角点（局部坐标）
+    local_corners = [
+        (dx, dy),                  # 左下
+        (dx + width, dy),          # 右下
+        (dx + width, dy + c_height), # 右上
+        (dx, dy + c_height)          # 左上
+    ]
+
+    if mirrored_x:
+        local_corners = [(-cx, cy) for cx, cy in local_corners]
+    if mirrored_y:
+        local_corners = [(cx, -cy) for cx, cy in local_corners]
+    
+    world_corners = []
+    for cx, cy in local_corners:
+        wx = x + cx * math.cos(theta) - cy * math.sin(theta)
+        wy = y + cx * math.sin(theta) + cy * math.cos(theta)
+        world_corners.append((wx, wy))
+
+
     mid = convertEntity('text',entity)
-    mid['insert'] = [entity.dxf.insert[0],entity.dxf.insert[1]]
-    mid['content'] = entity.dxf.text
-    mid['height'] = entity.dxf.height
-    mid['rotation'] = entity.dxf.rotation
+    mid['insert'] = insert_point
+    mid['content'] = content
+    mid['height'] = c_height
+    mid['rotation'] = rotation
     mid['width'] = entity.dxf.width
+    mid['bound'] = {
+        'x1': min(p[0] for p in world_corners),
+        'x2': max(p[0] for p in world_corners),
+        'y1': min(p[1] for p in world_corners),
+        'y2': max(p[1] for p in world_corners)
+    }
     return mid
 
 def convertLine(doc, entity:ezdxf.entities.LineEdge):
@@ -782,12 +837,73 @@ def convertInsert(entity:ezdxf.entities.Insert, block_list):
     return mid, block_list
 
 def convertMText(entity:ezdxf.entities.MText):
-    mid = convertEntity('mtext',entity)
-    mid['insert'] = [entity.dxf.insert[0],entity.dxf.insert[1]]
-    mid['width'] = entity.dxf.width
-    mid['text'] = entity.dxf.text
-    mid['rotation']=entity.dxf.rotation
-    return mid
+    text_content = entity.dxf.text
+    text_content = text_content.replace('\P','\n')
+    lines =text_content.split('\n')
+
+    base_point = entity.dxf.insert
+    c_height = entity.dxf.char_height
+    c_width = c_height * 0.8
+    width = entity.dxf.width
+    rotation = entity.dxf.rotation
+    line_spacing = entity.dxf.line_spacing_factor if entity.dxf.hasattr("line_spacing_factor") else 1.0
+    attach = entity.dxf.attachment_point
+
+    # 文本高度
+    n_lines = len(lines)
+    rect_height = c_height * (1.0 + (n_lines - 1) * line_spacing)
+
+    # 文本宽度
+    rect_width = 0.0
+    for line in lines:
+        rect_width = max(rect_width, c_width * len(line))
+    
+    # 计算整体左上角基准点
+    if attach in (1, 4, 7):
+        base_dx = 0
+    elif attach in (2, 5, 8):
+        base_dx = -rect_width / 2
+    else:
+        base_dx = -rect_width
+    
+    if attach in (1, 2, 3):
+        base_dy = 0
+    elif attach in (4, 5, 6):
+        base_dy = rect_height / 2
+    else:
+        base_dy = rect_height
+    
+    base_top_left = [base_point[0] + base_dx, base_point[1] + base_dy]
+
+    # 构建每一行text
+    mids = []
+    for i, line in enumerate(lines):
+        y_offset = -i * c_height * line_spacing * 5 / 3 - c_height
+        line_width = len(line) * c_width
+        if attach in (1, 4, 7):
+            x_offset = 0
+        elif attach in (2, 5, 8):
+            x_offset = (rect_width - line_width) / 2
+        else:
+            x_offset = rect_width - line_width
+        
+        insert_point = [base_top_left[0] + x_offset, base_top_left[1] + y_offset]
+
+        mid = convertEntity('text', entity)
+        mid['insert'] = insert_point
+        mid['content'] = line
+        mid['height'] = c_height
+        mid['rotation'] = 0
+        mid['width'] = 0.8
+        mid['bound'] = {
+            'x1': insert_point[0],
+            'x2': insert_point[0] + line_width,
+            'y1': insert_point[1],
+            'y2': insert_point[1] + c_height
+            }
+        mids.append(mid)
+
+    return mids
 
 def convertEllipse(entity:ezdxf.entities.Ellipse):
     mid = convertEntity('ellipse',entity)
@@ -977,7 +1093,10 @@ def convertBlocks(doc, block_list):
                 # print(f'Block中遇到了未见过的类型 {e.dxftype()} ')
                 continue
             if(j is not None):
-                res.append(j)
+                if isinstance(j, list):
+                    res.extend(j)
+                else:
+                    res.append(j)
         
         block_info[block_name] = res
 
@@ -1084,7 +1203,10 @@ def dxf2json(dxfpath,dxfname,output_folder):
             print(e)
 
         if(j is not None):
-            res.append(j)
+            if isinstance(j, list):
+                res.extend(j)
+            else:
+                res.append(j)
 
 
     blocks = convertBlocks(doc, block_list)
