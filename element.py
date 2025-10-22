@@ -276,10 +276,10 @@ class DText(DElement):
         self.width=width
         self.k= k if k>0 else max(len(content),1)
         if is_mtext:
-            new_bound={"x1":self.insert.x,"x2":self.insert.x,"y1":self.insert.y,"y2":self.insert.y}
-            self.bound=new_bound
+            bound={"x1":self.insert.x,"x2":self.insert.x,"y1":self.insert.y,"y2":self.insert.y}
+            self.bound=bound
         else:
-            self.bound=new_bound
+            self.bound=bound
     def __repr__(self):  
         return f"Text({self.insert}, color:{self.color},content:{self.content},height:{self.height},handle:{self.handle})"
 
