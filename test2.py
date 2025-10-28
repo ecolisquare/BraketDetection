@@ -7,7 +7,67 @@ import os
 from plot_geo import *
 from draw_dxf import *
 from config import *
+from shapely.geometry import Polygon, LineString, MultiPolygon
+from shapely.ops import unary_union
+from typing import List
 
+def merge_polygons(polys: List[List[DSegment]]) -> List[List[DSegment]]:
+
+    shapely_polygons = []
+    
+    # 将 DSegment 数组转换为 shapely 的 Polygon 或 LineString
+    for polygon_segments in polys:
+        points = []
+        for segment in polygon_segments:
+            points.append((segment.start_point.x, segment.start_point.y))
+        # 确保多边形是闭合的（首尾点相同）
+        if len(points) > 1 and (points[0][0] != points[-1][0] or points[0][1] != points[-1][1]):
+            points.append((points[0][0], points[0][1]))
+        
+        # 创建 shapely Polygon
+        try:
+            shapely_poly = Polygon(points)
+            if shapely_poly.is_valid:
+                shapely_polygons.append(shapely_poly)
+            else:
+                # 尝试修复无效多边形
+                shapely_poly = shapely_poly.buffer(0)
+                if shapely_poly.is_valid:
+                    shapely_polygons.append(shapely_poly)
+        except Exception as e:
+            print(f"Warning: Failed to create polygon from segments: {e}")
+    
+    if not shapely_polygons:
+        return []
+    
+    # 合并多边形
+    merged = unary_union(shapely_polygons)
+    
+    # 处理合并后的结果（可能是 MultiPolygon 或 Polygon）
+    result_polys = []
+    
+    # 检查是否是 MultiPolygon 或 Polygon
+    if isinstance(merged, MultiPolygon):
+        # 遍历 MultiPolygon 中的每个 Polygon
+        for poly in merged.geoms:  # 使用 .geoms 访问 MultiPolygon 中的各个 Polygon
+            segments = []
+            coords = list(poly.exterior.coords)
+            for i in range(len(coords) - 1):
+                start = DPoint(coords[i][0], coords[i][1])
+                end = DPoint(coords[i + 1][0], coords[i + 1][1])
+                segments.append(DSegment(start, end))
+            result_polys.append(segments)
+    elif isinstance(merged, Polygon):
+        # 如果是单个 Polygon，直接处理
+        segments = []
+        coords = list(merged.exterior.coords)
+        for i in range(len(coords) - 1):
+            start = DPoint(coords[i][0], coords[i][1])
+            end = DPoint(coords[i + 1][0], coords[i + 1][1])
+            segments.append(DSegment(start, end))
+        result_polys.append(segments)
+    
+    return result_polys
 # 读取指定图层bbox
 def get_bbox(json_path, bracket_layer_color = 30, bracket_layer_name = "Bracket"):
     texts=[]
@@ -59,7 +119,7 @@ def get_bbox(json_path, bracket_layer_color = 30, bracket_layer_name = "Bracket"
     except json.JSONDecodeError:  
         print("Error decoding JSON.")
     
-    return polys
+    return merge_polygons(polys)
 def output_training_data(polys, training_data_output_folder, name):
     # 如果输出文件夹不存在，则创建
     os.makedirs(training_data_output_folder, exist_ok=True)
@@ -158,6 +218,7 @@ def process_json_data(json_path, output_path, training_data_output_folder, train
     not_all_handles_=[]
     removed_handles_=[]
     delete_bracket_ids_=[]
+    base=0
     for bb_poly_seg in bb_polys_seg:
         elements,segments,ori_segments,stiffeners,sign_handles,polyline_handles,hatch_polys,jg_s=readJson_inbbpolys(json_path,segmentation_config, [bb_poly_seg])
         if len(ori_segments)==0:
@@ -209,7 +270,7 @@ def process_json_data(json_path, output_path, training_data_output_folder, train
             # print(len(segments_nearby))
             try:
                 segments_nearby=ori_block.segments_near_poly(poly)
-                res = calculate_poly_features(poly, segments_nearby, segmentation_config, point_map, i, star_pos_map, cornor_holes,texts,dimensions,text_map,stiffeners,hatch_polys,hole_polys,jg_s)
+                res = calculate_poly_features(poly, segments_nearby, segmentation_config, point_map, i, star_pos_map, cornor_holes,texts,dimensions,text_map,stiffeners,hatch_polys,hole_polys,jg_s,base=base)
             except Exception as e:
                 res=None
         
@@ -228,7 +289,7 @@ def process_json_data(json_path, output_path, training_data_output_folder, train
         edges_infos,poly_centroids,hint_infos,meta_infos=hint_search_step(edges_infos,poly_centroids,hint_infos,meta_infos,code_map)
         edges_infos,poly_centroids,hint_infos,meta_infos=diffusion_step(edges_infos,poly_centroids,hint_infos,meta_infos)
 
-        polys_info,classi_res,flags,all_json_data=classificationAndOutputStep(indices,edges_infos,poly_centroids,hint_infos,meta_infos,segmentation_config,polys,polyline_handles)
+        polys_info,classi_res,flags,all_json_data=classificationAndOutputStep(indices,edges_infos,poly_centroids,hint_infos,meta_infos,segmentation_config,polys,polyline_handles,base=base)
         
         # 获得需要去重肘板的id
         delete_bracket_ids = find_dump_bracket_ids(polys_info, classi_res, indices)
@@ -277,10 +338,13 @@ def process_json_data(json_path, output_path, training_data_output_folder, train
             if cls=='Unclassified' or cls=='Unstandard'  or ',' in cls  or 'ustd' in cls:
                 continue
             actual_bboxs.append((min_x-20,max_x+20,min_y-20,max_y+20))
+        t=0
+        if len(indices)>0:
+            t=indices[-1]
         for i,index in enumerate(indices):
-            indices[i]=indices[i]+len(indices_)
+            indices[i]=indices[i]+base
         for i,index in enumerate(delete_bracket_ids):
-            delete_bracket_ids[i]+=len(indices_)
+            delete_bracket_ids[i]+=base
         bboxs_.extend(bboxs)
         classi_res_.extend(classi_res)
         indices_.extend(indices)
@@ -290,6 +354,8 @@ def process_json_data(json_path, output_path, training_data_output_folder, train
         not_all_handles_.extend(not_all_handles)
         removed_handles_.extend(removed_handles)
         delete_bracket_ids_.extend(delete_bracket_ids)
+        if len(indices)>0:
+            base=base+t+1
     dxf_path = os.path.splitext(segmentation_config.json_path)[0] + '.dxf'
     dxf_output_folder = segmentation_config.dxf_output_folder
     draw_rectangle_in_dxf(dxf_path, dxf_output_folder, bboxs_, classi_res_,indices_,free_edge_handles_,non_free_edge_handles_,all_handles_,not_all_handles_,removed_handles_,delete_bracket_ids_)
@@ -300,3 +366,4 @@ if __name__ == '__main__':
     training_data_output_folder = "./DGCNN/data_folder"
     training_img_output_folder = "./training_img"
     process_json_files(folder_path, output_folder, training_data_output_folder, training_img_output_folder)
+

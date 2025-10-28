@@ -15,7 +15,67 @@ from load import dxf2json
 import json
 import datetime
 
+from shapely.geometry import Polygon, LineString, MultiPolygon
+from shapely.ops import unary_union
+from typing import List
 
+def merge_polygons(polys: List[List[DSegment]]) -> List[List[DSegment]]:
+
+    shapely_polygons = []
+    
+    # 将 DSegment 数组转换为 shapely 的 Polygon 或 LineString
+    for polygon_segments in polys:
+        points = []
+        for segment in polygon_segments:
+            points.append((segment.start_point.x, segment.start_point.y))
+        # 确保多边形是闭合的（首尾点相同）
+        if len(points) > 1 and (points[0][0] != points[-1][0] or points[0][1] != points[-1][1]):
+            points.append((points[0][0], points[0][1]))
+        
+        # 创建 shapely Polygon
+        try:
+            shapely_poly = Polygon(points)
+            if shapely_poly.is_valid:
+                shapely_polygons.append(shapely_poly)
+            else:
+                # 尝试修复无效多边形
+                shapely_poly = shapely_poly.buffer(0)
+                if shapely_poly.is_valid:
+                    shapely_polygons.append(shapely_poly)
+        except Exception as e:
+            print(f"Warning: Failed to create polygon from segments: {e}")
+    
+    if not shapely_polygons:
+        return []
+    
+    # 合并多边形
+    merged = unary_union(shapely_polygons)
+    
+    # 处理合并后的结果（可能是 MultiPolygon 或 Polygon）
+    result_polys = []
+    
+    # 检查是否是 MultiPolygon 或 Polygon
+    if isinstance(merged, MultiPolygon):
+        # 遍历 MultiPolygon 中的每个 Polygon
+        for poly in merged.geoms:  # 使用 .geoms 访问 MultiPolygon 中的各个 Polygon
+            segments = []
+            coords = list(poly.exterior.coords)
+            for i in range(len(coords) - 1):
+                start = DPoint(coords[i][0], coords[i][1])
+                end = DPoint(coords[i + 1][0], coords[i + 1][1])
+                segments.append(DSegment(start, end))
+            result_polys.append(segments)
+    elif isinstance(merged, Polygon):
+        # 如果是单个 Polygon，直接处理
+        segments = []
+        coords = list(merged.exterior.coords)
+        for i in range(len(coords) - 1):
+            start = DPoint(coords[i][0], coords[i][1])
+            end = DPoint(coords[i + 1][0], coords[i + 1][1])
+            segments.append(DSegment(start, end))
+        result_polys.append(segments)
+    
+    return result_polys
 def bracket_detection(input_path, output_folder, config_path = None):
     segmentation_config=SegmentationConfig()
     verbose=segmentation_config.verbose
@@ -415,10 +475,13 @@ def bracket_detection_withmutijson2(input_path, output_folder, multi_json_path, 
     base=0
     for bb_poly_seg in bb_polys_seg:
         split_bbox, split_all_json_data,bboxs, classi_res,indices,free_edge_handles,non_free_edge_handles,all_handles,not_all_handles,removed_handles,delete_bracket_ids = bracket_dettection_eachbbox(segmentation_config,bb_poly_seg, input_path, output_folder, multi_json_path, epoch,total_epoch, json_path, progress_json_path = progress_json_path,base=base)
+        t=0
+        if len(indices)>0:
+            t=indices[-1]
         for i,index in enumerate(indices):
-            indices[i]=indices[i]+len(indices_)
+            indices[i]=indices[i]+base
         for i,index in enumerate(delete_bracket_ids):
-            delete_bracket_ids[i]+=len(indices_)
+            delete_bracket_ids[i]+=base
         bboxs_.extend(bboxs)
         classi_res_.extend(classi_res)
         indices_.extend(indices)
@@ -431,7 +494,7 @@ def bracket_detection_withmutijson2(input_path, output_folder, multi_json_path, 
         bbox.extend(split_bbox)
         all_json_data.extend(split_all_json_data)
         if len(indices)>0:
-            base=base+indices[-1]+1
+            base=base+t+1
         epoch = epoch + 1
     
     dxf_path = os.path.splitext(segmentation_config.json_path)[0] + '.dxf'
@@ -1187,4 +1250,4 @@ def get_bbox(json_path, bracket_layer_color = 30, bracket_layer_name = "结构AI
     except json.JSONDecodeError:  
         print("Error decoding JSON.")
     
-    return polys
+    return merge_polygons(polys)
