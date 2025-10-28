@@ -5362,18 +5362,28 @@ def classificationAndOutputStep(indices,edges_infos,poly_centroids,hint_infos,me
 def get_copy_info(poly_c, copy_poly_dic):
     poumian_name = None
     poumian_copy_time = 1
+    min_area = float("inf")
+
+    center = Point(poly_c[0], poly_c[1])
+
     for poly_co in copy_poly_dic:
         poly_co_dic = ast.literal_eval(poly_co)
         x1 = poly_co_dic["x1"]
         x2 = poly_co_dic["x2"]
         y1 = poly_co_dic["y1"]
         y2 = poly_co_dic["y2"]
-        poutu_poly = [[x1, y1], [x2, y1], [x2, y2],[x1, y2]]
-        center = Point(poly_c[0], poly_c[1])
+        poutu_poly = [[x1, y1], [x2, y1], [x2, y2], [x1, y2]]
         poutu_polygon = Polygon(poutu_poly)
+
         if center.within(poutu_polygon):
-            poumian_name = copy_poly_dic[poly_co]["主图标题"]
-            poumian_copy_time = copy_poly_dic[poly_co]["剖切符号调用次数"] + copy_poly_dic[poly_co]["副标题调用次数"] + 1
-            return poumian_name, poumian_copy_time
-    
+            area = poutu_polygon.area
+            if area < min_area:
+                min_area = area
+                poumian_name = copy_poly_dic[poly_co]["主图标题"]
+                poumian_copy_time = (
+                    copy_poly_dic[poly_co]["剖切符号调用次数"]
+                    + copy_poly_dic[poly_co]["副标题调用次数"]
+                    + 1
+                )
+
     return poumian_name, poumian_copy_time
