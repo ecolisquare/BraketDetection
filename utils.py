@@ -46,7 +46,7 @@ def create_folder_safe(folder_path):
     
     # 如果.old文件夹已存在，添加时间戳
     if os.path.exists(old_folder_path):
-        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
         old_folder_path = f"{folder_path}.old_{timestamp}"
     
     try:
