@@ -763,12 +763,16 @@ def is_vertical_(point1,point2,segment,epsilon=0.05):
     return False 
 
 def is_toe(free_edge,last_free_edge,cons_edge,max_free_edge_length):
+    if free_edge is None or last_free_edge is None or cons_edge is None:
+        return False
     if last_free_edge is not None and isinstance(last_free_edge.ref,DArc) and is_tangent_(free_edge,last_free_edge):
         return False
     if (free_edge.length()<56 or free_edge.length()<=0.105*max_free_edge_length) and is_vertical_(free_edge.start_point,free_edge.end_point,cons_edge,epsilon=0.1):
         return True
     return False
 def is_ks_corner(free_edge,last_free_edge,cons_edge,max_free_edge_length):
+    if free_edge is None or last_free_edge is None or cons_edge is None:
+        return False
     if (not is_toe(free_edge,last_free_edge,cons_edge,max_free_edge_length)) and (not is_vertical_(free_edge.start_point,free_edge.end_point,cons_edge,epsilon=0.1)) and isinstance(last_free_edge.ref,DLine) and free_edge.length() <= 100:
         return True
     return False
@@ -5354,8 +5358,14 @@ def classificationAndOutputStep(indices,edges_infos,poly_centroids,hint_infos,me
     #     log_to_file("./output/class_not_included.txt",name)
     # for name ,count in class_count.items():
     #     log_to_file("./output/class_included.txt",name+"  "+str(count))
-    if segmentation_config.mode=="dev":
-        outputHints(meta_hints,size_hints,segmentation_config.dxf_output_folder)
+    
+    
+    # if segmentation_config.mode=="dev":
+    #     outputHints(meta_hints,size_hints,segmentation_config.dxf_output_folder)
+    
+    
+    
+    outputHints(meta_hints,size_hints,segmentation_config.dxf_output_folder)
     return poly_infos,types,flags, all_json_data
 
 

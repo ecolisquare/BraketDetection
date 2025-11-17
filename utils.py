@@ -17,7 +17,16 @@ from bracket_parameter_extraction import *
 from shapely.geometry import Polygon,Point
 import shutil
 from datetime import datetime
+def is_valid_str(s):
+    pattern=r'^[a-zA-Z0-9_\- ]+$'
+    if bool(re.match(pattern,s)):
+        return True
+    else:
+        if s in ['可识别开孔','可识别贯穿孔']:
 
+            return True
+        else:
+            return False
 def log_progress(progress_file_path, progress):
     with open(progress_file_path, "w") as f:
         progress["start_precentage"] *= 100
@@ -1242,6 +1251,18 @@ def readJson(path,segmentation_config):
     try:  
         with open(path, 'r', encoding='utf-8') as file:  
             data_list = json.load(file)
+        layers=set()
+        for ele in data_list[0]:
+            layers.add(ele['layerName'])
+        layers=list(layers)
+        invalid_layers=[layer for layer in layers if not is_valid_str(layer)]
+        invalid_set=set()
+        for l in segmentation_config.remove_layername:
+            invalid_set.add(l)
+        for l in invalid_layers:
+            invalid_set.add(l)
+        segmentation_config.remove_layername=list(invalid_set)
+
         block_datas=data_list[1]
         elements,segments,arc_splits,ori_segments,stiffeners=process_block(False,block_datas,"TOP",[1.0,1.0],0,[0,0],"CONTINUOUS",[],{"x1":float("-inf"),"x2":float("inf"),"y1":float("-inf"),"y2":float("inf")},data_list[0],segmentation_config)
         new_segments=[]
@@ -4382,6 +4403,20 @@ def readJson_inbbpolys(path,segmentation_config, bb_polys):
             data_list = json.load(file)
 
         block_datas=data_list[1]
+
+        layers=set()
+        for ele in data_list[0]:
+            layers.add(ele['layerName'])
+        layers=list(layers)
+        invalid_layers=[layer for layer in layers if not is_valid_str(layer)]
+        invalid_set=set()
+        for l in segmentation_config.remove_layername:
+            invalid_set.add(l)
+        for l in invalid_layers:
+            invalid_set.add(l)
+        segmentation_config.remove_layername=list(invalid_set)
+
+
 
         # 对data_list[0]中的元素根据bb_polys进行过滤
         data_list_filtered = []

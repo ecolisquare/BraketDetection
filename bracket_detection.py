@@ -48,6 +48,7 @@ def merge_polygons(polys: List[List[DSegment]]) -> List[List[DSegment]]:
     if not shapely_polygons:
         return []
     
+    shapely_polygons=[poly.buffer(5) for poly in shapely_polygons]
     # 合并多边形
     merged = unary_union(shapely_polygons)
     
