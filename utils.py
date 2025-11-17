@@ -20,6 +20,9 @@ from datetime import datetime
 
 def log_progress(progress_file_path, progress):
     with open(progress_file_path, "w") as f:
+        progress["start_precentage"] *= 100
+        progress["end_precentage"] *= 100
+        progress["percent"] *= 100
         json.dump(progress, f)
 
 def create_folder_safe(folder_path):
