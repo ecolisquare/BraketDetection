@@ -246,12 +246,16 @@ def is_tangent_(line,arc):
         return is_vertical_(v1,v2,s2,0.1)
     return True
 def is_toe(free_edge,last_free_edge,cons_edge,max_free_edge_length):
+    if free_edge is None or last_free_edge is None or cons_edge is None:
+        return False
     if last_free_edge is not None and isinstance(last_free_edge.ref,DArc) and is_tangent_(free_edge,last_free_edge):
         return False
     if (free_edge.length()<56 or free_edge.length()<=0.105*max_free_edge_length) and is_vertical_(free_edge.start_point,free_edge.end_point,cons_edge,epsilon=0.1):
         return True
     return False
 def is_ks_corner(free_edge,last_free_edge,cons_edge,max_free_edge_length):
+    if free_edge is None or last_free_edge is None or cons_edge is None:
+        return False
     if (not is_toe(free_edge,last_free_edge,cons_edge,max_free_edge_length)) and (not is_vertical_(free_edge.start_point,free_edge.end_point,cons_edge,epsilon=0.1)) and isinstance(last_free_edge.ref,DLine) and free_edge.length() <= 100:
         return True
     return False
